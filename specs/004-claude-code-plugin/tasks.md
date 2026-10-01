@@ -203,7 +203,7 @@ calls stops right after the 4th, with the reason shown.
     - `hook tool` calls uvx online only after the offline call failed, and only once;
     - `status` with the fake's offline `--version` check succeeding and the command exiting 2: one real call, and exit code 2 passed through;
     - with `LOOPBRAKE_CMD` set to the launcher's own path, `hook stop` exits 0 at once, and `status` exits 2 with the loop message.
-- [ ] T015 [US1] Manual: run quickstart scenarios 2–5 (local install with `LOOPBRAKE_CMD`, live stop, watch-only, failures) and `claude plugin validate .` and `claude plugin validate ./plugin`.
+- [X] T015 [US1] Manual: run quickstart scenarios 2–5 (local install with `LOOPBRAKE_CMD`, live stop, watch-only, failures) and `claude plugin validate .` and `claude plugin validate ./plugin`.
   - **Two unknowns from research R3**, read from the run log after a live stop:
     - does a `Stop` event follow the stop (is there a `run_end` before your next prompt)?
     - does a slash command such as `/loopbrake:status` fire `UserPromptSubmit` (does a new `run_start` appear)?
@@ -424,8 +424,17 @@ builder's go-ahead.
   - Re-run if code changes after T030.
 - **T029**: 148 passed, 1 skipped (`claude-agent-sdk` not installed); with the extra,
   `tests/test_agent_sdk.py` passes 4 of 4.
+- **T015, by the builder in an interactive session** (2026-10-02, `claude --plugin-dir plugin` in the
+  Project Building folder, `LOOPBRAKE_CMD` set to this checkout):
+  - `/loopbrake:calibrate` gave a stop line of 59 steps from 53 successful turns;
+  - a turn asked for 70 `echo hi` calls was stopped right after the 60th, and the reason showed on
+    screen: "PostToolUse:Bash hook stopped continuation: LoopBrake stopped at step 60: past the stop
+    line of 59 steps set from your 53 past successful turns (α 5%); repeating in 5 of last 5 steps
+    (similar to step 59). If this stop was wrong, run /loopbrake:mistake." (SC-005);
+  - `/loopbrake:status` showed 1 stop, 3 turns watched of 4 recorded;
+  - `/loopbrake:mistake` with no stop yet answered "no stops recorded yet".
+  - The marketplace install route is checked at T033.
 - **Left for the builder**:
-  - T015 (local marketplace install, and the stop reason seen in an interactive session);
   - T021 (the commands in two real projects);
   - T024 (the status line in your settings);
   - T030 (a week of use, then `loopbrake agreement --claude-code`);
