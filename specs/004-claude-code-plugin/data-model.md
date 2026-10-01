@@ -62,7 +62,7 @@ next turn, not this one.
 |---|---|
 | History folder | `$CLAUDE_CONFIG_DIR/projects/<slug>` (default `~/.claude/projects/<slug>`); slug = the working folder with every non-letter, non-digit character replaced by `-` |
 | In hooks | `Path(transcript_path).parent` |
-| Name | `cc-` + last 40 characters of the folder name (leading `-` removed) + `-` + first 6 hex characters of sha256(folder name) |
+| Name | `cc-` + last 40 characters of the folder name (with `-` trimmed from both ends of that cut) + `-` + first 6 hex characters of sha256(folder name) |
 
 Valid under Phase 2's rule `[A-Za-z0-9._-]{1,64}`. Two folders with the same name in different
 places get different names.

@@ -19,7 +19,9 @@ def test_history_folder(home, tmp_path):
 
 
 def test_project_name():
-    assert claude_code.project_name("-home-me-my-app-") == "cc-home-me-my-app--c57a41"
+    assert claude_code.project_name("-home-me-my-app-") == "cc-home-me-my-app-c57a41"
+    cut_on_a_dash = "-home-q-" + "b" * 39  # its last 40 characters start with "-"
+    assert claude_code.project_name(cut_on_a_dash).startswith("cc-" + "b" * 39 + "-")  # no "--" after the cut
     long_a, long_b = "-a" + "-x" * 40 + "-same-tail-of-forty-characters-here", "-b" + "-x" * 40 + "-same-tail-of-forty-characters-here"
     names = {claude_code.project_name(long_a), claude_code.project_name(long_b)}
     assert len(names) == 2
@@ -310,3 +312,16 @@ def test_agreement_passes_when_live_is_never_higher(home, tmp_path, monkeypatch)
     assert higher == 0 and lines == ["turns matched 2, equal 1, live lower 1, live higher 0"]
     monkeypatch.chdir(cwd)
     assert cli.main(["agreement", "--claude-code"]) == 0
+
+
+def test_the_same_call_reported_twice_counts_once(home):
+    """If the plugin is ever loaded twice, each event arrives twice. Counting both would stop turns at
+    half the stop line: the dangerous direction."""
+    calibrate(home, 2)
+    hook(home, "prompt", payload())
+    got = [hook(home, "tool", tool(i)) for i in (1, 1, 2, 2)]
+    assert got == [None] * 4
+    assert [e["step"] for e in log(home) if e["event"] == "step"] == [1, 2]
+    stop = [hook(home, "tool", tool(3)), hook(home, "tool", tool(3))]
+    assert all(json.loads(x)["continue"] is False for x in stop)
+    assert [e["step"] for e in log(home) if e["event"] == "step"] == [1, 2, 3]

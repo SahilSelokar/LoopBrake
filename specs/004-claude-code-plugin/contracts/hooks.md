@@ -8,7 +8,7 @@ reads one JSON object from stdin, and may print one JSON object to stdout.
 | Command | Claude Code event | Matcher | What it does |
 |---|---|---|---|
 | `loopbrake hook prompt` | `UserPromptSubmit` | none | Closes the open turn, if any (`stopped` if braked, else `interrupted`), and opens a new one. An open turn with no steps that isn't braked is kept as it is, so firing twice is harmless. |
-| `loopbrake hook tool` | `PostToolUse` | `*` | Adds one step (error = false). If it has no open turn, opens one first. |
+| `loopbrake hook tool` | `PostToolUse` | `*` | Adds one step (error = false). If it has no open turn, opens one first. A `tool_use_id` already counted in the open turn isn't counted again (the plugin loaded twice must not halve the stop line). |
 | `loopbrake hook tool-failed` | `PostToolUseFailure` | `*` | Adds one step (error = true). If it has no open turn, opens one first. |
 | `loopbrake hook stop` | `Stop` | none | Closes the open turn (`stopped` if braked, else `finished`) |
 

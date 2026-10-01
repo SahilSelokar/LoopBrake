@@ -24,10 +24,10 @@ history (research R6, R10).
 **Output**:
 
 ```text
-project cc-home-me-my-app--c57a41
+project cc-home-me-my-app-c57a41
 stop line: 38 steps (from 898 successful turns, k = 854, α 5%)
 LoopBrake: turns left out (stopped or excluded): 3; mistaken stops counted as long good turns: 1
-saved: /home/me/.loopbrake/calibration/cc-home-me-my-app--c57a41.json
+saved: /home/me/.loopbrake/calibration/cc-home-me-my-app-c57a41.json
 ```
 
 The third line appears only when the history has LoopBrake stops or excludes. In watch-only, the second line

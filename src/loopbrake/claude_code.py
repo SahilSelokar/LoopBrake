@@ -28,7 +28,7 @@ def history_folder(cwd=None):
 def project_name(folder_name):
     """A LoopBrake project name for a history folder: readable, at most 50 characters, and unique."""
     safe = re.sub(r"[^A-Za-z0-9-]", "-", folder_name).lstrip("-")
-    return f"cc-{safe[-40:]}-{hashlib.sha256(folder_name.encode()).hexdigest()[:6]}"
+    return f"cc-{safe[-40:].strip('-')}-{hashlib.sha256(folder_name.encode()).hexdigest()[:6]}"
 
 
 def calibrate_claude_code(cwd=None, *, alpha=0.05, home=None):
@@ -100,13 +100,18 @@ def _hook(event, text, h):
             if b:
                 b.end()
             return None
+        call_id = data.get("tool_use_id")
+        if b is not None and call_id and any(e.get("event") == "step" and e.get("call_id") == call_id for e in turn):
+            return _stop_reply(b.reason) if b.stopped else None  # the same call reported twice: count it once
         if b is None:  # a step after Stop: work woken by a background task is its own turn
             b = start(project, session=session, home=h, unit="turns")
         d = b.step(action(data.get("tool_name"), data.get("tool_input")), tool=data.get("tool_name"),
-                   error=event == "tool-failed", call_id=data.get("tool_use_id"))
-        if d.stop:
-            return json.dumps({"continue": False, "stopReason": f"LoopBrake {d.reason}{MISTAKE_HINT}"})
-        return None
+                   error=event == "tool-failed", call_id=call_id)
+        return _stop_reply(d.reason) if d.stop else None
+
+
+def _stop_reply(reason):
+    return json.dumps({"continue": False, "stopReason": f"LoopBrake {reason}{MISTAKE_HINT}"})
 
 
 # ---- status line (contracts/cli.md) ----

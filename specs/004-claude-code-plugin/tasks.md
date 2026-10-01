@@ -128,7 +128,7 @@ is written.
   - **`history_folder(cwd)`**: returns `$CLAUDE_CONFIG_DIR/projects/<slug>` (default
     `~/.claude/projects/<slug>`), where slug is `re.sub(r"[^A-Za-z0-9]", "-", str(cwd))`. Test:
     the made-up `/home/me/my app?` gives `-home-me-my-app-`, and `project_name` of that gives
-    `cc-home-me-my-app--c57a41`. Never use real local folder names in tests.
+    `cc-home-me-my-app-c57a41`. Never use real local folder names in tests.
   - **`project_name(folder_name)`**: returns `cc-` + the last 40 characters of
     `folder_name.lstrip("-")`, then `-` + `sha256(folder_name)` hex `[:6]`.
   - **Name tests**: the result passes `records.valid_project` ("`[A-Za-z0-9._-]{1,64}`"). Two
