@@ -79,3 +79,68 @@ def test_feedback_and_exclude(home):
         records.add_feedback(home, "nope", "mistaken_stop")
     with pytest.raises(ValueError):
         records.add_feedback(home, "r1", "maybe")
+
+
+# ---- session logs as live state (Phase 3, research R4) ----
+
+LOCKED_APPEND = """
+import sys, time
+from pathlib import Path
+from loopbrake import records
+h = Path(sys.argv[1])
+with records.session_lock(h, "s"):
+    p = h / "runs" / "s.jsonl"
+    n = len(p.read_text().splitlines())
+    time.sleep(0.02)
+    with open(p, "a") as f:
+        f.write(f"{n}\\n")
+"""
+
+
+def test_session_lock_serializes_processes(home):
+    import subprocess
+    import sys
+    from pathlib import Path
+    env = os.environ | {"PYTHONPATH": str(Path(records.__file__).parents[1])}
+    procs = [subprocess.Popen([sys.executable, "-c", LOCKED_APPEND, str(home)], env=env) for _ in range(8)]
+    assert all(p.wait(timeout=30) == 0 for p in procs)
+    path = home / "runs" / "s.jsonl"
+    assert sorted(int(x) for x in path.read_text().split()) == list(range(8))
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+
+
+def ev(event, run, **fields):
+    return {"v": 1, "ts": "2026-10-01T00:00:00+00:00", "event": event, "session": "s", "run": run} | fields
+
+
+def test_open_turn():
+    a, s1, end_a = ev("run_start", "a"), ev("step", "a", step=1), ev("run_end", "a", status="finished", steps=1)
+    b, s2 = ev("run_start", "b"), ev("step", "b", step=1)
+    assert records.open_turn([]) is None
+    assert records.open_turn([a, s1, end_a]) is None
+    assert records.open_turn([a, s1]) == [a, s1]
+    assert records.open_turn([a, s1, end_a, b, s2]) == [b, s2]
+
+
+def test_session_events_reads_from_the_last_start(home):
+    path = home / "runs" / "s.jsonl"
+    path.parent.mkdir(parents=True)
+    lines = [ev("run_start", "a"), ev("run_end", "a", status="finished", steps=0), ev("run_start", "b"), ev("step", "b", step=1)]
+    path.write_text("\n".join(json.dumps(e) for e in lines[:3]) + "\n{not json\n" + json.dumps(lines[3]) + "\n")
+    assert records.session_events(home, "s") == [lines[2], lines[3]]
+    assert records.session_events(home, "missing") == []
+
+
+def test_last_run(home):
+    w = records.RunWriter(home / "runs" / "s1.jsonl")
+    w.write(ev("run_start", "a", project="p1"))
+    w.write(ev("stop", "a", step=4, stop_line=3, reason="r"))
+    w.write(ev("run_end", "a", status="stopped", steps=4))
+    w2 = records.RunWriter(home / "runs" / "s2.jsonl")
+    w2.write(ev("run_start", "b", project="p2") | {"session": "s2"})
+    w2.write(ev("run_end", "b", status="interrupted", steps=0) | {"session": "s2"})
+    start, stop = records.last_run(home, "stop")
+    assert (start["run"], start["project"], stop["step"]) == ("a", "p1", 4)
+    assert records.last_run(home, "run_end")[0]["run"] == "b"
+    assert records.last_run(home, "run_end", min_steps=1)[0]["run"] == "a"
+    assert records.last_run(records.home(home / "empty"), "stop") is None

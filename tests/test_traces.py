@@ -76,3 +76,21 @@ def test_claude_code_turns():
 def test_excluded_turn_is_not_a_success():
     runs, _ = claude_code_turns(FIXTURE, exclude={"u1"})
     assert runs[0].success is False
+
+
+MIDTURN = Path(__file__).parent / "fixtures" / "claude_code" / "midturn.jsonl"
+
+
+def test_mid_turn_records_stay_in_the_running_turn():
+    """Research R1: compaction, typed prompts and notifications that arrive while Claude waits on a
+    tool join the running turn; a notification after the turn ended starts its own turn."""
+    runs, _ = claude_code_turns(MIDTURN)
+    assert [r.run for r in runs] == ["p1", "n1", "p2", "p3"]
+    assert [len(r.steps) for r in runs] == [3, 1, 1, 2]
+    assert [r.success for r in runs] == [True, True, False, True]
+
+
+def test_call_ids_per_turn():
+    ids = {}
+    claude_code_turns(MIDTURN, call_ids=ids)
+    assert ids == {"p1": ("t1", "t2", "t3"), "n1": ("t4",), "p2": ("t5",), "p3": ("t6", "t7")}

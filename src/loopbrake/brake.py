@@ -28,8 +28,8 @@ def _decide(steps, stop_line):
 
 
 class Brake:
-    def __init__(self, project, session, run, home, calibration, record=True):
-        self.project, self.session, self.run, self.home = project, session, run, home
+    def __init__(self, project, session, run, home, calibration, record=True, unit="runs"):
+        self.project, self.session, self.run, self.home, self.unit = project, session, run, home, unit
         self.calibration = calibration
         line = calibration.get("stop_line") if calibration and not calibration.get("watch_only") else None
         self.stop_line = line
@@ -43,12 +43,31 @@ class Brake:
             "method": "steps", "alpha": cal.get("alpha"), "n": cal.get("n"), "k": cal.get("k"),
             "stop_line": self.stop_line, "watch_only": self.watch_only})
 
+    @classmethod
+    def from_events(cls, project, session, home, events, unit="runs"):
+        """Pick up an open run from its logged events (its run_start first), in a new process.
+
+        Writes no second run_start. Logged steps come back as their action excerpts: the `steps`
+        rule only counts them, so the decision is exactly the one a single brake would make.
+        """
+        start, rest = events[0], events[1:]
+        b = cls(project, session, start["run"], home, start.get("calibration"), record=False, unit=unit)
+        b._writer.on = True
+        logged = [e for e in rest if e.get("event") == "step"]
+        b.steps = [Step(e.get("action_excerpt") or "", "", None, 0) for e in logged]
+        known = [e["tokens"] for e in logged if e.get("tokens") is not None]
+        b.tokens = sum(known) if known else None
+        stop = next((e for e in rest if e.get("event") == "stop"), None)
+        if stop:
+            b.stopped, b.reason = True, stop.get("reason", "")
+        return b
+
     # ---- public ----
 
-    def step(self, action, result="", *, tool=None, tokens=None, error=None):
+    def step(self, action, result="", *, tool=None, tokens=None, error=None, call_id=None):
         """Report one step. Returns a Decision; once it says stop, it keeps saying stop."""
         try:
-            return self._step(action, result, tool, tokens, error)
+            return self._step(action, result, tool, tokens, error, call_id)
         except Exception as e:  # never hurt the host agent (spec FR-005)
             self._fail(e)
             return Decision(self.stopped, len(self.steps), self.reason, self.watch_only)
@@ -72,19 +91,20 @@ class Brake:
 
     # ---- internals ----
 
-    def _step(self, action, result, tool, tokens, error):
+    def _step(self, action, result, tool, tokens, error, call_id=None):
         action = str(action)
         self.steps.append(Step(action, "" if result is None else str(result), error, int(tokens or 0)))
         if tokens is not None:
             self.tokens = (self.tokens or 0) + int(tokens)
         t = len(self.steps)
-        self._record("step", step=t, tool=tool, action_excerpt=action[:EXCERPT], tokens=tokens, error=error)
+        ref = {"call_id": call_id} if call_id is not None else {}
+        self._record("step", step=t, tool=tool, action_excerpt=action[:EXCERPT], tokens=tokens, error=error, **ref)
         if self.stopped:
             return Decision(True, t, self.reason, False)
         if _decide(self.steps, self.stop_line):
             self.stopped = True
             self.reason = self._explain(t)
-            self._record("stop", step=t, stop_line=self.stop_line, reason=self.reason)
+            self._record("stop", step=t, stop_line=self.stop_line, reason=self.reason, **ref)
             return Decision(True, t, self.reason, False)
         return Decision(False, t, "", self.watch_only)
 
@@ -92,7 +112,7 @@ class Brake:
         cal = self.calibration or {}
         reason = f"stopped at step {t}: past the stop line of {self.stop_line} steps"
         if cal.get("n") and cal.get("alpha"):
-            reason += f" set from your {cal['n']} past successful runs (α {cal['alpha']:.0%})"
+            reason += f" set from your {cal['n']} past successful {self.unit} (α {cal['alpha']:.0%})"
         seen = method("max", lam=0.9)(self.steps)[-1][1]  # explains only; never decides
         return f"{reason}; {seen}" if seen else reason
 
@@ -115,9 +135,9 @@ def replay(run, calibration):
     return None
 
 
-def start(project="default", *, session=None, run=None, home=None):
+def start(project="default", *, session=None, run=None, home=None, unit="runs"):
     """Start one run. Missing or damaged calibration means watch-only, never an exception."""
     if not records.valid_project(project):
         raise ValueError(f"project names may use letters, digits, '.', '_' and '-' (got {project!r})")
     h = records.home(home)
-    return Brake(project, session or uuid.uuid4().hex, run or uuid.uuid4().hex[:12], h, calibration.load(project, h))
+    return Brake(project, session or uuid.uuid4().hex, run or uuid.uuid4().hex[:12], h, calibration.load(project, h), unit=unit)

@@ -1,6 +1,6 @@
 # Test fixtures
 
-- `claude_code_session.jsonl`, `mini_v1.traj.json`, `mini_v2.traj.json`: made up for these tests. They copy
+- `claude_code_session.jsonl`, `claude_code/midturn.jsonl`, `mini_v1.traj.json`, `mini_v2.traj.json`: made up for these tests. They copy
   only the field layout of Claude Code transcripts and mini-SWE-agent trajectories, with no real content.
 - `tau_run.json`: one run from [τ-bench](https://github.com/sierra-research/tau-bench)
   (`historical_trajectories/gpt-4o-retail.json`), trimmed to six messages. Used under the MIT license below.

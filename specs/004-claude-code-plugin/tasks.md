@@ -34,7 +34,7 @@ is written.
   - set Phase 3 to "in progress" in `specs/roadmap.md`;
   - commit `specs/004-claude-code-plugin/`, the constitution amendment (2.4.0) and the roadmap as the first commit on the branch. No local folder names appear in them
     (analysis D4).
-- [ ] T002 [P] Write the synthetic transcript `tests/fixtures/claude_code/midturn.jsonl`, in the
+- [X] T002 [P] Write the synthetic transcript `tests/fixtures/claude_code/midturn.jsonl`, in the
   record shape of `tests/fixtures/claude_code_session.jsonl`, but with `stop_reason` on assistant
   messages. In order:
   1. **Turn p1**: prompt `p1`, then tool_use `t1` (`stop_reason: "tool_use"`) and its result, then
@@ -54,14 +54,14 @@ is written.
 
 ## Phase 2: Foundational (needed by every story)
 
-- [ ] T003 [P] Add reader tests to `tests/test_traces.py` (research R1):
+- [X] T003 [P] Add reader tests to `tests/test_traces.py` (research R1):
   - `claude_code_turns(midturn.jsonl)` gives runs `["p1", "n1", "p2", "p3"]`, with step counts
     `[3, 1, 1, 2]` and success `[True, True, False, True]`;
   - with `call_ids={}` passed in, it fills
     `{"p1": ("t1","t2","t3"), "n1": ("t4",), "p2": ("t5",), "p3": ("t6","t7")}`;
   - the existing tests on `claude_code_session.jsonl` still pass unchanged. Its assistant records
     have no `stop_reason`, which must behave as before (new turn at each prompt).
-- [ ] T004 Change `claude_code_turns(transcript, exclude=(), call_ids=None)` in
+- [X] T004 Change `claude_code_turns(transcript, exclude=(), call_ids=None)` in
   `src/loopbrake/traces.py`:
   - **Track the last stop reason**: `_Turn` keeps `last_stop`, set from every main-thread assistant
     record that has a non-null `message.stop_reason`.
@@ -76,7 +76,7 @@ is written.
     `calibration.py` keep working.
 
   Makes T003 pass.
-- [ ] T005 [P] Add tests to `tests/test_brake.py` for picking up an open turn (research R5):
+- [X] T005 [P] Add tests to `tests/test_brake.py` for picking up an open turn (research R5):
   - **Same decisions**: a brake built with `Brake.from_events(...)` from the events of a turn with 5
     logged steps (stop line 6) says go at step 6 and stop at step 7. Those are the same decisions a
     single brake makes stepping 7 times.
@@ -87,7 +87,7 @@ is written.
     with the logged reason.
   - **Wording**: `unit="turns"` makes the reason say "past successful turns".
   - **Phase 2 unchanged**: `test_replay_data.py` still passes.
-- [ ] T006 Change `src/loopbrake/brake.py`:
+- [X] T006 Change `src/loopbrake/brake.py`:
   - **New `unit` argument**: add `unit="runs"` to `Brake.__init__`, used in `_explain`'s
     "past successful {unit}".
   - **New `call_id` argument**: add `call_id=None` to `step()`, recorded as `call_id` on the `step`
@@ -103,7 +103,7 @@ is written.
   - **Unchanged**: `_decide`.
 
   Makes T005 pass.
-- [ ] T007 [P] Add tests to `tests/test_records.py`:
+- [X] T007 [P] Add tests to `tests/test_records.py`:
   - **Locking**: `session_lock(home, session)` creates `runs/<session>.jsonl` with mode `0o600`.
     Eight processes that each lock, read the line count, and append one line end with 8 distinct
     counts.
@@ -113,7 +113,7 @@ is written.
   - **Bad lines**: `session_events(home, session)` skips them.
   - **Last runs**: `last_run(home, "stop")` and `last_run(home, "run_end")` return the run id (and
     its events) of the most recent such event across all projects, or None.
-- [ ] T008 Add the following to `src/loopbrake/records.py`:
+- [X] T008 Add the following to `src/loopbrake/records.py`:
   - **`session_lock(home, session)`**: a context manager. It opens `runs/<session>.jsonl` with
     `O_WRONLY | O_APPEND | O_CREAT` and mode `0o600`, and holds `fcntl.flock(LOCK_EX)`. Where
     `fcntl` isn't available, it locks nothing
@@ -123,7 +123,7 @@ is written.
   - **`open_turn(events)`** and **`last_run(home, event)`**.
 
   Makes T007 pass.
-- [ ] T009 [P] Write `src/loopbrake/claude_code.py` with project helpers, and their tests in
+- [X] T009 [P] Write `src/loopbrake/claude_code.py` with project helpers, and their tests in
   `tests/test_claude_code.py` (research R6):
   - **`history_folder(cwd)`**: returns `$CLAUDE_CONFIG_DIR/projects/<slug>` (default
     `~/.claude/projects/<slug>`), where slug is `re.sub(r"[^A-Za-z0-9]", "-", str(cwd))`. Test:

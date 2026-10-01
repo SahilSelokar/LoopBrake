@@ -6,8 +6,14 @@ import json
 import os
 import re
 import warnings
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:  # ponytail: no lock on Windows; untested platform in v1
+    fcntl = None
 
 _PROJECT = re.compile(r"[A-Za-z0-9._-]{1,64}")
 VERDICTS = ("mistaken_stop", "exclude")
@@ -77,6 +83,71 @@ def status(h, project=None):
         "mistaken": len(mistaken),
         "allowance": sum(e["calibration"].get("alpha", 0) for e in watched.values()),
     }
+
+
+# ---- a session's log as the live state of its open run (Phase 3, research R4) ----
+
+@contextmanager
+def session_lock(h, session):
+    """Hold an exclusive lock on runs/<session>.jsonl, so parallel hook processes take turns."""
+    path = h / "runs" / f"{session}.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(path, os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o600)
+    try:
+        if fcntl:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+        yield path
+    finally:
+        os.close(fd)  # closing releases the lock
+
+
+def session_events(h, session):
+    """The events of one session from its last run_start on (all of them if it has none). Bad lines
+    are skipped. Only the open run is parsed, so the cost stays small as the session grows."""
+    try:
+        lines = (h / "runs" / f"{session}.jsonl").read_text(encoding="utf-8").splitlines()
+    except FileNotFoundError:
+        return []
+    start = next((i for i in range(len(lines) - 1, -1, -1) if '"event": "run_start"' in lines[i]), 0)
+    out = []
+    for line in lines[start:]:
+        try:
+            out.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return out
+
+
+def open_turn(events):
+    """The open run's events (its run_start first), or None when the last run has ended."""
+    starts = [i for i, e in enumerate(events) if e.get("event") == "run_start"]
+    if not starts:
+        return None
+    run = events[starts[-1]].get("run")
+    rest = [e for e in events[starts[-1]:] if e.get("run") == run]
+    return None if any(e.get("event") == "run_end" for e in rest) else rest
+
+
+def last_run(h, event, min_steps=0):
+    """(run_start, event) for the most recent `event` across every session, or None.
+
+    With min_steps, run_end events of shorter runs are skipped."""
+    best, starts = None, {}
+    for path in _files(h):
+        mtime = path.stat().st_mtime_ns
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines()):
+            try:
+                e = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if e.get("event") == "run_start":
+                starts[e.get("run")] = e
+            if e.get("event") != event or (min_steps and (e.get("steps") or 0) < min_steps):
+                continue
+            key = (e.get("ts", ""), mtime, i)
+            if e.get("run") in starts and (best is None or key > best[0]):
+                best = (key, starts[e["run"]], e)
+    return best and best[1:]
 
 
 def add_feedback(h, run, verdict):

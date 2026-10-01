@@ -99,6 +99,7 @@ class _Turn:
         self.id, self.steps, self.by_call = turn_id, [], {}
         self.interrupted, self.pending = False, 0
         self.msg, self.msg_tokens, self.msg_charged = None, 0, True
+        self.last_stop = None  # why the latest answer stopped; "tool_use" means it's waiting on a tool
 
     def add_tokens(self, n):  # to the previous step, or held for the first one
         if self.steps:
@@ -118,16 +119,26 @@ class _Turn:
         return Run(group, "claude-code-local", self.id, self.id, not self.interrupted and self.id not in exclude, exit, True, steps)
 
 
-def claude_code_turns(transcript, exclude=()):
-    """Split one Claude Code session transcript into turns, one Run per user prompt.
+def claude_code_turns(transcript, exclude=(), call_ids=None):
+    """Split one Claude Code session transcript into turns.
+
+    A prompt (or a task notification) starts a turn only once the previous turn is over: a record that
+    arrives while Claude is still waiting on a tool joins the running turn, as it does live
+    (constitution 2.4.0, "Turns"). Compaction summaries never start one.
 
     Returns (runs, skipped). A turn succeeds when it was not interrupted and is not in `exclude`
-    (turn ids: the uuid of the prompt record). The run's group is the project folder name; callers
-    rename it before anything leaves the machine (constitution Principle VI).
+    (turn ids: the uuid of the prompt record). When `call_ids` is a dict, it is filled with each
+    turn's tool_use ids in step order. The run's group is the project folder name; callers rename it
+    before anything leaves the machine (constitution Principle VI).
     """
     group = Path(transcript).parent.name
     runs, skipped, seen_msgs = [], Counter(), set()
     turn = None
+
+    def close(t):
+        runs.append(t.run(group, exclude))
+        if call_ids is not None:
+            call_ids[t.id] = tuple(t.by_call)
     with open(transcript, encoding="utf-8") as f:
         for line in f:
             try:
@@ -144,7 +155,7 @@ def claude_code_turns(transcript, exclude=()):
                 continue
             content = msg.get("content")
             if kind == "user":
-                if rec.get("isMeta"):
+                if rec.get("isMeta") or rec.get("isCompactSummary"):
                     continue
                 results = [b for b in content if isinstance(b, dict) and b.get("type") == "tool_result"] if isinstance(content, list) else []
                 if results:
@@ -161,12 +172,15 @@ def claude_code_turns(transcript, exclude=()):
                     continue
                 if text.startswith("<local-command"):
                     continue
+                if turn and not turn.interrupted and turn.last_stop == "tool_use":
+                    continue  # arrived mid-turn: it joins the running turn
                 if turn:
-                    runs.append(turn.run(group, exclude))
+                    close(turn)
                 turn = _Turn(rec.get("uuid") or f"turn-{len(runs) + 1}")
                 continue
             if turn is None:
                 continue  # assistant output before any prompt
+            turn.last_stop = msg.get("stop_reason") or turn.last_stop
             mid = msg.get("id")
             if mid != turn.msg:
                 turn.close_message()
@@ -182,5 +196,5 @@ def claude_code_turns(transcript, exclude=()):
                     turn.steps.append(step)
                     turn.by_call[b.get("id")] = step
     if turn:
-        runs.append(turn.run(group, exclude))
+        close(turn)
     return runs, skipped

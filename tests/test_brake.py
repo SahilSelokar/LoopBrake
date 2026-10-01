@@ -150,3 +150,54 @@ def test_decisions_are_fast(home):
             b.step(f'bash {{"command": "cmd {i % 7}"}}', "out\n" * 5)
             times.append(time.perf_counter() - t0)
     assert statistics.quantiles(times, n=20)[-1] < 0.010
+
+
+# ---- picking up an open turn in a new process (Phase 3, research R5) ----
+
+def turn_events(home, session="s"):
+    return [json.loads(l) for l in (home / "runs" / f"{session}.jsonl").read_text().splitlines()]
+
+
+def test_from_events_makes_the_same_decisions(home):
+    calibrate_by_hand(home, stop_line=6)
+    single = loopbrake.start(project="demo", session="one", run="one")
+    expected = [single.step(f"bash {i}").stop for i in range(7)]
+
+    first = loopbrake.start(project="demo", session="s", run="r1")
+    for i in range(5):
+        first.step(f"bash {i}")
+    got = [False] * 5
+    for i in (5, 6):  # each step in a new brake, as each hook call is a new process
+        b = brake_mod.Brake.from_events("demo", "s", home, turn_events(home))
+        got.append(b.step(f"bash {i}").stop)
+    assert got == expected == [False] * 6 + [True]
+    assert sum(e["event"] == "run_start" for e in turn_events(home)) == 1
+    assert [e["step"] for e in turn_events(home) if e["event"] == "step"] == [1, 2, 3, 4, 5, 6, 7]
+
+
+def test_call_id_is_recorded_on_step_and_stop(home):
+    calibrate_by_hand(home, stop_line=1)
+    b = loopbrake.start(project="demo", session="s", run="r1")
+    b.step("bash a", call_id="t1")
+    b.step("bash b", call_id="t2")
+    b.step("bash c")
+    ev = turn_events(home)
+    assert [e.get("call_id") for e in ev if e["event"] == "step"] == ["t1", "t2", None]
+    assert "call_id" not in [e for e in ev if e["event"] == "step"][2]
+    assert [e["call_id"] for e in ev if e["event"] == "stop"] == ["t2"]
+
+
+def test_an_already_braked_turn_keeps_saying_stop(home):
+    calibrate_by_hand(home, stop_line=1)
+    b = loopbrake.start(project="demo", session="s", run="r1")
+    b.step("bash a")
+    reason = b.step("bash b").reason
+    again = brake_mod.Brake.from_events("demo", "s", home, turn_events(home)).step("bash c")
+    assert again.stop and again.reason == reason and again.step == 3
+
+
+def test_turns_wording(home):
+    calibrate_by_hand(home, stop_line=1, n=40)
+    b = loopbrake.start(project="demo", unit="turns")
+    b.step("bash a")
+    assert "past successful turns" in b.step("bash b").reason
