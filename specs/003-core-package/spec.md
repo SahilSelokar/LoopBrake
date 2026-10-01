@@ -1,6 +1,6 @@
 # Feature Specification: Core Package (LoopBrake v1)
 
-**Feature Branch**: `003-core-package` | **Created**: 2026-10-01 | **Status**: Draft
+**Feature Branch**: `003-core-package` | **Created**: 2026-10-01 | **Status**: Implemented (v0.1.0, CI green, 2026-10-01). The PyPI release waits on the builder's one-time PyPI setup (tasks T019–T020).
 
 **Input**: User description: "" (empty). Taken from the decision of 2026-10-01 (constitution 2.2.0):
 "v1 ships the calibrated step budget: stop a run that goes on longer than a stop line set from

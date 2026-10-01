@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.2.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is next.
+**Date**: 2026-10-01 | **Constitution**: v2.2.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is built (v0.1.0, CI green); its first PyPI release waits on the builder's PyPI setup.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and

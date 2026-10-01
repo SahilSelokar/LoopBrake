@@ -149,7 +149,21 @@ shows it.
 
 ## Phase 7: Polish
 
-- [ ] T021 Run `specs/003-core-package/quickstart.md` steps 1–6 and 8, and fix any mismatch. Then update the status lines of `specs/roadmap.md` and `specs/003-core-package/spec.md`. Commit and push, without attribution lines.
+- [X] T021 Run `specs/003-core-package/quickstart.md` steps 1–6 and 8, and fix any mismatch. Then update the status lines of `specs/roadmap.md` and `specs/003-core-package/spec.md`. Commit and push, without attribution lines.
+
+## Outcome (2026-10-01)
+
+- Built and pushed (b3acb05, then ae26caf for the CI fix). CI is green on Python 3.11, 3.12 and 3.13.
+- SC-001: the live brake matches Phase 1 on all 2,979 public runs at 5 stop lines (14,895 comparisons).
+- SC-002: the README example runs as written.
+- SC-003: the speed test passes.
+- SC-004: install from GitHub to `loopbrake 0.1.0` took 5.3 s with no cache.
+- SC-005, SC-006, SC-007 and SC-008: passed by the tests.
+- Real Claude Code history: the largest local project calibrates to a stop line of 38 steps from 898
+  successful turns, and the record holds counts only.
+- Open: T019 (the builder's PyPI and GitHub setup) and T020 (the v0.1.0 tag, on the builder's go-ahead),
+  then SC-009.
+- Lesson: `astral-sh/setup-uv` publishes only exact version tags, so it's pinned to `v10.2.0`.
 
 ## Dependencies and order
 
