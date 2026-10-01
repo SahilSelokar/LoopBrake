@@ -183,3 +183,44 @@ def method(name, lam=None):
             raise ValueError(f"{name} needs lam")
         return partial(_signal_scorer, name, float(lam))
     raise ValueError(f"unknown method {name!r}")
+
+
+# ---------- judged scores (feature 002, research R6) ----------
+# A judge says how likely each step was to make progress (p, 0 to 1). These scorers turn those
+# answers into a stuck score. They stay pure: the same steps and answers always give the same scores.
+
+JUDGED = ("judge", "judge_steps", "judge_max")
+
+
+def _judged_scorer(name, lam, steps, progress, kinds=None):
+    """progress[i] is P(progress) for step i, or None for "no opinion", which leaves the score as it was.
+    kinds[i] is an optional (kind, p) pair; it only feeds the reason text."""
+    cheap = [max(v for v, _ in vals) for vals in zip(*(_SIGNAL_FNS[s](steps) for s in _ALL))] if name == "judge_max" else None
+    out, score = [], 0.0
+    for i, p in enumerate(progress):
+        if p is not None:
+            if name == "judge":
+                u = 1 - p
+            elif name == "judge_steps":
+                u = (1 + (1 - p)) / 2  # every step costs some time; an unproductive one costs more
+            else:
+                u = max(1 - p, cheap[i])
+            score = lam * score + u
+        lo = max(0, i - RECENT + 1)
+        stuck = sum(1 for q in progress[lo : i + 1] if q is not None and q < 0.5)
+        reason = ""
+        if stuck:
+            reason = f"judge: no progress in {stuck} of last {i - lo + 1} steps"
+            if kinds and kinds[i]:
+                reason += f" ({kinds[i][0]}, {kinds[i][1]:.2f})"
+        out.append((score, reason))
+    return out
+
+
+def judged(name, lam):
+    """Scorer for a judged method: scorer(steps, progress, kinds=None) -> [(score, reason), ...]."""
+    if name not in JUDGED:
+        raise ValueError(f"unknown judged method {name!r}")
+    if lam is None:
+        raise ValueError(f"{name} needs lam")
+    return partial(_judged_scorer, name, float(lam))

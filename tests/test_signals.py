@@ -122,3 +122,52 @@ def test_signal_methods_need_lam():
     for name in ("fuzzy", "stale", "errors", "mean", "max", "loop"):
         with pytest.raises(ValueError):
             method(name)
+
+
+# ---------- judged scorer (feature 002, research R6) ----------
+
+from loopbrake.signals import JUDGED, judged
+
+
+def jvalues(name, steps, progress, lam=0.0, kinds=None):
+    return [round(s, 6) for s, _ in judged(name, lam=lam)(steps, progress, kinds)]
+
+
+JSTEPS = [act("ls", "a"), act("ls", "a"), act("cat x", "b"), act("ls", "a")]
+
+
+def test_judged_step_values():
+    p = [0.9, 0.2, None, 0.0]
+    assert jvalues("judge", JSTEPS, p) == [0.1, 0.8, 0.8, 1.0]  # None keeps the score
+    assert jvalues("judge_steps", JSTEPS, p) == [0.55, 0.9, 0.9, 1.0]
+    phase1_max = values("max", JSTEPS)  # lam 0: the Phase 1 max signal value per step
+    expect = [round(max(1 - q, m), 6) if q is not None else None for q, m in zip(p, phase1_max)]
+    got = jvalues("judge_max", JSTEPS, p)
+    assert got[0] == expect[0] and got[1] == expect[1] and got[2] == got[1] and got[3] == expect[3]
+
+
+def test_judged_running_score_and_no_opinion():
+    p = [0.0, 0.5, None, 1.0]
+    assert jvalues("judge", JSTEPS, p, lam=1.0) == [1.0, 1.5, 1.5, 1.5]
+
+
+@pytest.mark.parametrize("name", JUDGED)
+def test_judged_never_looks_ahead_and_kinds_only_change_reasons(name):
+    p = [0.9, 0.1, None, 0.2]
+    kinds = [("found_new", 0.7), ("repeated", 0.81), None, ("same_error", 0.6)]
+    scorer = judged(name, lam=0.9)
+    full = scorer(JSTEPS, p, kinds)
+    for t in range(len(JSTEPS) + 1):
+        assert scorer(JSTEPS[:t], p[:t], kinds[:t]) == full[:t]
+    assert [s for s, _ in scorer(JSTEPS, p)] == [s for s, _ in full]
+
+
+def test_judged_reason_text():
+    p = [0.9, 0.1, None, 0.2]
+    kinds = [("found_new", 0.7), ("repeated", 0.81), None, ("same_error", 0.6)]
+    reason = judged("judge", lam=0.9)(JSTEPS, p, kinds)[-1][1]
+    assert "judge: no progress in 2 of last 4 steps" in reason and "(same_error, 0.60)" in reason
+    with pytest.raises(ValueError):
+        judged("judge", lam=None)
+    with pytest.raises(ValueError):
+        judged("nope", lam=0.9)

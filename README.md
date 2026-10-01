@@ -75,12 +75,29 @@ six agent groups, on coding tasks
 | Extra saving from stuck signals over the step limit, with 95% interval | SWE-bench **+1.5%** [−9.7%, +13.2%]<br>τ-bench **+0.9%** [−3.1%, +5.0%] |
 
 **Verdict: NO-GO.** The cheap stuck signals do not clearly beat a calibrated step limit. Following
-the plan set in advance, the next step is a small model that judges whether each step made progress.
+the plan set in advance, the next experiment tests a progress judge (below).
 For comparison, [FailFast](https://arxiv.org/abs/2608.03222), a trained monitor, reports 14.6–20.4%
 saved at 5% of good runs stopped. Its threshold was set on the same data it reports on, though, so
 that 5% is a target, not a guarantee.
 
 Full report: [eval/results/results.md](eval/results/results.md)
+
+## Now testing: a progress judge
+
+Counting repeats is not the same as understanding a step. The next experiment asks a fast hosted
+decision model, [Jev](https://docs.typesafe.ai) (`jev-1.13.0`), two questions about every step:
+*did this move the agent closer to finishing?* (a probability) and *what kind of step was it?*
+(for example found something new, repeated an earlier action, or hit the same error again).
+
+- **Net savings.** Every token the judge reads is subtracted from the tokens it saves.
+- **Same guarantee, same bar.** The same stop-line rule, and the same calibrated step limit to beat.
+- **Chosen in advance again.** The method is picked on one agent's runs and committed before any
+  unseen agent is judged. The judging script refuses to run on unseen agents until that commit exists.
+- **Cheaper variant.** A version that asks the judge only when the cheap signals already look stuck,
+  to keep cost and delay down for live use.
+- **Public data only.** Only public dataset steps are sent; the access key never enters the repository.
+
+Results will appear in `eval/results/judge/`. Design: [specs/002-progress-judge](specs/002-progress-judge/spec.md).
 
 ## How the results are kept honest
 
@@ -112,17 +129,27 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+.
 
 ```bash
 git clone https://github.com/SahilSelokar/LoopBrake && cd LoopBrake
-uv run pytest                        # 42 tests
+uv run pytest                        # 61 tests
 uv run python eval/fetch.py          # one-time download, about 450 MB, into ~/.loopbrake/data
 uv run python eval/run.py --final    # about 1 minute; writes eval/results/
+```
+
+The progress judge needs a [Typesafe](https://typesafe.ai) API key in `TYPESAFE_API_KEY` (or in
+`~/.loopbrake/typesafe_key`). Judging every public step costs about $4:
+
+```bash
+uv run python eval/tasks.py                              # task texts for the judge
+uv run python eval/judge.py --group swe-devstral         # one group at a time; resumable
+uv run python eval/judge_eval.py --final                 # reads stored answers only; writes eval/results/judge/
 ```
 
 ## Repository layout
 
 ```text
 src/loopbrake/   scoring core: stuck signals, stop-line rule, run readers (standard library only)
-eval/            the experiment: fetch.py downloads the data, run.py replays runs and writes results/
-specs/           design: constitution, roadmap, and the Phase 1 spec, plan, research and tasks
+eval/            the experiments: fetch.py downloads the data, run.py replays runs, judge.py asks the
+                 progress judge, judge_eval.py scores its answers; results/ holds the published numbers
+specs/           design: constitution, roadmap, and the spec, plan, research and tasks of each experiment
 tests/           tests, including a check of the guarantee on simulated data
 liveness.py      the original naive rule, kept as the baseline
 ```
@@ -132,7 +159,7 @@ liveness.py      the original naive rule, kept as the baseline
 | Phase | What | Status |
 |---|---|---|
 | 1 | **Experiment**: does it work on real runs? | Done: NO-GO for cheap signals |
-| Next | **Progress model**: a small model judges whether each step moved the run forward | Up next |
+| Now | **Progress judge**: a hosted decision model judges whether each step moved the run forward | In progress: one agent judged; unseen agents next |
 | 2 | **Python package**: `pip install loopbrake`, a few lines to add to any agent | Waits for a GO |
 | 3 | **Claude Code plugin**: stop stuck sessions live, calibrated on your own history | Planned |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
