@@ -81,11 +81,11 @@ score(steps: list[Step]) -> list[(score: float, reason: str)]   # one entry per 
 
 | Field | Rules |
 |---|---|
-| `calibration` | n successful runs drawn without replacement |
+| `calibration` | n successful runs from n different tasks, one run per task |
 | `held_out` | All runs whose `task` doesn't appear among the calibration runs' tasks |
 | `kind` | `plain` (original data) or `boot` (resampled tasks; every copy of a calibration task is excluded from `held_out`) |
 
-**Status**: `insufficient` when the group has fewer than n successes, or the held-out set has
+**Status**: `insufficient` when fewer than n tasks have a success, or the held-out set has
 fewer than 20 successes.
 
 ## Kill event

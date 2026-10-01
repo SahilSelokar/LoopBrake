@@ -140,7 +140,8 @@ for committing.
   be saved by any stop rule. They stay in the denominator, so savings aren't inflated.
 - **A successful run that gets killed**: the work it loses is reported separately from savings.
 - **Several runs of the same task** (τ-bench repeats each task 4–8 times): if any run of a task
-  is used for calibration, none of that task's runs may appear in the held-out set.
+  is used for calibration, none of that task's runs may appear in the held-out set, and the
+  calibration sample uses at most one run per task (repeats are not independent).
 - **One agent, many task types**: calibration and testing always use runs from the same agent
   on the same dataset. Agents are never mixed in one calibration set.
 

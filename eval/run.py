@@ -118,16 +118,25 @@ def boot_items(rng, preps):
 
 
 def make_split(rng, items, preps, n):
-    """Draw n successful runs to set the stop line; every run of their tasks leaves the test set.
+    """Draw n successful runs, at most one per task, to set the stop line; every run of those
+    tasks leaves the test set.
 
-    Returns (calibration, held_out) as index lists, or None when there are fewer than n successes.
+    At most one per task, because repeats of a task are not independent: using several of them
+    set the stop line too low for new tasks (first final run, tau-bench; see eval/results/CORRECTIONS.md).
+    Returns (calibration, held_out) as index lists, or None when fewer than n tasks have a success.
     """
     items = list(items)
-    wins = [i for i in items if preps[i].success]
+    wins = defaultdict(list)
+    for i in items:
+        if preps[i].success:
+            wins[preps[i].task].append(i)
     if len(wins) < n:
         return None
-    cal = rng.sample(wins, n)
-    used = {preps[i].task for i in cal}
+    tasks = rng.sample(sorted(wins), n)
+    # Groups with one run per task (SWE-bench) get exactly the plain splits the first run drew. Bootstrap
+    # splits do change, because resampled tasks repeat.
+    cal = [wins[t][0] if len(wins[t]) == 1 else rng.choice(wins[t]) for t in tasks]
+    used = set(tasks)
     return cal, [i for i in items if preps[i].task not in used]
 
 
@@ -450,6 +459,7 @@ def write_report(path, args, cand, groups, results, verdict, details, baselines,
     cmd = f"uv run python eval/run.py --final --seed {args.seed} --splits {args.splits} --boot {args.boot}" + (" --local" if args.local else "")
     out += ["## 1. Reproduce", "", "```bash", "uv run python eval/fetch.py", cmd, "```", "", "Data fingerprints (sha256 of each runs file):", "", "```text"]
     out += [line for line in sums if line.split()[-1].removesuffix(".jsonl") in groups] + ["```", ""]
+    out += ["Corrections to earlier runs are listed in [CORRECTIONS.md](CORRECTIONS.md).", ""]
 
     out += [f"## 2. Verdict: {verdict}", ""]
     out += [f"Method chosen in advance on `{cand['chosen_on']}` ({cand['date']}): **{label(cand_key)}**.", ""]

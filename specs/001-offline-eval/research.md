@@ -201,7 +201,8 @@ step 9: ModuleNotFoundError…".
 ## R7. Splits and the threshold
 
 **Decision**:
-- **Calibration sample**: n successful runs drawn at random.
+- **Calibration sample**: n successful runs drawn at random, **at most one per task** (corrected
+  after the first final run; see the alternatives below).
 - **Held-out set**: every run whose task is not touched by the calibration sample. For the
   single-run SWE-bench groups, this is just "all runs not in calibration".
 - **Threshold**: τ is the k-th smallest calibration run score, with
@@ -220,8 +221,13 @@ step 9: ModuleNotFoundError…".
 - **Expected false-kill rate** with continuous scores: (n + 1 − k)/(n + 1). At n = 20 and α = 5%
   that is 1/21 ≈ 4.76%. This is the test oracle.
 
-**Alternatives considered**: τ-bench calibration from distinct tasks only. Rejected: it caps n
-at the number of tasks with any success (about 35 for airline), which rules out n = 50.
+**Alternatives considered**: drawing calibration runs without regard to task. This was used in
+the first final run (commit e655b96), and it broke the guarantee on τ-bench: false stops reached
+6.4% at a 5% limit. Repeats of one task are not independent, so a sample with several of them
+sets the stop line too low for new tasks. One run per task fixes it (2.9–4.8% in a diagnostic).
+The cost: n can't exceed the number of tasks with a success, so `tau-gpt4o-airline` gets no
+n = 50 result. An earlier draft of this plan had rejected one-run-per-task for exactly that
+reason, and that was the wrong trade.
 
 ## R8. Intervals and the gate statistic
 

@@ -18,16 +18,18 @@ bbd839e07178e01360e2730beaf3ef272ff7700ab96d88b0bedafa73cedd3c59  tau-sonnet35-a
 a8ff74e82504d7c14f33ede2158f271fdbe50599c05b0c48a349812dfb26bf71  tau-sonnet35-retail.jsonl
 ```
 
+Corrections to earlier runs are listed in [CORRECTIONS.md](CORRECTIONS.md).
+
 ## 2. Verdict: NO-GO
 
 Method chosen in advance on `swe-devstral` (2026-10-01): **max (λ 0.9)**.
 
 | Dataset | Groups tested | Bar to beat | Extra tokens saved [95% interval] | Above zero |
 |---|---|---|---|---|
-| swe-bench-verified | swe-gpt5mini | steps | 1.5% [-10.6%, 15.1%] | no |
-| tau-bench | tau-gpt4o-airline, tau-gpt4o-retail, tau-sonnet35-airline, tau-sonnet35-retail | steps | 2.2% [-2.1%, 7.4%] | no |
+| swe-bench-verified | swe-gpt5mini | steps | 1.5% [-9.7%, 13.2%] | no |
+| tau-bench | tau-gpt4o-airline, tau-gpt4o-retail, tau-sonnet35-airline, tau-sonnet35-retail | steps | 0.9% [-3.1%, 5.0%] | no |
 
-Candidate within its false-stop limit on every holdout group: no (tau-gpt4o-airline, tau-sonnet35-retail).
+Candidate within its false-stop limit on every holdout group: yes.
 
 GO means: on every dataset the candidate saves more than the stronger simple method, with the whole
 95% interval above zero, and it never breaks its false-stop limit. The interval resamples tasks, so it
@@ -37,30 +39,30 @@ includes the noise of having a limited number of tasks.
 
 | Group | Method | False stops [95%] | Tokens saved, all runs [95%] | Saved on failed runs | Status |
 |---|---|---|---|---|---|
-| swe-devstral (dev) | fixed | 99.3% [99.3%, 99.3%] | 78.1% [70.7%, 85.6%] | 74.9% | ok |
-| swe-devstral (dev) | exact | 4.1% [3.9%, 4.3%] | 21.4% [10.0%, 34.9%] | 27.7% | ok |
-| swe-devstral (dev) | steps | 4.8% [4.5%, 5.1%] | 20.8% [7.6%, 36.6%] | 26.8% | ok |
-| swe-devstral (dev) | max (λ 0.9) | 5.0% [4.7%, 5.3%] | 26.5% [15.6%, 40.0%] | 34.5% | ok |
-| swe-gpt5mini | fixed | 29.1% [29.1%, 29.2%] | 33.2% [28.7%, 38.4%] | 41.0% | ok |
-| swe-gpt5mini | exact | 2.6% [2.4%, 2.7%] | 3.2% [0.0%, 9.0%] | 4.3% | ok |
-| swe-gpt5mini | steps | 4.4% [4.1%, 4.6%] | 9.3% [0.7%, 21.8%] | 13.3% | ok |
-| swe-gpt5mini | max (λ 0.9) | 4.7% [4.4%, 4.9%] | 10.8% [1.2%, 26.8%] | 15.1% | ok |
-| tau-gpt4o-airline | fixed | 1.5% [1.4%, 1.6%] | 9.3% [3.8%, 15.0%] | 11.5% | ok |
-| tau-gpt4o-airline | exact | 3.1% [2.8%, 3.3%] | 4.2% [0.0%, 13.9%] | 4.9% | ok |
-| tau-gpt4o-airline | steps | 5.0% [4.6%, 5.4%] | 9.8% [2.7%, 20.7%] | 12.0% | ok |
-| tau-gpt4o-airline | max (λ 0.9) | 6.4% [5.9%, 6.9%] | 13.1% [0.0%, 34.7%] | 15.5% | invalid |
-| tau-gpt4o-retail | fixed | 8.6% [8.5%, 8.6%] | 4.7% [2.4%, 8.0%] | 7.3% | ok |
-| tau-gpt4o-retail | exact | 1.9% [1.7%, 2.1%] | 1.6% [0.0%, 7.3%] | 1.7% | ok |
-| tau-gpt4o-retail | steps | 4.2% [3.9%, 4.5%] | 2.5% [0.1%, 12.9%] | 4.0% | ok |
-| tau-gpt4o-retail | max (λ 0.9) | 5.0% [4.7%, 5.3%] | 4.5% [0.1%, 16.4%] | 6.8% | ok |
-| tau-sonnet35-airline | fixed | 2.0% [1.9%, 2.0%] | 4.8% [0.8%, 10.1%] | 5.8% | ok |
-| tau-sonnet35-airline | exact | 1.8% [1.6%, 2.1%] | 1.2% [0.0%, 12.4%] | 1.4% | ok |
-| tau-sonnet35-airline | steps | 4.8% [4.4%, 5.2%] | 5.5% [0.3%, 18.2%] | 6.5% | ok |
-| tau-sonnet35-airline | max (λ 0.9) | 5.4% [5.0%, 5.8%] | 5.1% [0.0%, 23.4%] | 5.2% | ok |
-| tau-sonnet35-retail | fixed | 5.3% [5.3%, 5.4%] | 2.5% [1.2%, 4.4%] | 4.2% | ok |
-| tau-sonnet35-retail | exact | 2.1% [2.0%, 2.3%] | 2.2% [0.0%, 7.9%] | 3.7% | ok |
-| tau-sonnet35-retail | steps | 4.5% [4.2%, 4.8%] | 2.0% [0.0%, 7.9%] | 3.4% | ok |
-| tau-sonnet35-retail | max (λ 0.9) | 5.4% [5.1%, 5.7%] | 4.4% [0.2%, 13.9%] | 7.0% | invalid |
+| swe-devstral (dev) | fixed | 99.3% [99.3%, 99.3%] | 78.1% [71.1%, 84.8%] | 74.9% | ok |
+| swe-devstral (dev) | exact | 4.1% [3.9%, 4.3%] | 21.4% [9.8%, 34.1%] | 27.7% | ok |
+| swe-devstral (dev) | steps | 4.8% [4.5%, 5.1%] | 20.8% [6.8%, 36.4%] | 26.8% | ok |
+| swe-devstral (dev) | max (λ 0.9) | 5.0% [4.7%, 5.3%] | 26.5% [15.1%, 39.4%] | 34.5% | ok |
+| swe-gpt5mini | fixed | 29.1% [29.1%, 29.2%] | 33.2% [28.6%, 38.1%] | 41.0% | ok |
+| swe-gpt5mini | exact | 2.6% [2.4%, 2.7%] | 3.2% [0.2%, 8.9%] | 4.3% | ok |
+| swe-gpt5mini | steps | 4.4% [4.1%, 4.6%] | 9.3% [0.8%, 22.8%] | 13.3% | ok |
+| swe-gpt5mini | max (λ 0.9) | 4.7% [4.4%, 4.9%] | 10.8% [1.2%, 26.6%] | 15.1% | ok |
+| tau-gpt4o-airline | fixed | 1.2% [1.1%, 1.2%] | 9.6% [2.8%, 16.6%] | 11.8% | ok |
+| tau-gpt4o-airline | exact | 2.1% [1.9%, 2.4%] | 3.3% [0.0%, 15.5%] | 3.8% | ok |
+| tau-gpt4o-airline | steps | 2.9% [2.7%, 3.2%] | 9.2% [1.8%, 17.8%] | 11.3% | ok |
+| tau-gpt4o-airline | max (λ 0.9) | 3.4% [3.1%, 3.7%] | 10.9% [0.0%, 23.1%] | 13.1% | ok |
+| tau-gpt4o-retail | fixed | 8.2% [8.1%, 8.3%] | 4.6% [2.2%, 8.0%] | 7.3% | ok |
+| tau-gpt4o-retail | exact | 1.8% [1.6%, 1.9%] | 1.5% [0.0%, 7.4%] | 1.7% | ok |
+| tau-gpt4o-retail | steps | 2.7% [2.4%, 2.9%] | 1.7% [0.0%, 7.7%] | 2.9% | ok |
+| tau-gpt4o-retail | max (λ 0.9) | 3.1% [2.9%, 3.3%] | 2.8% [0.1%, 11.3%] | 4.6% | ok |
+| tau-sonnet35-airline | fixed | 2.2% [2.1%, 2.3%] | 5.4% [1.0%, 13.7%] | 6.6% | ok |
+| tau-sonnet35-airline | exact | 2.0% [1.8%, 2.2%] | 1.2% [0.0%, 10.9%] | 1.4% | ok |
+| tau-sonnet35-airline | steps | 3.5% [3.2%, 3.7%] | 5.7% [0.3%, 18.5%] | 6.9% | ok |
+| tau-sonnet35-airline | max (λ 0.9) | 4.9% [4.6%, 5.2%] | 5.6% [0.0%, 19.8%] | 5.7% | ok |
+| tau-sonnet35-retail | fixed | 5.1% [5.1%, 5.2%] | 2.3% [1.1%, 4.1%] | 4.2% | ok |
+| tau-sonnet35-retail | exact | 1.8% [1.7%, 2.0%] | 1.9% [0.0%, 8.0%] | 3.3% | ok |
+| tau-sonnet35-retail | steps | 2.6% [2.4%, 2.8%] | 1.3% [0.0%, 5.4%] | 2.3% | ok |
+| tau-sonnet35-retail | max (λ 0.9) | 3.1% [2.9%, 3.3%] | 2.9% [0.1%, 11.9%] | 5.1% | ok |
 
 ## 4. Against FailFast
 
@@ -89,14 +91,14 @@ Tokens saved, all runs. More past runs give a tighter stop line.
 | swe-devstral | max (λ 0.9) | 26.5% | 26.6% | 29.2% |
 | swe-gpt5mini | steps | 9.3% | 9.2% | 11.2% |
 | swe-gpt5mini | max (λ 0.9) | 10.8% | 10.6% | 12.9% |
-| tau-gpt4o-airline | steps | 9.8% | not enough data | not enough data |
-| tau-gpt4o-airline | max (λ 0.9) | 13.1% | not enough data | not enough data |
-| tau-gpt4o-retail | steps | 2.5% | 2.5% | 3.6% |
-| tau-gpt4o-retail | max (λ 0.9) | 4.5% | 4.8% | 7.2% |
-| tau-sonnet35-airline | steps | 5.5% | 6.0% | not enough data |
-| tau-sonnet35-airline | max (λ 0.9) | 5.1% | 5.0% | not enough data |
-| tau-sonnet35-retail | steps | 2.0% | 1.6% | 2.4% |
-| tau-sonnet35-retail | max (λ 0.9) | 4.4% | 4.0% | 5.8% |
+| tau-gpt4o-airline | steps | 9.2% | not enough data | not enough data |
+| tau-gpt4o-airline | max (λ 0.9) | 10.9% | not enough data | not enough data |
+| tau-gpt4o-retail | steps | 1.7% | 1.7% | not enough data |
+| tau-gpt4o-retail | max (λ 0.9) | 2.8% | 2.9% | not enough data |
+| tau-sonnet35-airline | steps | 5.7% | not enough data | not enough data |
+| tau-sonnet35-airline | max (λ 0.9) | 5.6% | not enough data | not enough data |
+| tau-sonnet35-retail | steps | 1.3% | 0.9% | not enough data |
+| tau-sonnet35-retail | max (λ 0.9) | 2.9% | 2.5% | not enough data |
 
 ## 6. All methods (α = 5%, n = 20)
 
@@ -122,42 +124,42 @@ Exploratory. Rows on the development group are in-sample: the candidate was chos
 | swe-gpt5mini | mean (λ 0.9) | 4.8% | 9.1% | ok |
 | swe-gpt5mini | max (λ 0.9) | 4.7% | 10.8% | ok |
 | swe-gpt5mini | loop (λ 0.9) | 4.7% | 6.4% | ok |
-| tau-gpt4o-airline | fixed | 1.5% | 9.3% | ok |
-| tau-gpt4o-airline | exact | 3.1% | 4.2% | ok |
-| tau-gpt4o-airline | steps | 5.0% | 9.8% | ok |
-| tau-gpt4o-airline | fuzzy (λ 0.9) | 6.4% | 11.5% | invalid |
-| tau-gpt4o-airline | stale (λ 0.9) | 5.1% | 13.3% | ok |
-| tau-gpt4o-airline | errors (λ 0.9) | 1.5% | 5.9% | ok |
-| tau-gpt4o-airline | mean (λ 0.9) | 6.6% | 14.5% | invalid |
-| tau-gpt4o-airline | max (λ 0.9) | 6.4% | 13.1% | invalid |
-| tau-gpt4o-airline | loop (λ 0.9) | 5.9% | 13.4% | invalid |
-| tau-gpt4o-retail | fixed | 8.6% | 4.7% | ok |
-| tau-gpt4o-retail | exact | 1.9% | 1.6% | ok |
-| tau-gpt4o-retail | steps | 4.2% | 2.5% | ok |
-| tau-gpt4o-retail | fuzzy (λ 0.9) | 5.0% | 4.1% | ok |
-| tau-gpt4o-retail | stale (λ 0.9) | 2.6% | 2.5% | ok |
-| tau-gpt4o-retail | errors (λ 0.9) | 2.4% | 2.2% | ok |
-| tau-gpt4o-retail | mean (λ 0.9) | 4.8% | 4.2% | ok |
-| tau-gpt4o-retail | max (λ 0.9) | 5.0% | 4.5% | ok |
-| tau-gpt4o-retail | loop (λ 0.9) | 3.9% | 2.9% | ok |
-| tau-sonnet35-airline | fixed | 2.0% | 4.8% | ok |
-| tau-sonnet35-airline | exact | 1.8% | 1.2% | ok |
-| tau-sonnet35-airline | steps | 4.8% | 5.5% | ok |
-| tau-sonnet35-airline | fuzzy (λ 0.9) | 5.9% | 9.9% | invalid |
-| tau-sonnet35-airline | stale (λ 0.9) | 5.4% | 4.0% | ok |
-| tau-sonnet35-airline | errors (λ 0.9) | 0.7% | 0.4% | ok |
-| tau-sonnet35-airline | mean (λ 0.9) | 5.5% | 6.3% | invalid |
-| tau-sonnet35-airline | max (λ 0.9) | 5.4% | 5.1% | ok |
-| tau-sonnet35-airline | loop (λ 0.9) | 5.5% | 8.6% | invalid |
-| tau-sonnet35-retail | fixed | 5.3% | 2.5% | ok |
-| tau-sonnet35-retail | exact | 2.1% | 2.2% | ok |
-| tau-sonnet35-retail | steps | 4.5% | 2.0% | ok |
-| tau-sonnet35-retail | fuzzy (λ 0.9) | 5.3% | 4.5% | ok |
-| tau-sonnet35-retail | stale (λ 0.9) | 5.0% | 4.4% | ok |
-| tau-sonnet35-retail | errors (λ 0.9) | 1.0% | 2.5% | ok |
-| tau-sonnet35-retail | mean (λ 0.9) | 5.3% | 5.0% | ok |
-| tau-sonnet35-retail | max (λ 0.9) | 5.4% | 4.4% | invalid |
-| tau-sonnet35-retail | loop (λ 0.9) | 5.2% | 4.5% | ok |
+| tau-gpt4o-airline | fixed | 1.2% | 9.6% | ok |
+| tau-gpt4o-airline | exact | 2.1% | 3.3% | ok |
+| tau-gpt4o-airline | steps | 2.9% | 9.2% | ok |
+| tau-gpt4o-airline | fuzzy (λ 0.9) | 3.8% | 9.6% | ok |
+| tau-gpt4o-airline | stale (λ 0.9) | 2.9% | 9.7% | ok |
+| tau-gpt4o-airline | errors (λ 0.9) | 1.2% | 5.7% | ok |
+| tau-gpt4o-airline | mean (λ 0.9) | 3.2% | 11.3% | ok |
+| tau-gpt4o-airline | max (λ 0.9) | 3.4% | 10.9% | ok |
+| tau-gpt4o-airline | loop (λ 0.9) | 3.3% | 9.2% | ok |
+| tau-gpt4o-retail | fixed | 8.2% | 4.6% | ok |
+| tau-gpt4o-retail | exact | 1.8% | 1.5% | ok |
+| tau-gpt4o-retail | steps | 2.7% | 1.7% | ok |
+| tau-gpt4o-retail | fuzzy (λ 0.9) | 3.1% | 2.6% | ok |
+| tau-gpt4o-retail | stale (λ 0.9) | 2.6% | 2.6% | ok |
+| tau-gpt4o-retail | errors (λ 0.9) | 2.8% | 2.6% | ok |
+| tau-gpt4o-retail | mean (λ 0.9) | 3.7% | 3.4% | ok |
+| tau-gpt4o-retail | max (λ 0.9) | 3.1% | 2.8% | ok |
+| tau-gpt4o-retail | loop (λ 0.9) | 3.7% | 2.8% | ok |
+| tau-sonnet35-airline | fixed | 2.2% | 5.4% | ok |
+| tau-sonnet35-airline | exact | 2.0% | 1.2% | ok |
+| tau-sonnet35-airline | steps | 3.5% | 5.7% | ok |
+| tau-sonnet35-airline | fuzzy (λ 0.9) | 2.9% | 7.5% | ok |
+| tau-sonnet35-airline | stale (λ 0.9) | 5.0% | 4.4% | ok |
+| tau-sonnet35-airline | errors (λ 0.9) | 0.5% | 0.5% | ok |
+| tau-sonnet35-airline | mean (λ 0.9) | 4.1% | 6.0% | ok |
+| tau-sonnet35-airline | max (λ 0.9) | 4.9% | 5.6% | ok |
+| tau-sonnet35-airline | loop (λ 0.9) | 3.8% | 6.9% | ok |
+| tau-sonnet35-retail | fixed | 5.1% | 2.3% | ok |
+| tau-sonnet35-retail | exact | 1.8% | 1.9% | ok |
+| tau-sonnet35-retail | steps | 2.6% | 1.3% | ok |
+| tau-sonnet35-retail | fuzzy (λ 0.9) | 3.8% | 3.3% | ok |
+| tau-sonnet35-retail | stale (λ 0.9) | 3.4% | 3.2% | ok |
+| tau-sonnet35-retail | errors (λ 0.9) | 1.1% | 2.4% | ok |
+| tau-sonnet35-retail | mean (λ 0.9) | 3.8% | 3.7% | ok |
+| tau-sonnet35-retail | max (λ 0.9) | 3.1% | 2.9% | ok |
+| tau-sonnet35-retail | loop (λ 0.9) | 3.8% | 3.2% | ok |
 
 ## 7. Token estimate check
 

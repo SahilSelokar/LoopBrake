@@ -407,7 +407,9 @@ Task: "Write eval/fetch.py parts 1–5 (download, three parsers, output)"
 - **SC-001 failed on τ-bench** for the signal methods: false stops reached 6.4% against a 5% limit
   (`tau-gpt4o-airline`). Cause: the stop line was set from runs that could include several attempts
   at the same task. A diagnostic that uses at most one run per task brings every group back under
-  5% (2.9–4.8%). The fix is waiting for the builder's decision.
+  5% (2.9–4.8%). The builder approved the fix, applied in a separate commit after the first record.
+  After the fix, no holdout row is invalid, so SC-001 passes. The verdict is still NO-GO: SWE-bench
+  +1.5% [−9.7%, +13.2%], τ-bench +0.9% [−3.1%, +5.0%]. See `eval/results/CORRECTIONS.md`.
 - **Passed**:
   - SC-002 (60 s);
   - SC-003 (identical rerun);

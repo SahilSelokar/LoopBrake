@@ -54,6 +54,18 @@ def test_splits_never_share_a_task():
             assert {ps[i].task for i in cal}.isdisjoint({ps[i].task for i in held})
 
 
+def test_stop_line_uses_at_most_one_run_per_task():
+    # Repeats of one task are not independent; using several of them sets the stop line too low
+    # for new tasks (the tau-bench failure in the first final run).
+    many = sorted((make_run(f"t{t}", i, 3, True) for t in range(4) for i in range(5)), key=lambda r: r.run)
+    ps = [ev.prepare(r, count_steps) for r in many]
+    rng = random.Random(0)
+    for _ in range(200):
+        cal, _ = ev.make_split(rng, range(len(ps)), ps, 3)
+        assert len({ps[i].task for i in cal}) == 3
+    assert ev.make_split(rng, range(len(ps)), ps, 5) is None  # only 4 tasks have a success
+
+
 def test_same_seed_same_splits():
     ps = preps()
 
