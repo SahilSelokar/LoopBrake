@@ -7,9 +7,9 @@
 Stop agent runs that are going in circles, with a guaranteed limit on how often a good run gets stopped.
 
 [![Status](https://img.shields.io/badge/status-research%20phase-orange)](#status)
-[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB)](pyproject.toml)
-[![Dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](pyproject.toml)
-[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB)](https://github.com/SahilSelokar/LoopBrake/blob/main/pyproject.toml)
+[![Dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](https://github.com/SahilSelokar/LoopBrake/blob/main/pyproject.toml)
+[![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/SahilSelokar/LoopBrake/blob/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/loopbrake)](https://pypi.org/project/loopbrake/)
 
 </div>
@@ -37,13 +37,16 @@ guarantee (split-conformal calibration), not a tuned target.
 smarter scores, and neither beat it on agents they were not tuned on. The stuck signals (repeats,
 nothing new, same error again) still run, but only to explain why a stopped run looked stuck.
 
-```mermaid
-flowchart LR
-    A[Agent takes a step] --> B[Stuck score]
-    B --> C{Above the stop line?}
-    C -- no --> A
-    C -- yes --> D[Stop the run and say why]
-    E[(Your past successful runs)] -. set the stop line .-> C
+```text
+  your past successful runs ──▶ stop line (for example 38 steps), with a guaranteed
+                                    │      limit on stopping good runs
+                                    ▼
+  agent takes a step ──▶ how many steps so far? ──▶ past the stop line?
+                                                      │             │
+                                                      no            yes
+                                                      │             │
+                                                      ▼             ▼
+                                                 keep going    stop the run and say why
 ```
 
 ## What a stop looks like
@@ -62,7 +65,7 @@ Reason: repeating in 5 of last 5 steps (similar to step 19); nothing new in 2 of
   27  grep -n "set_antialiased" -n lib -R || true
 ```
 
-More in [eval/results/kill-stories.md](eval/results/kill-stories.md).
+More in [eval/results/kill-stories.md](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/kill-stories.md).
 
 ## Use it
 
@@ -124,7 +127,7 @@ For comparison, [FailFast](https://arxiv.org/abs/2608.03222), a trained monitor,
 saved at 5% of good runs stopped. Its threshold was set on the same data it reports on, though, so
 that 5% is a target, not a guarantee.
 
-Full report: [eval/results/results.md](eval/results/results.md)
+Full report: [eval/results/results.md](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/results.md)
 
 ## Progress judge: also NO-GO
 
@@ -150,7 +153,7 @@ What we learned:
   example 7.3% vs 9.3% of tokens saved on GPT-5-mini.
 - The guarantee held on every group. The whole experiment took 73,812 judgments, for about $3.91.
 
-Full report: [eval/results/judge/results.md](eval/results/judge/results.md)
+Full report: [eval/results/judge/results.md](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/judge/results.md)
 
 ## How the results are kept honest
 
@@ -158,7 +161,7 @@ Full report: [eval/results/judge/results.md](eval/results/judge/results.md)
   test runs were scored (commits `8b8eaf3` and, for the judge, `0827ece`).
 - **Mistakes stay visible.** The first results were committed exactly as they came out, including a
   flaw in how runs were split (`e655b96`). The fix is a separate, documented commit (`76e8cdc`), with
-  before-and-after numbers in [CORRECTIONS.md](eval/results/CORRECTIONS.md).
+  before-and-after numbers in [CORRECTIONS.md](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/CORRECTIONS.md).
 - **Tested on unseen runs.** The stop line is always checked on runs it was not set from.
 - **Reproducible.** Every number above comes from `eval/results/` and comes out identical on every run.
 
@@ -174,7 +177,7 @@ never stops anything.
 
 The guarantee holds when new runs look like the past ones (same agent, same kind of tasks), and when
 the past runs come from different tasks. We learned the second condition the hard way: see
-[CORRECTIONS.md](eval/results/CORRECTIONS.md).
+[CORRECTIONS.md](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/CORRECTIONS.md).
 
 ## Reproduce
 
@@ -218,7 +221,7 @@ liveness.py      the original naive rule, kept as the baseline
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
 
-The full plan is in [specs/roadmap.md](specs/roadmap.md).
+The full plan is in [specs/roadmap.md](https://github.com/SahilSelokar/LoopBrake/blob/main/specs/roadmap.md).
 
 ## Status
 
@@ -227,5 +230,5 @@ own past successful runs, with a guaranteed limit on stopping good runs. Next: t
 
 ## License
 
-[MIT](LICENSE). One test fixture is a trimmed τ-bench run, used under τ-bench's own MIT license
-(see [tests/fixtures/NOTICE.md](tests/fixtures/NOTICE.md)).
+[MIT](https://github.com/SahilSelokar/LoopBrake/blob/main/LICENSE). One test fixture is a trimmed τ-bench run, used under τ-bench's own MIT license
+(see [tests/fixtures/NOTICE.md](https://github.com/SahilSelokar/LoopBrake/blob/main/tests/fixtures/NOTICE.md)).
