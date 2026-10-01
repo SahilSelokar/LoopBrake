@@ -42,6 +42,12 @@ is `watch-only: 12 successful turns found; need 7 more for α 5%`.
 The same output as `status --project <the derived project>`. `--project` and `--claude-code` can't
 be used together.
 
+**Wording**: for a project calibrated from Claude Code history, the lines say "turns" instead of
+"runs". A watch-only line reads `watch-only (31 successful turns; 39 needed)`. The needed count
+includes mistaken stops: they count as longer than any line, so they take the top places
+(`calibration.runs_needed(alpha, unbounded=<mistakes counted>)`). The same rule gives `need N more`
+in `calibrate`'s watch-only line.
+
 **When the hooks may not be running**: if the project has a calibration but no recorded turns, it
 adds one line:
 `no turns recorded yet for this project; if you have used Claude Code here since installing, the hooks may not be running (see the README's troubleshooting)`.

@@ -257,7 +257,7 @@ work in any project folder. Recalibration treats past LoopBrake stops as researc
   - **Frontmatter**: `description`, and `allowed-tools: Bash(loopbrake <exact command>)`.
   - **Body**: tells Claude to run that single command with the Bash tool and repeat its output, adding nothing.
   - **`status.md`**: also says that when the output shows no stop line, Claude should show the status line setup line from quickstart scenario 7.
-- [ ] T021 [US2] Manual: run quickstart scenario 6 in two real project folders. Note the results under "Outcome".
+- [X] T021 [US2] Manual: run quickstart scenario 6 in two real project folders. Note the results under "Outcome".
 
 ---
 
@@ -434,8 +434,29 @@ builder's go-ahead.
   - `/loopbrake:status` showed 1 stop, 3 turns watched of 4 recorded;
   - `/loopbrake:mistake` with no stop yet answered "no stops recorded yet".
   - The marketplace install route is checked at T033.
+- **T021, every command through headless Claude Code** (2026-10-02; a scratch project, a separate
+  `LOOPBRAKE_HOME`, and a made-up history of 25 three-step turns, so your real records stayed
+  untouched). Your Project Building folder was the second project.
+  - `/loopbrake:status` before calibrating: watch-only, plus the status line tip;
+  - `/loopbrake:calibrate`: stop line 3 from 25 turns;
+  - a turn asked for ten `echo` calls was stopped right after step 4, with the reason recorded;
+  - `/loopbrake:mistake` marked that stop, and a second try was refused ("already marked");
+  - `/loopbrake:exclude` marked the last finished turn;
+  - `/loopbrake:status` showed 1 stop and 1 mistaken stop.
+  - **Recalibration with the real test sessions added to the history**: 1 turn left out
+    (excluded), 1 mistaken stop counted as a long good turn, so the result is watch-only. That's
+    the cautious result research R10 predicts.
+  - **Bug found and fixed**: that watch-only message said "need -12 more". Mistaken stops take the
+    top places, so the count must include them: `runs_needed(alpha, unbounded=...)`. It now says
+    "need 8 more". Also fixed: "1 steps", and "runs" now reads "turns" in status for Claude Code
+    projects.
+  - `loopbrake statusline` gave `brake stopped at 4` for the stopped session and `brake idle` for an
+    unknown one.
+  - `loopbrake agreement --claude-code` on these real sessions: 10 of 10 turns matched with equal
+    counts, and 0 higher.
+  - Claude repeats command output with "project" capitalized, even though it's asked to repeat it
+    exactly. That's cosmetic.
 - **Left for the builder**:
-  - T021 (the commands in two real projects);
   - T024 (the status line in your settings);
   - T030 (a week of use, then `loopbrake agreement --claude-code`);
   - T032 and T033 (release, with your go-ahead).

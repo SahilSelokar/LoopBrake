@@ -26,7 +26,7 @@ def _calibrate(args):
         rec = calibration.calibrate(args.source, project=args.project or "default", alpha=args.alpha)
         unit = "runs"
     if rec["watch_only"]:
-        more = calibration.runs_needed(args.alpha) - rec["n"]
+        more = calibration.runs_needed(args.alpha, rec["source"].get("mistakes_counted", 0)) - rec["n"]
         print(f"watch-only: {rec['n']} successful {unit} found; need {more} more for α {args.alpha:.0%}")
     else:
         print(f"stop line: {rec['stop_line']} steps (from {rec['n']} successful {unit}, k = {rec['k']}, α {args.alpha:.0%})")
@@ -50,16 +50,18 @@ def _status(args):
     projects = [args.project] if args.project else sorted(p.stem for p in (h / "calibration").glob("*.json")) or ["default"]
     for project in projects:
         rec = calibration.load(project, h)
+        unit = "turns" if args.claude_code or (rec and rec["source"].get("kind") == "claude-code") else "runs"
         if rec is None:
             line = "no calibration (watch-only)"
         elif rec["watch_only"]:
-            line = f"watch-only (only {rec['n']} successful runs)"
+            needed = calibration.runs_needed(rec["alpha"], rec["source"].get("mistakes_counted", 0))
+            line = f"watch-only ({rec['n']} successful {unit}; {needed} needed)"
         else:
-            line = f"stop line: {rec['stop_line']} steps (from {rec['n']} successful runs, α {rec['alpha']:.0%}, {rec['source']['kind']}, {rec['created']})"
+            line = f"stop line: {rec['stop_line']} steps (from {rec['n']} successful {unit}, α {rec['alpha']:.0%}, {rec['source']['kind']}, {rec['created']})"
         st = records.status(h, project)
         print(f"project {project}: {line}")
-        print(f"  runs watched: {st['watched']} (of {st['runs']} recorded)")
-        print(f"  runs stopped: {st['stopped']}")
+        print(f"  {unit} watched: {st['watched']} (of {st['runs']} recorded)")
+        print(f"  {unit} stopped: {st['stopped']}")
         print(f"  mistaken stops: {st['mistaken']} of an allowance of {st['allowance']:.1f}")
         if args.claude_code and rec is not None and st["runs"] == 0:
             print(NO_TURNS_HINT)
@@ -75,7 +77,7 @@ def _feedback(args):
             return _fail("no stops recorded yet" if args.mistaken else "no finished turns recorded yet", 1)
         start, e = found
         run = start["run"]
-        detail = f"stopped at step {e.get('step')}" if args.mistaken else f"{e.get('steps')} steps, {e.get('status')}"
+        detail = f"stopped at step {e.get('step')}" if args.mistaken else f"{e.get('steps')} step{'' if e.get('steps') == 1 else 's'}, {e.get('status')}"
         about = f"run {run} (project {start.get('project')}, {detail})"
     try:
         records.add_feedback(h, run, verdict)

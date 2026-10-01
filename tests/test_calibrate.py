@@ -150,3 +150,8 @@ def test_recalibration_after_the_brake_was_on(tmp_path, home, monkeypatch, case,
     rec = claude_code.calibrate_claude_code(CWD)
     assert rec["stop_line"] == expected_line
     assert (rec["source"]["stops_left_out"], rec["source"]["mistakes_counted"]) == counts
+
+
+def test_runs_needed_counts_mistaken_stops_as_taking_the_top_places():
+    assert calibration.runs_needed(0.05) == 19
+    assert calibration.runs_needed(0.05, unbounded=1) == 39  # ceil(0.95 * 40) = 38 = 39 - 1

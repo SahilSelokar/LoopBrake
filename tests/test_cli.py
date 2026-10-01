@@ -150,3 +150,17 @@ def test_feedback_last(capsys, home):
     assert run_cli(capsys, "feedback", "last", "--mistaken") == (0, "recorded: run a (project cc-x, stopped at step 39) marked as a mistaken stop\n", "")
     assert run_cli(capsys, "feedback", "last", "--mistaken") == (1, "", "loopbrake: run 'a' is already marked\n")
     assert run_cli(capsys, "feedback", "last", "--exclude") == (0, "recorded: run a (project cc-x, 39 steps, stopped) left out of future calibration\n", "")
+
+
+def test_watch_only_because_of_a_mistaken_stop(capsys, home, tmp_path, monkeypatch):
+    project = claude_project(tmp_path, monkeypatch)  # 19 finished 2-step turns: just enough for a line
+    w = records.RunWriter(home / "runs" / "live.jsonl")
+    w.write({"event": "run_start", "session": "live", "run": "L", "project": project, "calibration": {}})
+    w.write({"event": "step", "session": "live", "run": "L", "step": 1, "call_id": "t0-0"})
+    w.write({"event": "stop", "session": "live", "run": "L", "step": 1, "call_id": "t0-0"})
+    w.write({"event": "feedback", "session": "live", "run": "L", "verdict": "mistaken_stop"})
+    code, out, _ = run_cli(capsys, "calibrate", "--claude-code")
+    assert code == 0 and "watch-only: 19 successful turns found; need 20 more for α 5%" in out
+    assert "mistaken stops counted as long good turns: 1" in out
+    out = run_cli(capsys, "status", "--claude-code")[1]
+    assert "watch-only (19 successful turns; 39 needed)" in out and "turns watched: 0 (of 1 recorded)" in out

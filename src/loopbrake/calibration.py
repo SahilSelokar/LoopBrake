@@ -36,10 +36,13 @@ def load(project, home):
         return None
 
 
-def runs_needed(alpha):
-    """The fewest successful runs that give a stop line at this alpha (fewer means watch-only)."""
+def runs_needed(alpha, unbounded=0):
+    """The fewest successful runs that give a stop line at this alpha (fewer means watch-only).
+
+    `unbounded`: runs counted as longer than any line (mistaken stops, research R10). They take the
+    top places, so more runs are needed before the k-th smallest is a real length."""
     n = 1
-    while rank(n, alpha) > n:
+    while rank(n, alpha) > n - unbounded:
         n += 1
     return n
 
