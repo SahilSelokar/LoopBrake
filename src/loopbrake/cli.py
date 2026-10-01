@@ -128,6 +128,14 @@ def _statusline(args):
     return 0
 
 
+def _agreement(args):
+    if not args.claude_code:
+        return _fail("agreement needs --claude-code")
+    lines, higher = claude_code.agreement()
+    print("\n".join(lines))
+    return 1 if higher else 0
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == ["hook"]:  # before argparse, which exits 2 on bad arguments: a hook must never do that
@@ -149,6 +157,8 @@ def main(argv=None):
     g.add_argument("--mistaken", action="store_true")
     g.add_argument("--exclude", action="store_true")
     sub.add_parser("hook", help="Claude Code hook entry point (reads the event from stdin)").add_argument("event", choices=claude_code.EVENTS)
+    sub.add_parser("agreement", help="check live step counts against calibration's, turn by turn (writes nothing)").add_argument(
+        "--claude-code", action="store_true", help="the Claude Code project of the current folder")
     sub.add_parser("statusline", help="one line for Claude Code's status line (reads its input from stdin)")
     r = sub.add_parser("replay", help="show where recorded runs would stop (writes nothing)")
     r.add_argument("runs_file")
@@ -163,7 +173,7 @@ def main(argv=None):
         ap.print_help()
         return 0
     try:
-        return {"calibrate": _calibrate, "status": _status, "feedback": _feedback, "replay": _replay, "statusline": _statusline}[args.command](args)
+        return {"calibrate": _calibrate, "status": _status, "feedback": _feedback, "replay": _replay, "statusline": _statusline, "agreement": _agreement}[args.command](args)
     except (OSError, ValueError, KeyError) as e:
         if os.environ.get("LOOPBRAKE_DEBUG") == "1":
             raise

@@ -130,3 +130,43 @@ def statusline(stdin_text, home=None):
         return f"brake {count} (watching)" if cal.get("watch_only", True) or line is None else f"brake {count}/{line}"
     except Exception:
         return "brake idle"
+
+
+# ---- live vs calibration agreement (spec SC-008) ----
+
+def agreement(cwd=None, home=None):
+    """Compare each live turn's step count with the transcript turn holding its first tool call.
+
+    Returns (lines to print, how many live counts were higher). A higher live count would mean the
+    brake counts more than calibration saw: a bug to fix before release (constitution 2.4.0)."""
+    from loopbrake.traces import claude_code_turns
+    h = records.home(home)
+    folder = history_folder(cwd)
+    if not folder.is_dir():
+        raise FileNotFoundError(f"no Claude Code history for this folder at {folder}")
+    project = project_name(folder.name)
+    length = {}  # tool call id -> its transcript turn's step count
+    for f in sorted(folder.glob("*.jsonl")):
+        ids = {}
+        for r in claude_code_turns(f, call_ids=ids)[0]:
+            length.update({c: len(r.steps) for c in ids.get(r.run, ())})
+    runs, calls = [], {}
+    for e in records.read_events(h):
+        if e.get("event") == "run_start" and e.get("project") == project:
+            runs.append(e.get("run"))
+        elif e.get("event") == "step" and e.get("call_id"):
+            calls.setdefault(e.get("run"), []).append(e["call_id"])
+    lines, counts = [], {"equal": 0, "lower": 0, "higher": 0, "unmatched": 0}
+    for run in runs:
+        live = calls.get(run)
+        if not live:
+            continue
+        seen = length.get(live[0])
+        kind = "unmatched" if seen is None else "equal" if len(live) == seen else "lower" if len(live) < seen else "higher"
+        counts[kind] += 1
+        if kind == "higher":
+            lines.append(f"higher  run {run}  live {len(live)}  transcript {seen}")
+    matched = counts["equal"] + counts["lower"] + counts["higher"]
+    summary = f"turns matched {matched}, equal {counts['equal']}, live lower {counts['lower']}, live higher {counts['higher']}"
+    lines.append(summary + (f", unmatched {counts['unmatched']}" if counts["unmatched"] else ""))
+    return lines, counts["higher"]

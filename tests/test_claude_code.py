@@ -271,3 +271,42 @@ def test_statusline_never_fails_or_writes(home):
         assert claude_code.statusline(bad, home) == "brake idle"
     line(home)
     assert snapshot(home) == before
+
+
+# ---- live vs calibration agreement (SC-008, contracts/cli.md) ----
+
+def agreement_setup(home, tmp_path, live):
+    cwd = tmp_path / "work"
+    cwd.mkdir()
+    folder = claude_code.history_folder(cwd)
+    folder.mkdir(parents=True)
+    (folder / "s.jsonl").write_text(MIDTURN.read_text())
+    project = claude_code.project_name(folder.name)
+    for run, calls in live.items():
+        w = records.RunWriter(home / "runs" / f"live-{run}.jsonl")
+        w.write({"event": "run_start", "session": f"live-{run}", "run": run, "project": project, "calibration": {}})
+        for i, c in enumerate(calls, 1):
+            w.write({"event": "step", "session": f"live-{run}", "run": run, "step": i, "call_id": c})
+    return cwd
+
+
+def test_agreement_flags_a_higher_live_count(home, tmp_path, monkeypatch, capsys):
+    from loopbrake import cli
+    live = {"A": ["t1", "t2", "t3"], "B": ["t4"], "C": ["t6"], "D": ["t5", "extra"], "E": ["nope"], "F": []}
+    cwd = agreement_setup(home, tmp_path, live)
+    lines, higher = claude_code.agreement(cwd, home)
+    assert higher == 1
+    assert lines == ["higher  run D  live 2  transcript 1",
+                     "turns matched 4, equal 2, live lower 1, live higher 1, unmatched 1"]
+    monkeypatch.chdir(cwd)
+    assert cli.main(["agreement", "--claude-code"]) == 1
+    assert capsys.readouterr().out.splitlines() == lines
+
+
+def test_agreement_passes_when_live_is_never_higher(home, tmp_path, monkeypatch):
+    from loopbrake import cli
+    cwd = agreement_setup(home, tmp_path, {"A": ["t1", "t2", "t3"], "C": ["t6"]})
+    lines, higher = claude_code.agreement(cwd, home)
+    assert higher == 0 and lines == ["turns matched 2, equal 1, live lower 1, live higher 0"]
+    monkeypatch.chdir(cwd)
+    assert cli.main(["agreement", "--claude-code"]) == 0

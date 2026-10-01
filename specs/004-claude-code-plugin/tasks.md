@@ -280,12 +280,12 @@ or `brake idle`.
 
 ## Phase 6: Polish, agreement check, and release
 
-- [ ] T025 [P] Add `agreement` tests to `tests/test_claude_code.py`:
+- [X] T025 [P] Add `agreement` tests to `tests/test_claude_code.py`:
   - **Setup**: a temporary history folder holding `midturn.jsonl`, and run logs with live turns whose `call_id`s match `t1…t7`.
   - **One live turn with an extra step** gives one `higher` line, and `agreement()` reports 1 higher (exit 1).
   - **Equal or lower counts** report 0 higher (exit 0).
   - **Live turns whose ids aren't found** are counted as unmatched, not as errors.
-- [ ] T026 Implement `agreement(cwd=None, home=None)` in `src/loopbrake/claude_code.py`, plus `loopbrake agreement --claude-code` in `src/loopbrake/cli.py`, per contracts/cli.md:
+- [X] T026 Implement `agreement(cwd=None, home=None)` in `src/loopbrake/claude_code.py`, plus `loopbrake agreement --claude-code` in `src/loopbrake/cli.py`, per contracts/cli.md:
   - for each live run of the derived project with at least one step, find the transcript turn holding its first `call_id` (using `call_ids` from the reader), and compare step counts;
   - print a `higher` line per higher count, then `turns matched N, equal N, live lower N, live higher N` (and `unmatched N` when it isn't 0);
   - exit 1 when any count is higher;
