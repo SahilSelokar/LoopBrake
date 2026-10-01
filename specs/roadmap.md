@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.1.0 | **Status**: Phase 1 done. Verdict NO-GO (2026-10-01): see `eval/results/results.md`.
+**Date**: 2026-10-01 | **Constitution**: v2.2.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is next.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -84,7 +84,25 @@ the calibration run ids and their scores, the date and the version. Phase 2 writ
   - The first real number.
 - **Size**: L.
 
-### Phase 2: Core package (`002-core-package`)
+### Decision after two NO-GOs (2026-10-01)
+
+Neither the cheap stuck signals nor the progress judge beat the calibrated step count on held-out
+agents. So **v1's stop rule is the calibrated step budget**: stop a run once it has gone on longer
+than a stop line set from your own past successful runs, with the false-stop guarantee. The stuck
+signals still run, but only to explain *why* a stopped run looked stuck.
+
+**Measured savings at 5% false stops** (committed in `eval/results/`):
+- 9.3% at n = 20, and 11.2% at n = 100, on GPT-5-mini;
+- 20.7–24.7% on Devstral;
+- 0.9–9.2% on τ-bench.
+
+The range depends on the agent: long, wandering runs leave the most to save.
+
+### Phase 2: Core package (`003-core-package`)
+
+**v1 scope**: the `steps` method is the stop rule. `fixed`, `exact` and the signal methods stay in the
+package for explanations and future experiments, but they never decide a stop.
+
 
 - **Goal**: turn the certified scorer into a product API that never re-implements it.
 - **Deliverables**:

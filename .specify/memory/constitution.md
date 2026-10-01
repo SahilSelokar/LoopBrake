@@ -1,25 +1,19 @@
 <!--
 Sync Impact Report
-- Version change: 2.0.0 → 2.1.0 (MINOR: dashboard guidance materially expanded)
-- Modified principles:
-  - IV. Evaluation Decides (clarification): savings are reported overall and on failed runs.
-    The public traces are now SWE-bench and τ-bench; MAST-Data was dropped for lacking success
-    labels (see specs/001-offline-eval/research.md).
-- Modified sections (Technical Constraints):
-  - Dashboard: the liquid glass theme, Lucide icons, no emoji, vendored assets, accessibility
-    fallbacks and a localhost security model.
-  - Dashboard correction: no live "tokens saved". The false-kill budget comes from kills the
-    user marks as mistakes.
-  - Integrations: OTLP/HTTP JSON over the standard library. Protobuf-only backends go through
-    a Collector. Metrics are corrected.
-  - Fixed: the visual identity bullets had been nested under Integrations by the 2.0.0 edit.
-- Added sections: none
-- Removed sections: none
-- Templates: plan-template.md resolves gates at runtime; no edits needed.
-- Dependent docs: specs/roadmap.md was created to match.
-- Deferred TODOs: none
-- History: 1.0.0 → 2.0.0 redefined Principle VI as Local by Default, added the observability
-  phase and the launch phase, and added the public-claims rule.
+- Version change: 2.1.0 → 2.2.0 (MINOR: development workflow materially changed)
+- Modified sections:
+  - Development Workflow, phase gate. Two pre-registered experiments (cheap stuck signals; a hosted
+    progress judge) did not beat the calibrated step count on held-out agents. v1 therefore ships the
+    calibrated step budget as its stop rule, and the signals only explain stops. Phase 2 is unblocked on
+    that basis. A new stop signal enters the product only after it beats the step count on held-out
+    agents, pre-registered. Builder's decision, 2026-10-01.
+  - Phase order, item 2: now says what the core package ships.
+- Principles: unchanged. Principle I's guarantee applies to any score, including run length.
+  Principle IV is satisfied: the step budget's numbers are committed (eval/results/).
+- Templates: none affected.
+- Dependent docs: specs/roadmap.md and README.md updated to match.
+- History: 2.1.0 added the liquid glass rules and the stdlib OTLP exporter; 2.0.0 redefined Principle VI
+  as Local by Default.
 -->
 
 # LoopBrake Constitution
@@ -178,7 +172,7 @@ an observability tool only when they control exactly what leaves the machine.
   implement. One feature per phase.
 - **Phase order**:
   1. Experiment
-  2. Core package
+  2. Core package. v1's stop rule is the calibrated step budget; the stuck signals only explain stops.
   3. Claude Code plugin
   4. Observability: the dashboard plus OpenTelemetry export
   5. Launch: a demo agent that gets stuck and is caught by LoopBrake, the public repository, and
@@ -187,9 +181,13 @@ an observability tool only when they control exactly what leaves the machine.
   A System 1 model is added only if Principle IV shows a plateau. If that happens, it slots in
   before Launch.
 
-  A phase starts only after the previous phase passes its gate. The Experiment gate: beat the
-  calibrated `liveness.py` baseline. If it does not, the signals get reworked before any package
-  code is written.
+  A phase starts only after the previous phase passes its gate. **Signal gate**: a stop signal enters
+  the product only if it beats the calibrated step count on held-out agents, in a pre-registered
+  experiment. Until one does, the product stops runs on the calibrated step budget alone, and the
+  signals are used only to explain a stop.
+
+  **Decision record (2026-10-01)**: the cheap signals (`specs/001-offline-eval`) and the progress
+  judge (`specs/002-progress-judge`) both got a NO-GO. Phase 2 starts with the step budget.
 - **Tests**: every non-trivial path (signals, conformal threshold, trace loaders, hook I/O) leaves
   at least one runnable check. pytest is the only test dependency.
 - **Simplicity**: the shortest design that works. No abstraction with a single implementation,
@@ -214,4 +212,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.1.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-01
+**Version**: 2.2.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-01

@@ -32,6 +32,10 @@ The stop line is not guessed. It is set from **your own past successful runs**, 
 chosen share of good runs, for example 5 in 100, would ever cross it. That is a statistical
 guarantee (split-conformal calibration), not a tuned target.
 
+**In v1 the stuck score is simply how long the run has gone on.** Two experiments (below) tested
+smarter scores, and neither beat it on agents they were not tuned on. The stuck signals (repeats,
+nothing new, same error again) still run, but only to explain why a stopped run looked stuck.
+
 ```mermaid
 flowchart LR
     A[Agent takes a step] --> B[Stuck score]
@@ -169,7 +173,7 @@ liveness.py      the original naive rule, kept as the baseline
 |---|---|---|
 | 1 | **Experiment**: does it work on real runs? | Done: NO-GO for cheap signals |
 | 1b | **Progress judge**: a hosted decision model judges whether each step moved the run forward | Done: NO-GO |
-| 2 | **Python package**: `pip install loopbrake`, a few lines to add to any agent | Waits for a decision on what to ship |
+| 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Next |
 | 3 | **Claude Code plugin**: stop stuck sessions live, calibrated on your own history | Planned |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
@@ -178,8 +182,9 @@ The full plan is in [specs/roadmap.md](specs/roadmap.md).
 
 ## Status
 
-Research phase. There is nothing to install yet. The package arrives in Phase 2, once an
-evaluation says GO.
+Research done; building v1. There is nothing to install yet. The package arrives in Phase 2. Its stop
+rule is a stop line on run length, set from your own past successful runs, with a guaranteed limit on
+stopping good runs.
 
 ## License
 
