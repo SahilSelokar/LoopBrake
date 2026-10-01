@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-01
 
-**Status**: Draft
+**Status**: Implemented. Verdict NO-GO (2026-10-01); see `eval/results/results.md`.
 
 **Input**: User description: "" (empty). Inferred from the agreed LoopBrake plan, Phase 1:
 "Offline experiment on recorded agent runs. Calibrate a kill threshold on past successful runs.

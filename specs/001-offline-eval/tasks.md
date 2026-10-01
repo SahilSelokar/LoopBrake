@@ -242,7 +242,7 @@ It starts with GO or NO-GO, and gives each dataset's paired difference and its i
 - [X] T028 [US2] Extend `--dev` in `eval/run.py`:
   - run the six signal methods at λ ∈ {0.8, 0.9, 1.0};
   - print the best valid row by mean `saved_all` at α = 0.05, n = 20, marked "suggestion only".
-- [ ] T029 [US2] **Manual step, done by you (the builder)**: choose the method and record it in `eval/candidate.json`.
+- [X] T029 [US2] **Manual step, done by you (the builder)**: choose the method and record it in `eval/candidate.json`.
   - run `uv run python eval/run.py --dev`;
   - choose the method and λ;
   - write `eval/candidate.json` as `{"method": "<name>", "lam": <float>, "chosen_on": "swe-devstral", "date": "YYYY-MM-DD"}`;
@@ -270,7 +270,7 @@ It starts with GO or NO-GO, and gives each dataset's paired difference and its i
   - write `eval/results/kill-stories.md` in the format in contracts/results.md: a header with the run, stop step, tokens saved and %, the reason, then up to 5 earlier actions of at most 80 characters each, and under 60 words of prose.
 
   Also write `--story GROUP RUN`, which prints one story to the screen.
-- [ ] T033 [US2] Run `time uv run python eval/run.py --final`. Check:
+- [X] T033 [US2] Run `time uv run python eval/run.py --final`. Check:
   - it finishes in under 15 minutes (SC-002). If not, apply the fallback in research R12: error bars at the main setting only first.
   - no holdout row is `invalid` (SC-001);
   - results.md starts with GO or NO-GO (SC-004).
@@ -325,7 +325,7 @@ and `eval/results/` contains none of your project folder names (read from `~/.lo
   - Per-run details go to `~/.loopbrake/eval/local/<label>.csv`.
   - Only with `--final`, add summed-up rows (`dataset = claude-code-local`, `role = local`) to `eval/results/results.csv`.
   - Local groups never count toward the go/no-go decision. No folder names, paths, actions or kill stories from local data may be written inside the repository (FR-014, constitution Principle VI).
-- [ ] T038 [US3] Run `uv run python eval/run.py --final --local`. Check:
+- [X] T038 [US3] Run `uv run python eval/run.py --final --local`. Check:
   - `local-*` rows appear, and small projects show `insufficient`;
   - the leak check in quickstart.md step 6 prints `clean` (SC-007). It reads your real folder names from `~/.loopbrake/eval/local-map.json`, so no private name is ever written into the repository.
 
@@ -338,8 +338,8 @@ and `eval/results/` contains none of your project folder names (read from `~/.lo
 - [X] T039 [P] Add `ponytail:` comments for the two deliberate shortcuts from plan.md's Complexity Tracking, each naming its limit and fix:
   - recomputing scores from all steps so far, in `src/loopbrake/signals.py`;
   - plain-Python random splits, in `eval/run.py`.
-- [ ] T040 Follow `specs/001-offline-eval/quickstart.md` from top to bottom on a clean checkout, and fix anything that doesn't match. Include the sanity check: `steps` on `swe-gpt5mini` at n = 100 should be roughly 10–12% `saved_all`. If it's far off, check the token counting before trusting other numbers (research R4).
-- [ ] T041 Update the status line in `specs/roadmap.md` and the spec status to the outcome (GO or NO-GO) and its date. Commit.
+- [X] T040 Follow `specs/001-offline-eval/quickstart.md` from top to bottom on a clean checkout, and fix anything that doesn't match. Include the sanity check: `steps` on `swe-gpt5mini` at n = 100 should be roughly 10–12% `saved_all`. If it's far off, check the token counting before trusting other numbers (research R4).
+- [X] T041 Update the status line in `specs/roadmap.md` and the spec status to the outcome (GO or NO-GO) and its date. Commit.
 
 ---
 
@@ -399,6 +399,24 @@ Task: "Write eval/fetch.py parts 1–5 (download, three parsers, output)"
    This decides whether Phase 2 (the package) starts.
 5. US3: your own history, locally.
 6. Polish.
+
+## Outcome (2026-10-01)
+
+- **Verdict: NO-GO.** The pre-registered method (`max`, λ 0.9) beat the step-count rule by +1.5%
+  on SWE-bench [−10.6%, +15.1%] and +2.2% on τ-bench [−2.1%, +7.4%]. Both intervals include zero.
+- **SC-001 failed on τ-bench** for the signal methods: false stops reached 6.4% against a 5% limit
+  (`tau-gpt4o-airline`). Cause: the stop line was set from runs that could include several attempts
+  at the same task. A diagnostic that uses at most one run per task brings every group back under
+  5% (2.9–4.8%). The fix is waiting for the builder's decision.
+- **Passed**:
+  - SC-002 (60 s);
+  - SC-003 (identical rerun);
+  - SC-004 (verdict);
+  - SC-006 (10 stories per group);
+  - SC-007 (leak check clean);
+  - SC-008 (the fixed rule stops 99.3% of good Devstral runs and 29.1% of GPT-5-mini runs).
+- **Sanity check**: `steps` at n = 100 on GPT-5-mini saves 11.2%, inside FailFast's Duration range
+  (10.0–12.0%).
 
 ## Notes
 

@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.1.0 | **Status**: Phase 1 planned, tasks next
+**Date**: 2026-10-01 | **Constitution**: v2.1.0 | **Status**: Phase 1 done. Verdict NO-GO (2026-10-01): see `eval/results/results.md`.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -66,7 +66,7 @@ the calibration run ids and their scores, the date and the version. Phase 2 writ
 
 ## Phases
 
-### Phase 1: Experiment (`001-offline-eval`, status: spec and plan done)
+### Phase 1: Experiment (`001-offline-eval`, status: done, verdict NO-GO on 2026-10-01)
 
 - **Goal**: show that the idea works, or doesn't, before building the product.
 - **Deliverables**:
