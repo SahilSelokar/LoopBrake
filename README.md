@@ -75,34 +75,43 @@ six agent groups, on coding tasks
 | Extra saving from stuck signals over the step limit, with 95% interval | SWE-bench **+1.5%** [−9.7%, +13.2%]<br>τ-bench **+0.9%** [−3.1%, +5.0%] |
 
 **Verdict: NO-GO.** The cheap stuck signals do not clearly beat a calibrated step limit. Following
-the plan set in advance, the next experiment tests a progress judge (below).
+the plan set in advance, a second experiment tested a progress judge (below).
 For comparison, [FailFast](https://arxiv.org/abs/2608.03222), a trained monitor, reports 14.6–20.4%
 saved at 5% of good runs stopped. Its threshold was set on the same data it reports on, though, so
 that 5% is a target, not a guarantee.
 
 Full report: [eval/results/results.md](eval/results/results.md)
 
-## Now testing: a progress judge
+## Progress judge: also NO-GO
 
-Counting repeats is not the same as understanding a step. The next experiment asks a fast hosted
-decision model, [Jev](https://docs.typesafe.ai) (`jev-1.13.0`), two questions about every step:
-*did this move the agent closer to finishing?* (a probability) and *what kind of step was it?*
-(for example found something new, repeated an earlier action, or hit the same error again).
+Counting repeats is not the same as understanding a step, so the second experiment asked a fast
+hosted decision model, [Jev](https://docs.typesafe.ai) (`jev-1.13.0`), about every step: *did this
+move the agent closer to finishing?* and *what kind of step was it?* Savings are counted **net**:
+every token the judge reads is subtracted. The method was chosen on one agent and committed
+(`0827ece`) before any other agent was judged.
 
-- **Net savings.** Every token the judge reads is subtracted from the tokens it saves.
-- **Same guarantee, same bar.** The same stop-line rule, and the same calibrated step limit to beat.
-- **Chosen in advance again.** The method is picked on one agent's runs and committed before any
-  unseen agent is judged. The judging script refuses to run on unseen agents until that commit exists.
-- **Cheaper variant.** A version that asks the judge only when the cheap signals already look stuck,
-  to keep cost and delay down for live use.
-- **Public data only.** Only public dataset steps are sent; the access key never enters the repository.
+| Dataset | Extra net saving over the step limit, with 95% interval |
+|---|---|
+| SWE-bench (GPT-5-mini) | **−6.3%** [−18.9%, +1.9%] |
+| τ-bench (4 groups) | **−4.2%** [−8.2%, −1.5%] |
 
-Results will appear in `eval/results/judge/`. Design: [specs/002-progress-judge](specs/002-progress-judge/spec.md).
+What we learned:
+
+- **A threshold tuned on one agent did not travel.** The chosen method asked the judge only when the
+  cheap score passed a level set on Devstral's long runs. On the other agents that level was almost
+  never reached (0–0.3% of steps), so the method rarely stopped anything.
+- **A judge on every step is expensive.** On short customer-service tasks it used about as many
+  tokens as the agent itself.
+- **Even ignoring its cost, the judge did not spot stuck runs better than counting steps**: for
+  example 7.3% vs 9.3% of tokens saved on GPT-5-mini.
+- The guarantee held on every group. The whole experiment took 73,812 judgments, for about $3.91.
+
+Full report: [eval/results/judge/results.md](eval/results/judge/results.md)
 
 ## How the results are kept honest
 
 - **Chosen in advance.** The method was picked using one agent's runs and committed *before* any
-  test runs were scored (commit `8b8eaf3`).
+  test runs were scored (commits `8b8eaf3` and, for the judge, `0827ece`).
 - **Mistakes stay visible.** The first results were committed exactly as they came out, including a
   flaw in how runs were split (`e655b96`). The fix is a separate, documented commit (`76e8cdc`), with
   before-and-after numbers in [CORRECTIONS.md](eval/results/CORRECTIONS.md).
@@ -159,8 +168,8 @@ liveness.py      the original naive rule, kept as the baseline
 | Phase | What | Status |
 |---|---|---|
 | 1 | **Experiment**: does it work on real runs? | Done: NO-GO for cheap signals |
-| Now | **Progress judge**: a hosted decision model judges whether each step moved the run forward | In progress: one agent judged; unseen agents next |
-| 2 | **Python package**: `pip install loopbrake`, a few lines to add to any agent | Waits for a GO |
+| 1b | **Progress judge**: a hosted decision model judges whether each step moved the run forward | Done: NO-GO |
+| 2 | **Python package**: `pip install loopbrake`, a few lines to add to any agent | Waits for a decision on what to ship |
 | 3 | **Claude Code plugin**: stop stuck sessions live, calibrated on your own history | Planned |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |

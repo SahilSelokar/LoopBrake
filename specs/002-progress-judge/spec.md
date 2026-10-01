@@ -1,6 +1,6 @@
 # Feature Specification: Progress Judge Experiment
 
-**Feature Branch**: `002-progress-judge` | **Created**: 2026-10-01 | **Status**: Draft
+**Feature Branch**: `002-progress-judge` | **Created**: 2026-10-01 | **Status**: Implemented. Verdict NO-GO (2026-10-01); see `eval/results/judge/results.md`.
 
 **Input**: User description: "You plan in the scope". This is the next step chosen after Phase 1's
 NO-GO: test whether a small model that judges "did this step move the run forward?" beats the

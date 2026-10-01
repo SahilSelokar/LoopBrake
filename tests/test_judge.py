@@ -105,6 +105,14 @@ def test_service_error_after_six_tries_and_422_unreadable():
     assert jd.call_jev({"x": 1}, KEY, opener=opener, sleep=lambda s: None)["status"] == "unreadable" and len(calls) == 1
 
 
+def test_out_of_credit_stops_instead_of_storing_no_opinion():
+    for code in (402, 403):
+        opener, _ = fake_opener([code])
+        with pytest.raises(jd.StopJudging):
+            jd.call_jev({"x": 1}, KEY, opener=opener, sleep=lambda s: None)
+    assert jd.retry_worthy({"status": "unreadable", "tokens": 0}) and not jd.retry_worthy({"status": "unreadable", "tokens": 50})
+
+
 def test_401_stops_without_showing_the_key():
     opener, _ = fake_opener([401])
     with pytest.raises(jd.StopJudging) as err:

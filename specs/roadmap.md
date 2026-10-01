@@ -266,7 +266,7 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
 - **Reel**: the launch video.
 - **Size**: M.
 
-### Next: Progress judge experiment (`002-progress-judge`, status: planned 2026-10-01)
+### Progress judge experiment (`002-progress-judge`, status: done, verdict NO-GO on 2026-10-01)
 
 Triggered by Phase 1's NO-GO. Jev (Typesafe's hosted decision model) judges each step's progress,
 and it's tested with the same pre-registered gate, using **net** tokens saved. A GO opens Phase 2.

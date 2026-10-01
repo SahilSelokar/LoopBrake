@@ -157,6 +157,8 @@ def call_jev(body, key, opener=urllib.request.urlopen, sleep=time.sleep):
         except urllib.error.HTTPError as e:
             if e.code == 401:
                 raise StopJudging("Typesafe rejected the key: invalid TYPESAFE_API_KEY") from None
+            if e.code in (402, 403):  # out of credit or not allowed: stop, don't store a fake "no opinion"
+                raise StopJudging(f"Typesafe refused the request (HTTP {e.code}): check the account balance") from None
             if e.code not in RETRY_STATUSES:
                 return {"progress": None, "kind": None, "kind_p": None, "tokens": 0, "status": "unreadable", "ms": 0}
             after = e.headers.get("Retry-After") if e.headers else None
@@ -222,12 +224,17 @@ class Pacer:
         time.sleep(max(0.0, start - now))
 
 
+def retry_worthy(j):
+    """Ask again on resume: the service failed, or the request was refused before Jev answered (no tokens used)."""
+    return j["status"] == "service_error" or (j["status"] == "unreadable" and j["tokens"] == 0)
+
+
 def judge_group(group, setup, key, data, runs_n=None, seed=0, rate=30, workers=32):
     out = setup_dir(setup) / f"{group}.jsonl"
     out.parent.mkdir(parents=True, exist_ok=True)
     have = stored(out)
     # A busy or failing service is worth asking again on resume; the newest line for a key wins.
-    pending = [it for it in work_items(group, data, setup, runs_n, seed) if it[3] not in have or have[it[3]]["status"] == "service_error"]
+    pending = [it for it in work_items(group, data, setup, runs_n, seed) if it[3] not in have or retry_worthy(have[it[3]])]
     # Identical requests (a step that exactly repeats an earlier one) are sent once; every such step gets the answer.
     same = defaultdict(list)
     for it in pending:

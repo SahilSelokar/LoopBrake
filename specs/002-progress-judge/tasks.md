@@ -184,9 +184,9 @@ cost.
   - it uses Phase 1's format (it can reuse `story` and `display` from `eval/run.py`);
   - the Reason line starts with the judged scorer's reason (`judge: no progress in K of last N steps (kind, p)`), followed by the Phase 1 signals' reason;
   - at least 10 stories per public group, or all if fewer.
-- [ ] T018 [US2] **Manual step, done by the builder**: choose the method from the `--dev` output and record it in `eval/judge_candidate.json`, in data-model.md's layout. Commit it with `git commit -m "eval: pre-register judge candidate"`, without attribution lines. This must happen **before** T019.
-- [ ] T019 [US2] Run `uv run python eval/judge.py --group swe-gpt5mini tau-gpt4o-airline tau-gpt4o-retail tau-sonnet35-airline tau-sonnet35-retail`. Before T018, the same command must exit 3; check that once. Write down the cost and time.
-- [ ] T020 [US2] Run `time uv run python eval/judge_eval.py --final` and check:
+- [X] T018 [US2] **Manual step, done by the builder**: choose the method from the `--dev` output and record it in `eval/judge_candidate.json`, in data-model.md's layout. Commit it with `git commit -m "eval: pre-register judge candidate"`, without attribution lines. This must happen **before** T019.
+- [X] T019 [US2] Run `uv run python eval/judge.py --group swe-gpt5mini tau-gpt4o-airline tau-gpt4o-retail tau-sonnet35-airline tau-sonnet35-retail`. Before T018, the same command must exit 3; check that once. Write down the cost and time.
+- [X] T020 [US2] Run `time uv run python eval/judge_eval.py --final` and check:
   - SC-001: no holdout row of the chosen method is invalid;
   - SC-002: the verdict is present;
   - SC-007: section 5 states the delay.
@@ -231,12 +231,26 @@ expected delay per step.
   - thread-and-pacing concurrency instead of async (the runner in `eval/judge.py`).
 
   Each comment names its limit and the fix.
-- [ ] T025 Follow `specs/002-progress-judge/quickstart.md` from top to bottom. Include the privacy checks:
+- [X] T025 Follow `specs/002-progress-judge/quickstart.md` from top to bottom. Include the privacy checks:
   - `git grep -n "$(cat ~/.loopbrake/typesafe_key)"` finds nothing (SC-008);
   - every judgments file name is one of the six public groups.
-- [ ] T026 Update `specs/roadmap.md` (the progress-judge status line) and the status line of `specs/002-progress-judge/spec.md` with the verdict and the date. If the verdict is GO, note that Phase 2 is unblocked. Commit and push without attribution lines.
+- [X] T026 Update `specs/roadmap.md` (the progress-judge status line) and the status line of `specs/002-progress-judge/spec.md` with the verdict and the date. If the verdict is GO, note that Phase 2 is unblocked. Commit and push without attribution lines.
 
 ---
+
+## Outcome (2026-10-01)
+
+- **Verdict: NO-GO.** The pre-registered `judge_max` (λ 0.9, ask ≥ 7.79) did worse than the step-count rule:
+  - SWE-bench: −6.3% [−18.9%, +1.9%];
+  - τ-bench: −4.2% [−8.2%, −1.5%].
+- **Cause**: the ask level is a raw score tuned on Devstral's long runs. On other agents it was almost never
+  reached (0–0.3% of steps asked), so the method rarely stopped.
+- **Exploratory**: judging every step gave negative net savings on all holdout groups. Before judge cost,
+  `judge` alone still saved less than `steps` on most groups.
+- **Checks**: SC-001 passed (no invalid holdout rows); SC-002, SC-003 (judging under 2 hours) and SC-004
+  passed, with re-check agreement 94.0% reported; SC-006 met on dev; SC-007 reported; SC-008 passed.
+  SC-005 (≥ 20.4%) not reached.
+- **Spend**: about $3.91 in total (development $2.16, holdout $1.75).
 
 ## Dependencies and order
 
