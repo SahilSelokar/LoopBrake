@@ -119,6 +119,15 @@ def _hook(argv):
     return 0
 
 
+def _statusline(args):
+    try:
+        text = sys.stdin.read()
+    except Exception:
+        text = ""
+    print(claude_code.statusline(text))
+    return 0
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == ["hook"]:  # before argparse, which exits 2 on bad arguments: a hook must never do that
@@ -140,6 +149,7 @@ def main(argv=None):
     g.add_argument("--mistaken", action="store_true")
     g.add_argument("--exclude", action="store_true")
     sub.add_parser("hook", help="Claude Code hook entry point (reads the event from stdin)").add_argument("event", choices=claude_code.EVENTS)
+    sub.add_parser("statusline", help="one line for Claude Code's status line (reads its input from stdin)")
     r = sub.add_parser("replay", help="show where recorded runs would stop (writes nothing)")
     r.add_argument("runs_file")
     g2 = r.add_mutually_exclusive_group(required=True)
@@ -153,7 +163,7 @@ def main(argv=None):
         ap.print_help()
         return 0
     try:
-        return {"calibrate": _calibrate, "status": _status, "feedback": _feedback, "replay": _replay}[args.command](args)
+        return {"calibrate": _calibrate, "status": _status, "feedback": _feedback, "replay": _replay, "statusline": _statusline}[args.command](args)
     except (OSError, ValueError, KeyError) as e:
         if os.environ.get("LOOPBRAKE_DEBUG") == "1":
             raise

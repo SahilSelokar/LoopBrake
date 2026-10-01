@@ -268,12 +268,12 @@ or `brake idle`.
 
 **Independent test**: quickstart scenario 7.
 
-- [ ] T022 [P] [US3] Add tests to `tests/test_claude_code.py` for `statusline(stdin_text, home)`:
+- [X] T022 [P] [US3] Add tests to `tests/test_claude_code.py` for `statusline(stdin_text, home)`:
   - the four states from contracts/cli.md, built with the T010 hook calls;
   - garbage stdin or an unknown session gives `brake idle`;
   - nothing under `LOOPBRAKE_HOME` changes (compare a file listing and modification times);
   - after each of 5 `tool` calls, the count equals the step count (SC-007).
-- [ ] T023 [US3] Implement `statusline(stdin_text, home=None) -> str` in `src/loopbrake/claude_code.py`. It reads `open_turn(session_events(...))` without a lock and never raises. Add `loopbrake statusline` to `src/loopbrake/cli.py`, which prints it and always exits 0. Makes T022 pass.
+- [X] T023 [US3] Implement `statusline(stdin_text, home=None) -> str` in `src/loopbrake/claude_code.py`. It reads `open_turn(session_events(...))` without a lock and never raises. Add `loopbrake statusline` to `src/loopbrake/cli.py`, which prints it and always exits 0. Makes T022 pass.
 - [ ] T024 [US3] Manual: run quickstart scenario 7. Note the result under "Outcome".
 
 ---

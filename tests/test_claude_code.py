@@ -235,3 +235,39 @@ def test_hook_work_is_fast(home):
             w.write({"event": "step", "session": "big", "run": f"r{t}", "step": s, "tool": "Bash", "action_excerpt": "Bash " + "x" * 195, "tokens": None, "error": False, "call_id": f"c{t}-{s}"})
         w.write({"event": "run_end", "session": "big", "run": f"r{t}", "status": "finished", "steps": 20, "tokens": None})
     assert timed_steps(home, "big") <= 10
+
+
+# ---- the status line (US3, contracts/cli.md) ----
+
+def line(home, session="s1"):
+    return claude_code.statusline(json.dumps({"session_id": session, "transcript_path": "/x/y.jsonl", "model": {}}), home)
+
+
+def snapshot(home):
+    return {p: p.stat().st_mtime_ns for p in home.rglob("*")} if home.exists() else {}
+
+
+def test_statusline_states(home):
+    assert line(home) == "brake idle"
+    calibrate(home, 3)
+    hook(home, "prompt", payload())
+    assert line(home) == "brake 0/3"
+    for i in range(1, 4):
+        hook(home, "tool", tool(i))
+        assert line(home) == f"brake {i}/3"  # SC-007: the count follows every tool call
+    hook(home, "tool", tool(4))
+    assert line(home) == "brake stopped at 4"
+    hook(home, "stop", payload())
+    assert line(home) == "brake idle"
+    hook(home, "prompt", payload(session="w", folder="-home-me-other-"))
+    hook(home, "tool", tool(1, session_id="w", transcript_path=payload(session="w", folder="-home-me-other-")["transcript_path"]))
+    assert line(home, "w") == "brake 1 (watching)"
+
+
+def test_statusline_never_fails_or_writes(home):
+    hook(home, "prompt", payload())
+    before = snapshot(home)
+    for bad in ("", "{bad", "[]", json.dumps({"session_id": "../x"}), json.dumps({"session_id": "nobody"})):
+        assert claude_code.statusline(bad, home) == "brake idle"
+    line(home)
+    assert snapshot(home) == before

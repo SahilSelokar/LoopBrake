@@ -107,3 +107,26 @@ def _hook(event, text, h):
         if d.stop:
             return json.dumps({"continue": False, "stopReason": f"LoopBrake {d.reason}{MISTAKE_HINT}"})
         return None
+
+
+# ---- status line (contracts/cli.md) ----
+
+def statusline(stdin_text, home=None):
+    """One short line for Claude Code's status line. Reads the session's log without a lock and never
+    writes or raises."""
+    try:
+        session = json.loads(stdin_text).get("session_id")
+        if not isinstance(session, str) or not _SESSION.fullmatch(session) or session in (".", ".."):
+            return "brake idle"
+        turn = records.open_turn(records.session_events(records.home(home), session))
+        if not turn:
+            return "brake idle"
+        cal = turn[0].get("calibration") or {}
+        stop = next((e for e in turn if e.get("event") == "stop"), None)
+        if stop:
+            return f"brake stopped at {stop.get('step')}"
+        count = sum(e.get("event") == "step" for e in turn)
+        line = cal.get("stop_line")
+        return f"brake {count} (watching)" if cal.get("watch_only", True) or line is None else f"brake {count}/{line}"
+    except Exception:
+        return "brake idle"
