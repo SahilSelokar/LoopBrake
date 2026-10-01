@@ -274,7 +274,7 @@ or `brake idle`.
   - nothing under `LOOPBRAKE_HOME` changes (compare a file listing and modification times);
   - after each of 5 `tool` calls, the count equals the step count (SC-007).
 - [X] T023 [US3] Implement `statusline(stdin_text, home=None) -> str` in `src/loopbrake/claude_code.py`. It reads `open_turn(session_events(...))` without a lock and never raises. Add `loopbrake statusline` to `src/loopbrake/cli.py`, which prints it and always exits 0. Makes T022 pass.
-- [ ] T024 [US3] Manual: run quickstart scenario 7. Note the result under "Outcome".
+- [X] T024 [US3] Manual: run quickstart scenario 7. Note the result under "Outcome".
 
 ---
 
@@ -456,7 +456,24 @@ builder's go-ahead.
     counts, and 0 higher.
   - Claude repeats command output with "project" capitalized, even though it's asked to repeat it
     exactly. That's cosmetic.
+- **Fixes after the command tests (2026-10-02)**:
+  - Project names no longer have a double dash (`cc-apple-...`, not `cc--apple-...`).
+  - A tool call reported twice (the plugin loaded twice) is counted once, so it can't halve the
+    stop line.
+  - The builder's earlier test log was moved to the new project name, and the project was
+    recalibrated: stop line 58 from 60 turns. Recalibration found the 70-call test stop in the real
+    transcripts by its tool call ids, and left it out as a stuck turn (research R10, live on real
+    data).
+- **T024**: `statusLine` was added to `~/.claude/settings.json` (backed up first), running this
+  checkout until 0.2.0 is on PyPI; the command answers correctly. After release, it switches to
+  `uvx --offline loopbrake statusline`.
+- **T030, started**:
+  - The plugin is installed from this repo as a local marketplace (`loopbrake@loopbrake`, user
+    scope), with `env.LOOPBRAKE_CMD` in `~/.claude/settings.json`, so every Claude Code session
+    (terminal and VS Code) runs it from this checkout.
+  - A plain session with no flags recorded its turn correctly.
+  - Starting point: `loopbrake agreement --claude-code` in Project Building gives
+    "turns matched 4, equal 4, live lower 0, live higher 0".
 - **Left for the builder**:
-  - T024 (the status line in your settings);
   - T030 (a week of use, then `loopbrake agreement --claude-code`);
   - T032 and T033 (release, with your go-ahead).
