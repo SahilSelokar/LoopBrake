@@ -1,18 +1,31 @@
 <!--
 Sync Impact Report
-- Version change: 2.2.0 → 2.3.0 (MINOR: new constraint added)
-- Added: Technical Constraints, "Open core". The `loopbrake` package and this repository stay MIT
-  and public. Private features live in a separate private repository and run only as services the
-  builder operates. Nothing private ships in the package, and the package never needs those services
-  to work. Builder's decision, 2026-10-01.
-- Added: Technical Constraints, "Releases". The package is published to PyPI from GitHub Actions with
-  trusted publishing, on version tags. No upload token is ever stored.
-- Principles: unchanged. A hosted service receiving run content would be an export under
-  Principle VI, so it needs explicit opt-in.
-- Dependent docs: specs/roadmap.md and specs/003-core-package (spec, plan, research, quickstart,
-  contracts) updated.
-- History: 2.2.0 recorded the v1 step-budget decision and the signal gate. 2.1.0 added liquid glass
-  and the stdlib OTLP exporter. 2.0.0 redefined Principle VI as Local by Default.
+- Version change: 2.3.0 → 2.4.0 (MINOR: two technical constraints materially expanded)
+- Modified: Technical Constraints, "Claude Code integration".
+  - Defines where a turn starts and ends: UserPromptSubmit, or the first tool call after Stop (work
+    woken by a background task).
+  - The calibration reader must cut turns the way the live hooks see them. Live counts may only
+    ever be lower, and each plugin release checks this on real use.
+  - The hook path must fail open: never block a prompt, a tool call or Claude stopping.
+  - Hooks run the pinned package through the plugin's offline-first launcher.
+  - Reason: research for specs/004 found that 18 of 1,351 local turn starts fall mid-turn. It also
+    found that uv exits with code 2 when offline, which Claude Code treats as blocking.
+- Modified: Technical Constraints, "Success labels". A kill the user marked as a mistake counts in
+  recalibration as a successful turn longer than any line. Other kills are left out. Leaving
+  mistaken kills out would lower the next line (specs/004 research R10).
+- Principles I–VI: unchanged.
+- Dependent docs: the specs/004 plan's Constitution Check rows for these two constraints now match
+  the text. specs/004 spec FR-001 still needs rewording to match the turn rule (see follow-ups).
+- Follow-ups (not governance, outside this command):
+  - re-measure the eval's local rows under the new turn rule (Principle I);
+  - fix the launcher's exit codes and the retry that re-runs commands;
+  - replace private folder names in the specs/004 docs;
+  - reword spec FR-001.
+- History:
+  - 2.3.0 added open core and releases.
+  - 2.2.0 recorded the v1 step-budget decision and the signal gate.
+  - 2.1.0 added liquid glass and the stdlib OTLP exporter.
+  - 2.0.0 redefined Principle VI as Local by Default.
 -->
 
 # LoopBrake Constitution
@@ -109,15 +122,33 @@ an observability tool only when they control exactly what leaves the machine.
 
 - **Language & packaging**: Python ≥ 3.11. One PyPI package, `loopbrake`, with one CLI:
   `loopbrake hook | calibrate | eval | statusline | dashboard`.
-- **Claude Code integration**: the repo doubles as a Claude Code plugin marketplace. A PostToolUse
-  hook (matcher `*`) runs `uvx loopbrake hook` and kills with
-  `{"continue": false, "stopReason": "<reason>"}`. A run is one turn, from UserPromptSubmit to
-  Stop. UserPromptSubmit resets per-turn state.
+- **Claude Code integration**: the repo doubles as a Claude Code plugin marketplace.
+  - **Hooks**: they run the version-pinned `loopbrake hook` through the plugin's launcher, which
+    uses uv's cached copy first, so the hook path needs no network. PostToolUse and
+    PostToolUseFailure hooks (matcher `*`) count the main agent's tool calls. Tool calls made inside
+    subagents never count. A stop is `{"continue": false, "stopReason": "<reason>"}`.
+  - **Failing safely**: a failure in the plugin's own hook path MUST NOT block a prompt, a tool call
+    or Claude stopping. It exits 0 with no output.
+  - **Turns**: a run is one turn.
+    - It starts at UserPromptSubmit, or at the first main-agent tool call after Stop (work woken by
+      a background task).
+    - It ends at Stop. If a new prompt arrives first, it ends there as interrupted (or stopped, if
+      LoopBrake stopped it).
+  - **Same turns live and in calibration**: the Claude Code calibration reader MUST cut transcripts
+    at the same boundaries the live hooks see. A record that arrives while Claude is still waiting
+    on a tool (a compaction summary, a prompt typed mid-turn, a task notification) stays in the
+    running turn. Where live and calibration counts can still differ, the live count MUST be the
+    lower one, because a lower count can only stop later. Every plugin release MUST check this on
+    the builder's real use (`loopbrake agreement`).
 - **No warn-first in v1**: feeding warnings back to the agent changes its trajectory and breaks
   exchangeability with the calibration runs. It may be added only with calibration done under
   the same warnings.
 - **Success labels**: a turn counts as successful when it reached Stop with no user interrupt and
   was not killed. Users can drop turns with `/loopbrake:exclude`.
+  - **Mistaken stops**: a kill the user marked as a mistake counts in later calibrations as a
+    successful turn longer than any stop line. Its real length is unknown, but it's above the line.
+    So marking mistakes can only raise the line, and recalibrating can never quietly lower it.
+  - **Other kills**: left out, as stuck turns.
 - **State**: one append-only JSONL log per session at `~/.loopbrake/runs/<session_id>.jsonl`.
   It is the single source for live state, the dashboard and the status line. The status line
   ships as a CLI command because plugins cannot install one.
@@ -224,4 +255,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.3.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-01
+**Version**: 2.4.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-01

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from loopbrake import cli, records
+from loopbrake import __version__, cli, records
 
 FIX = Path(__file__).parent / "fixtures" / "calibration_runs.jsonl"
 EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
@@ -24,7 +24,7 @@ def run_cli(capsys, *args):
 
 
 def test_version(capsys, home):
-    assert run_cli(capsys, "--version") == (0, "loopbrake 0.1.0\n", "")
+    assert run_cli(capsys, "--version") == (0, f"loopbrake {__version__}\n", "")
 
 
 def test_calibrate(capsys, home, tmp_path):

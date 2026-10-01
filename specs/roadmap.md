@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.2.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 (the Claude Code plugin) is next.
+**Date**: 2026-10-01 | **Constitution**: v2.4.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 (the Claude Code plugin) is in progress: `specs/004-claude-code-plugin`, branch `004-claude-code-plugin`.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -130,14 +130,14 @@ package for explanations and future experiments, but they never decide a stop.
 - **Reel**: "3 lines that put brakes on any agent."
 - **Size**: M.
 
-### Phase 3: Claude Code plugin (`003-claude-code-plugin`)
+### Phase 3: Claude Code plugin (`004-claude-code-plugin`, status: in progress)
 
 - **Goal**: zero-friction install for Claude Code users.
 - **Deliverables**:
   - the plugin (`hooks.json`: PostToolUse `*` for scoring and kills, UserPromptSubmit for
     run start, Stop for run end);
-  - skills `/loopbrake:calibrate`, `/loopbrake:exclude`, `/loopbrake:status`;
-  - a `loopbrake statusline` command (`brake 0.41 / τ 0.72`);
+  - commands `/loopbrake:calibrate`, `/loopbrake:status`, `/loopbrake:mistake`, `/loopbrake:exclude`;
+  - a `loopbrake statusline` command (`brake 12/38`, the step count against the stop line);
   - the repo doubles as a marketplace (`.claude-plugin/marketplace.json`).
 - **Exit gate**:
   - A recorded real stuck turn is killed live, with the reason shown to the user.
