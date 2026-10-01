@@ -140,10 +140,10 @@ shows it.
   - the roadmap row for Phase 2.
 
   Rename the event `kill` to `stop` in `specs/roadmap.md`.
-- [ ] T019 [US4] **Manual step, done by the builder**, once, on their accounts:
+- [X] T019 [US4] **Manual step, done by the builder**, once, on their accounts:
   - **On pypi.org**: add a pending trusted publisher: project `loopbrake`, owner `SahilSelokar`, repository `LoopBrake`, workflow `publish.yml`, environment `pypi`.
   - **On GitHub**: create the environment `pypi` in the repository settings.
-- [ ] T020 [US4] After T019, and only with the builder's go-ahead: `git tag v0.1.0 && git push origin v0.1.0`. Watch the workflow, then check SC-009 with `uvx --from loopbrake==0.1.0 loopbrake --version` in a fresh folder.
+- [X] T020 [US4] After T019, and only with the builder's go-ahead: `git tag v0.1.0 && git push origin v0.1.0`. Watch the workflow, then check SC-009 with `uvx --from loopbrake==0.1.0 loopbrake --version` in a fresh folder.
 
 ---
 
@@ -161,8 +161,9 @@ shows it.
 - SC-005, SC-006, SC-007 and SC-008: passed by the tests.
 - Real Claude Code history: the largest local project calibrates to a stop line of 38 steps from 898
   successful turns, and the record holds counts only.
-- Open: T019 (the builder's PyPI and GitHub setup) and T020 (the v0.1.0 tag, on the builder's go-ahead),
-  then SC-009.
+- Released: tag v0.1.0 published by trusted publishing. The first try failed with `invalid-publisher`
+  because the pending publisher's environment was typed `pipy`; it was fixed and the upload re-run.
+  SC-009: a fresh install from PyPI takes 2.7 s and contains only the library.
 - Lesson: `astral-sh/setup-uv` publishes only exact version tags, so it's pinned to `v10.2.0`.
 
 ## Dependencies and order

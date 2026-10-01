@@ -10,6 +10,7 @@ Stop agent runs that are going in circles, with a guaranteed limit on how often 
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB)](pyproject.toml)
 [![Dependencies](https://img.shields.io/badge/runtime%20dependencies-0-brightgreen)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/loopbrake)](https://pypi.org/project/loopbrake/)
 
 </div>
 
@@ -65,8 +66,8 @@ More in [eval/results/kill-stories.md](eval/results/kill-stories.md).
 
 ## Use it
 
-**Install.** `pip install loopbrake`, or `uv add loopbrake`. Until the first PyPI release, use
-`pip install git+https://github.com/SahilSelokar/LoopBrake`. No other packages are needed.
+**Install.** `pip install loopbrake`, or `uv add loopbrake` ([PyPI](https://pypi.org/project/loopbrake/)).
+No other packages are needed.
 
 **1. Set your stop line from your own past runs.** It needs at least 19 successful runs (at α 5%);
 with fewer, LoopBrake only watches.
@@ -212,7 +213,7 @@ liveness.py      the original naive rule, kept as the baseline
 |---|---|---|
 | 1 | **Experiment**: does it work on real runs? | Done: NO-GO for cheap signals |
 | 1b | **Progress judge**: a hosted decision model judges whether each step moved the run forward | Done: NO-GO |
-| 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Built (v0.1.0); first PyPI release pending |
+| 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Done: v0.1.0 on PyPI |
 | 3 | **Claude Code plugin**: stop stuck sessions live, calibrated on your own history | Planned |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
@@ -221,9 +222,8 @@ The full plan is in [specs/roadmap.md](specs/roadmap.md).
 
 ## Status
 
-v0.1.0 is built and tested. The first PyPI release comes once publishing is set up; until then,
-install from GitHub (see "Use it"). Its stop rule is a stop line on run length, set from your own past
-successful runs, with a guaranteed limit on stopping good runs.
+v0.1.0 is on PyPI (`pip install loopbrake`). Its stop rule is a stop line on run length, set from your
+own past successful runs, with a guaranteed limit on stopping good runs. Next: the Claude Code plugin.
 
 ## License
 
