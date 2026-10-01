@@ -223,13 +223,13 @@ commands call:
 | Case | What it does |
 |---|---|
 | `$LOOPBRAKE_CMD` is set | Runs that instead, for development (`uv run --project ~/code/LoopBrake loopbrake`) or for a `loopbrake` installed without uv (its full path). |
-| A `hook` call | Runs `uvx --offline --from loopbrake==<pin> loopbrake hook …`. If that fails, runs the same without `--offline`, which downloads the package once. Then **always exits 0** with nothing on stdout, whatever uv did. |
+| A `hook` call | Runs `uvx --offline --from loopbrake==<pin> loopbrake hook …`. If that fails (not cached yet), it starts the download in the background and doesn't wait for it. It **always exits 0** with nothing on stdout, whatever uv did. |
 | Any other command | First checks the cached copy with `uvx --offline --from loopbrake==<pin> loopbrake --version`, silently. If the cache is there, runs the command offline; if not, runs it online. Either way it runs exactly once and passes its exit code through. |
 
 **Why the two paths differ**:
-- **Hooks**: `loopbrake hook` always exits 0, so a non-zero result can only come from uv, and
-  retrying is safe. The hook input on stdin is still unread when uv fails before starting
-  `loopbrake`.
+- **Hooks**: a hook never waits on the network. Measured during implementation: with the network
+  blocked and nothing cached, a foreground retry took 11.7 s per hook call. So the first hooks after
+  install return at once and record nothing until the background download lands.
 - **Commands**: the version check costs about 42 ms once per command, which doesn't matter for a
   user-run command. Hooks skip it to save that time on every tool call.
 

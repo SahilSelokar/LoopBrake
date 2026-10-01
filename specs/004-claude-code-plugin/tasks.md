@@ -302,14 +302,14 @@ or `brake idle`.
   - **Troubleshooting**: "no turns recorded yet" in status means the hooks aren't running. Check `claude --debug`, and that `uv` is on the PATH Claude Code sees.
 
   Also state the guarantee's scope (Principle I): marginal, per project, and holding only while live turns are like the calibration turns. Keep all links absolute and no Mermaid (the PyPI rule from Phase 2). Check with `readme_renderer`.
-- [ ] T028 Local re-check of the turn rule (Principle I, analysis D3). After T004:
+- [X] T028 Local re-check of the turn rule (Principle I, analysis D3). After T004:
   1. Run `uv run python eval/run.py --final --local --seed 0 --splits 1000 --boot 1000`. That's the committed reproduce command plus `--local`.
   2. In `eval/results/results.csv`, check every `local-k` row with `method` `steps` and `alpha` 0.05: `status` must be `ok`, not `invalid`. Note each group's `fk_mean`.
   3. Restore the committed files with `git checkout eval/results/`, because local rows are never committed. Before restoring, `git diff eval/results/results.md eval/results/kill-stories.md` must be empty: the public results must come out unchanged.
   4. Note the counts (group labels and rates only, never folder names) under "Outcome". Any `invalid` local row is a bug in the reader change: fix it before T030.
-- [ ] T029 Run the full suite over `tests/`: `uv run python -m pytest` and `uv run --with claude-agent-sdk python -m pytest tests/test_agent_sdk.py`. All must pass. Fix anything that fails before going on.
+- [X] T029 Run the full suite over `tests/`: `uv run python -m pytest` and `uv run --with claude-agent-sdk python -m pytest tests/test_agent_sdk.py`. All must pass. Fix anything that fails before going on.
 - [ ] T030 Manual, over about a week (SC-008): use Claude Code normally with the plugin installed from the branch (`LOOPBRAKE_CMD` pointing at the checkout) until there are at least 200 turns. Then run `loopbrake agreement --claude-code` in each project used. **Gate**: `live higher 0`. Any higher count is a bug: fix it (reader or hooks) and repeat this task. Note the counts under "Outcome" in this file.
-- [ ] T031 Manual, before release:
+- [X] T031 Manual, before release:
   - re-run `claude plugin validate .` and `claude plugin validate ./plugin`;
   - check `git ls-files -s plugin/bin/loopbrake` shows mode `100755`;
   - run quickstart scenario 8 against a locally built wheel (`uv build`, `UV_FIND_LINKS=$PWD/dist`): p95 at most 200 ms through the launcher, working offline, and exit code 0 with nothing cached and no network. Note the timings under "Outcome".
@@ -375,4 +375,58 @@ builder's go-ahead.
 
 ## Outcome
 
-(Filled in during `/speckit-implement`.)
+**2026-10-02, implementation run 1**
+
+- **T001–T014, T016–T020, T022, T023, T025–T027**: done. The full suite passes (see T029).
+- **T013, launcher**: one change from the contract. `LOOPBRAKE_CMD` now runs through `eval`, so a
+  path with spaces can be quoted inside it. The repo path itself has a space, which caught this.
+  contracts/plugin.md is updated.
+- **T017**: `calibrate_claude_code` lives in `claude_code.py`, to avoid a circular import.
+- **SC-001 locally**: the hooks stop every one of 300 real local turns exactly where `replay()`
+  does, at stop lines 10, 20 and 38. That's `test_hooks_agree_on_real_history`.
+- **T028**: under the new turn rule, no local row is invalid (0 of 18). The `steps` rows with enough
+  data, at α 5%:
+
+  | Group | n | False-stop rate |
+  |---|---|---|
+  | local-2 | 20 | 4.05% |
+  | local-5 | 20 | 4.58% |
+  | local-5 | 50 | 3.68% |
+  | local-5 | 100 | 4.77% |
+  | local-6 | 20 | 4.61% |
+
+  The other rows have too few runs. Public results came out unchanged: 0 public CSV rows changed,
+  `kill-stories.md` was identical, and `results.md` differed only in the echoed command
+  (`--local`). Restored with `git checkout eval/results/`.
+- **Live checks (part of T015)**: headless `claude -p` with `--plugin-dir plugin`, a stop line of
+  3, and `LOOPBRAKE_CMD` set to this checkout.
+  - **Live stop**: asked for ten `echo hi` calls, Claude was stopped right after the 4th. The log
+    has 4 steps with `call_id`s and a `stop` at step 4 with the reason.
+  - **Research R3, first question**: no `Stop` event came after the stop. Resuming the session
+    with a new prompt closed the turn as `stopped` and opened a new one, which finished normally.
+  - **Research R3, second question**: `/loopbrake:status` fires `UserPromptSubmit` (a new turn
+    opened, 1 step, finished), so the `UserPromptExpansion` hook isn't needed. The command worked
+    through the plugin.
+  - **Still to see**: in `-p` mode the stop reason isn't printed. Check that it shows in an
+    interactive session.
+- **Failing safely, live**: a headless session with the real launcher and no `LOOPBRAKE_CMD`
+  (0.2.0 isn't on PyPI yet, so every hook call fails) still finished its turn normally ("done"),
+  with nothing recorded.
+- **T031, through the launcher** against the local 0.2.0 wheel (`UV_FIND_LINKS=dist`, a separate
+  uv cache):
+  - median 46 ms, p95 48 ms, max 74 ms over 100 `hook tool` calls;
+  - with the network blocked and the cache present: exit 0 in 45 ms, steps still recorded;
+  - with the network blocked and nothing cached: exit 0 with empty stdout. That first took 11.7 s
+    (uv retrying), which would stall every tool call. The launcher now downloads in the
+    background on a cache miss, and the same case takes 47 ms (contracts/plugin.md, research R7).
+  - `claude plugin validate` passes for the marketplace and the plugin, and the launcher's git
+    mode is 100755.
+  - Re-run if code changes after T030.
+- **T029**: 148 passed, 1 skipped (`claude-agent-sdk` not installed); with the extra,
+  `tests/test_agent_sdk.py` passes 4 of 4.
+- **Left for the builder**:
+  - T015 (local marketplace install, and the stop reason seen in an interactive session);
+  - T021 (the commands in two real projects);
+  - T024 (the status line in your settings);
+  - T030 (a week of use, then `loopbrake agreement --claude-code`);
+  - T032 and T033 (release, with your go-ahead).

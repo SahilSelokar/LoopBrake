@@ -15,9 +15,9 @@ export LOOPBRAKE_LAUNCHER=1
 if [ "$1" = hook ]; then
   if [ -n "$LOOPBRAKE_CMD" ]; then
     eval "$LOOPBRAKE_CMD \"\$@\""  # eval, so a path with spaces can be quoted inside LOOPBRAKE_CMD
-  else
-    # cached copy first (no network); download only if it isn't cached yet
-    uvx --offline --from "loopbrake==$V" loopbrake "$@" || uvx --from "loopbrake==$V" loopbrake "$@"
+  elif ! uvx --offline --from "loopbrake==$V" loopbrake "$@"; then  # cached copy only: no network
+    # Not cached yet: fetch it in the background, so no tool call ever waits on the network.
+    (uvx --from "loopbrake==$V" loopbrake --version >/dev/null 2>&1 </dev/null &)
   fi
   exit 0
 fi

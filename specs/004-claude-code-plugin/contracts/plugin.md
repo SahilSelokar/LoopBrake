@@ -78,7 +78,9 @@ POSIX `sh`, mode 755, with `V=0.2.0` near the top (research R7):
    Then export LOOPBRAKE_LAUNCHER=1.
 1. If $1 is `hook`:
      if LOOPBRAKE_CMD is set: run $LOOPBRAKE_CMD "$@"
-     else: uvx --offline --from loopbrake==$V loopbrake "$@" || uvx --from loopbrake==$V loopbrake "$@"
+     else: uvx --offline --from loopbrake==$V loopbrake "$@"
+           if that failed (not cached yet): start `uvx --from loopbrake==$V loopbrake --version`
+           in the background, detached, and don't wait for it
      exit 0                       (never 1 or 2: exit 2 would block a prompt or keep Claude running)
 2. If LOOPBRAKE_CMD is set: exec $LOOPBRAKE_CMD "$@".
 3. Otherwise (calibrate, status, feedback, agreement, ...):
@@ -88,8 +90,10 @@ POSIX `sh`, mode 755, with `V=0.2.0` near the top (research R7):
      fi                           (runs once; its exit code passes through)
 ```
 
-- **The hook path's retry**: `loopbrake hook` itself always exits 0, so a failure there can only
-  come from uv. Retrying online is safe, and stdin hasn't been read yet.
+- **No waiting on the network**: a hook never downloads in the foreground. Measured before this
+  rule: with the network blocked and nothing cached, the online try took 11.7 s per hook call,
+  stalling every tool call. Now the first hooks after install return at once and record nothing
+  until the background download lands. `/loopbrake:calibrate` downloads in the foreground anyway.
 - **`LOOPBRAKE_CMD`**: it runs through `eval`, so it can hold arguments and a quoted path with spaces,
   for example `LOOPBRAKE_CMD="uv run --project '/path/with space' loopbrake"`.
 - **Exit codes**: the hook path never exits with anything other than 0. uv exits 2 when it can't
