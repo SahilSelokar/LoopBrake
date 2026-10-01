@@ -1,0 +1,46 @@
+name: publish
+
+# Publishes to PyPI when a version tag (vX.Y.Z) is pushed, using trusted publishing: no token is stored.
+# One-time setup: specs/003-core-package/contracts/release.md.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - name: The tag must match the package version
+        run: |
+          version=$(python3 -c "import re; print(re.search(r'__version__ = \"(.+)\"', open('src/loopbrake/__init__.py').read()).group(1))")
+          if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match package version $version; not publishing"
+            exit 1
+          fi
+      - run: uv build
+      - name: Smoke test the wheel
+        run: uv run --isolated --no-project --with dist/*.whl loopbrake --version
+      - name: The wheel holds only the public library
+        run: |
+          extra=$(python3 -c "import zipfile, glob; names = zipfile.ZipFile(glob.glob('dist/*.whl')[0]).namelist(); print('\n'.join(n for n in names if not (n.startswith('loopbrake/') or '.dist-info/' in n)))")
+          if [ -n "$extra" ]; then echo "unexpected files in the wheel:"; echo "$extra"; exit 1; fi
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # only this job can mint the publishing credential
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: astral-sh/setup-uv@v10
+      - run: uv publish

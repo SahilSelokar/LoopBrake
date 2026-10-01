@@ -1,19 +1,18 @@
 <!--
 Sync Impact Report
-- Version change: 2.1.0 → 2.2.0 (MINOR: development workflow materially changed)
-- Modified sections:
-  - Development Workflow, phase gate. Two pre-registered experiments (cheap stuck signals; a hosted
-    progress judge) did not beat the calibrated step count on held-out agents. v1 therefore ships the
-    calibrated step budget as its stop rule, and the signals only explain stops. Phase 2 is unblocked on
-    that basis. A new stop signal enters the product only after it beats the step count on held-out
-    agents, pre-registered. Builder's decision, 2026-10-01.
-  - Phase order, item 2: now says what the core package ships.
-- Principles: unchanged. Principle I's guarantee applies to any score, including run length.
-  Principle IV is satisfied: the step budget's numbers are committed (eval/results/).
-- Templates: none affected.
-- Dependent docs: specs/roadmap.md and README.md updated to match.
-- History: 2.1.0 added the liquid glass rules and the stdlib OTLP exporter; 2.0.0 redefined Principle VI
-  as Local by Default.
+- Version change: 2.2.0 → 2.3.0 (MINOR: new constraint added)
+- Added: Technical Constraints, "Open core". The `loopbrake` package and this repository stay MIT
+  and public. Private features live in a separate private repository and run only as services the
+  builder operates. Nothing private ships in the package, and the package never needs those services
+  to work. Builder's decision, 2026-10-01.
+- Added: Technical Constraints, "Releases". The package is published to PyPI from GitHub Actions with
+  trusted publishing, on version tags. No upload token is ever stored.
+- Principles: unchanged. A hosted service receiving run content would be an export under
+  Principle VI, so it needs explicit opt-in.
+- Dependent docs: specs/roadmap.md and specs/003-core-package (spec, plan, research, quickstart,
+  contracts) updated.
+- History: 2.2.0 recorded the v1 step-budget decision and the signal gate. 2.1.0 added liquid glass
+  and the stdlib OTLP exporter. 2.0.0 redefined Principle VI as Local by Default.
 -->
 
 # LoopBrake Constitution
@@ -166,6 +165,19 @@ an observability tool only when they control exactly what leaves the machine.
   - **Dependencies**: the exporter is implemented with the standard library, as OTLP/HTTP JSON.
     Backends that accept only protobuf are reached through an OpenTelemetry Collector.
 
+- **Open core**:
+  - **Public**: the `loopbrake` package (brake, calibration, command line, adapters) and this
+    repository are MIT-licensed and public.
+  - **Private**: features kept private (for example a hosted team dashboard, managed calibration, or
+    a judge as a service) live in a separate private repository and run only as services the builder
+    operates.
+  - **Rules**: nothing private may ship inside the package, because Python packages are readable.
+    The package MUST work fully on its own and MUST NOT require any private service. Sending run
+    content to such a service is an export under Principle VI and needs explicit opt-in.
+- **Releases**: the package is published to PyPI by a GitHub Actions workflow on a version tag
+  (`vX.Y.Z`), using PyPI trusted publishing. No upload token is ever stored or pasted. The tag MUST
+  match the package version.
+
 ## Development Workflow
 
 - **Spec Kit flow** for every feature: specify → clarify (when needed) → plan → tasks →
@@ -212,4 +224,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.2.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-01
+**Version**: 2.3.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-01

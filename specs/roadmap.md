@@ -50,9 +50,9 @@ Phase 2 defines and versions the run log. All later phases only read it.
 |---|---|
 | `run_start` | `v`, `ts`, `run`, `session`, `agent`, `project`, `calibration{method, lam, alpha, n, k, tau}` (τ = ∞ means observe-only) |
 | `step` | `run`, `step`, `tool`, `tool_call_id`, `action_excerpt` (≤ 200 chars, local only), `score`, `signals{fuzzy, stale, errors}`, `tokens`, `reason` |
-| `kill` | `run`, `step`, `score`, `tau`, `reason_codes[]`, `reason`, `tokens_spent` |
+| `stop` | `run`, `step`, `stop_line`, `reason` (renamed from `kill`; the exact fields are in `specs/003-core-package/contracts/records.md`) |
 | `run_end` | `run`, `status` (`finished`, `killed`, `interrupted`), `steps`, `tokens` |
-| `feedback` | `run`, `verdict` (`mistaken_kill`, `exclude`), `ts`. Feeds the false-kill budget and recalibration. |
+| `feedback` | `run`, `verdict` (`mistaken_stop`, `exclude`), `ts`. Feeds the false-kill budget and recalibration. |
 
 **Calibration file**: `~/.loopbrake/calibration/<project>.json` holds the method, λ, α, n, k, τ,
 the calibration run ids and their scores, the date and the version. Phase 2 writes it and Phases
@@ -99,6 +99,11 @@ signals still run, but only to explain *why* a stopped run looked stuck.
 The range depends on the agent: long, wandering runs leave the most to save.
 
 ### Phase 2: Core package (`003-core-package`)
+
+**Open core and releases** (constitution 2.3.0): the package is public (MIT) and published to PyPI
+from GitHub tags with trusted publishing. Private features, if any, are hosted services in a separate
+private repository, and never ship in the package.
+
 
 **v1 scope**: the `steps` method is the stop rule. `fixed`, `exact` and the signal methods stay in the
 package for explanations and future experiments, but they never decide a stop.

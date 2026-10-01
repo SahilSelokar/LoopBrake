@@ -63,6 +63,45 @@ Reason: repeating in 5 of last 5 steps (similar to step 19); nothing new in 2 of
 
 More in [eval/results/kill-stories.md](eval/results/kill-stories.md).
 
+## Use it
+
+**Install.** `pip install loopbrake`, or `uv add loopbrake`. Until the first PyPI release, use
+`pip install git+https://github.com/SahilSelokar/LoopBrake`. No other packages are needed.
+
+**1. Set your stop line from your own past runs.** It needs at least 19 successful runs (at α 5%);
+with fewer, LoopBrake only watches.
+
+```bash
+loopbrake calibrate ~/.claude/projects/<your-project>/ --project my-agent   # your Claude Code history
+loopbrake calibrate my_runs.jsonl --project my-agent                         # or recorded runs
+```
+
+**2. Add it to your agent loop.**
+
+```python
+import loopbrake
+
+with loopbrake.start(project="my-agent") as brake:
+    for action, result in my_agent_steps():          # your loop
+        decision = brake.step(action, result)
+        if decision.stop:
+            print(decision.reason); break
+```
+
+**3. See how it's doing.**
+
+```bash
+loopbrake status --project my-agent        # runs watched, stops, and stops you marked as mistakes
+loopbrake feedback <run-id> --mistaken     # tell LoopBrake a stop was wrong
+```
+
+**Claude's agent toolkit:** `pip install "loopbrake[agent-sdk]"`, then
+`ClaudeAgentOptions(hooks=loopbrake.agent_sdk.hooks(project="my-agent"))`.
+
+Everything stays on your machine, in `~/.loopbrake`. LoopBrake never uses the network. If something
+inside it fails, it switches to watching only. It never crashes or stops your agent because of its
+own problem.
+
 ## Phase 1 results
 
 Before building the product, we tested the idea offline. We replayed **2,979 recorded runs** from
@@ -142,7 +181,7 @@ Requires [uv](https://docs.astral.sh/uv/) and Python 3.11+.
 
 ```bash
 git clone https://github.com/SahilSelokar/LoopBrake && cd LoopBrake
-uv run pytest                        # 61 tests
+uv run pytest                        # the test suite
 uv run python eval/fetch.py          # one-time download, about 450 MB, into ~/.loopbrake/data
 uv run python eval/run.py --final    # about 1 minute; writes eval/results/
 ```
@@ -173,7 +212,7 @@ liveness.py      the original naive rule, kept as the baseline
 |---|---|---|
 | 1 | **Experiment**: does it work on real runs? | Done: NO-GO for cheap signals |
 | 1b | **Progress judge**: a hosted decision model judges whether each step moved the run forward | Done: NO-GO |
-| 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Next |
+| 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Built (v0.1.0); first PyPI release pending |
 | 3 | **Claude Code plugin**: stop stuck sessions live, calibrated on your own history | Planned |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
@@ -182,9 +221,9 @@ The full plan is in [specs/roadmap.md](specs/roadmap.md).
 
 ## Status
 
-Research done; building v1. There is nothing to install yet. The package arrives in Phase 2. Its stop
-rule is a stop line on run length, set from your own past successful runs, with a guaranteed limit on
-stopping good runs.
+v0.1.0 is built and tested. The first PyPI release comes once publishing is set up; until then,
+install from GitHub (see "Use it"). Its stop rule is a stop line on run length, set from your own past
+successful runs, with a guaranteed limit on stopping good runs.
 
 ## License
 

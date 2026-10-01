@@ -1,11 +1,35 @@
 [project]
 name = "loopbrake"
-version = "0.0.0"
+dynamic = ["version"]
 description = "Stops stuck AI agent runs, with a guaranteed limit on stopping good ones."
+readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE"]
+authors = [{ name = "Sahil Selokar" }]
+keywords = ["ai agents", "llm", "stop controller", "conformal prediction", "claude code", "agent loops"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+]
 dependencies = []
+
+[project.optional-dependencies]
+agent-sdk = ["claude-agent-sdk"]
+
+[project.scripts]
+loopbrake = "loopbrake.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/SahilSelokar/LoopBrake"
+Source = "https://github.com/SahilSelokar/LoopBrake"
+Results = "https://github.com/SahilSelokar/LoopBrake/tree/main/eval/results"
 
 [dependency-groups]
 dev = ["pytest"]
@@ -14,8 +38,14 @@ dev = ["pytest"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "src/loopbrake/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/loopbrake"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/", "README.md", "LICENSE", "pyproject.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
