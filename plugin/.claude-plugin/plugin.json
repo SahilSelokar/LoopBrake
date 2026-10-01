@@ -1,0 +1,8 @@
+{
+  "name": "loopbrake",
+  "version": "0.2.0",
+  "description": "Stops a Claude Code turn once it goes past a stop line set from your own past turns.",
+  "author": {"name": "Sahil Selokar"},
+  "homepage": "https://github.com/SahilSelokar/LoopBrake",
+  "license": "MIT"
+}

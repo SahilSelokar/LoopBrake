@@ -146,7 +146,7 @@ line, they only record. Nothing the plugin does can break a turn.
 **Independent test**: quickstart scenario 3. With a stop line of 3, asking Claude for ten `echo hi`
 calls stops right after the 4th, with the reason shown.
 
-- [ ] T010 [P] [US1] Add hook tests to `tests/test_claude_code.py`. Call `claude_code.hook(event, stdin_text, home)` with JSON shaped like Claude Code's input (`session_id`, `transcript_path` under a temporary `CLAUDE_CONFIG_DIR`, `tool_name`, `tool_input`, `tool_use_id`).
+- [X] T010 [P] [US1] Add hook tests to `tests/test_claude_code.py`. Call `claude_code.hook(event, stdin_text, home)` with JSON shaped like Claude Code's input (`session_id`, `transcript_path` under a temporary `CLAUDE_CONFIG_DIR`, `tool_name`, `tool_input`, `tool_use_id`).
   - **Stopping** (stop line 3 written for the derived project):
     - `prompt`, then 3× `tool`, return None;
     - the 4th `tool` returns JSON `{"continue": false, "stopReason": "LoopBrake stopped at step 4: … If this stop was wrong, run /loopbrake:mistake."}`;
@@ -172,7 +172,7 @@ calls stops right after the 4th, with the reason shown.
   - **Timing (SC-002)**:
     - the in-process `hook("tool", …)` takes at most 10 ms at p95 over 250 steps;
     - also on a session log already holding 6,300 steps, the largest local session (research R4).
-- [ ] T011 [US1] Write the hook handler in `src/loopbrake/claude_code.py`, per contracts/hooks.md: `hook(event, stdin_text, home=None) -> str | None`.
+- [X] T011 [US1] Write the hook handler in `src/loopbrake/claude_code.py`, per contracts/hooks.md: `hook(event, stdin_text, home=None) -> str | None`.
   - **Parsing**: parse the JSON, and ignore it (return None) when `agent_id` is present, the session id is invalid, or `transcript_path` is missing.
   - **Project**: `project_name(Path(transcript_path).parent.name)`.
   - **Locking and reading**: inside `records.session_lock`, read `open_turn(session_events(...))`.
@@ -182,8 +182,8 @@ calls stops right after the 4th, with the reason shown.
   - **Errors**: catch every exception and every warning. Each becomes one stderr line, `loopbrake: …`, and the call returns None. `LOOPBRAKE_DEBUG=1` re-raises.
 
   Makes T010 pass.
-- [ ] T012 [US1] Add `loopbrake hook {prompt,tool,tool-failed,stop}` to `src/loopbrake/cli.py`. It reads all of stdin, prints `claude_code.hook(...)` when not None, and always returns 0, even on argument errors past the subcommand. Add a `tests/test_cli.py` case: piping a stop-line-crossing input prints the JSON and exits 0.
-- [ ] T013 [P] [US1] Write the plugin files exactly as in contracts/plugin.md:
+- [X] T012 [US1] Add `loopbrake hook {prompt,tool,tool-failed,stop}` to `src/loopbrake/cli.py`. It reads all of stdin, prints `claude_code.hook(...)` when not None, and always returns 0, even on argument errors past the subcommand. Add a `tests/test_cli.py` case: piping a stop-line-crossing input prints the JSON and exits 0.
+- [X] T013 [P] [US1] Write the plugin files exactly as in contracts/plugin.md:
   - **`.claude-plugin/marketplace.json`**: name `loopbrake`, owner, and one plugin entry with source `./plugin`.
   - **`plugin/.claude-plugin/plugin.json`**: version `0.2.0`.
   - **`plugin/hooks/hooks.json`**: four events, `"timeout": 30`, matcher `*` for both Post events, and the command `"${CLAUDE_PLUGIN_ROOT}/bin/loopbrake" hook <event>` with the path quoted.
@@ -192,7 +192,7 @@ calls stops right after the 4th, with the reason shown.
     2. **`LOOPBRAKE_CMD`**: execs it when it's set.
     3. **`hook`**: runs offline, then online only if that failed, then **always `exit 0`**. uv exits 2 when offline, and Claude Code treats exit 2 from a hook as blocking (research R7, constitution 2.4.0 "Failing safely").
     4. **Other commands**: a silent offline `--version` check picks offline or online, then runs the command exactly once and passes its exit code through.
-- [ ] T014 [P] [US1] Write `tests/test_plugin_files.py`:
+- [X] T014 [P] [US1] Write `tests/test_plugin_files.py`:
   - both JSON files parse, and the marketplace entry name equals `plugin.json` `name`;
   - `plugin.json` `version`, the `loopbrake==X` pin in `plugin/bin/loopbrake`, and `loopbrake.__version__` are equal;
   - the launcher is executable;

@@ -66,3 +66,22 @@ def test_replay_writes_no_records(capsys, home):
     assert any(l.startswith("run-02\t") and l.split("\t")[1] == "-" for l in lines)
     assert "runs 30, stopped 22 (17 successful, 5 failed)" in out
     assert not (home / "runs").exists()
+
+
+def test_hook_prints_the_stop_and_always_exits_0(capsys, home, tmp_path, monkeypatch):
+    import io
+    from loopbrake import claude_code
+    folder = "-home-me-demo-"
+    project = claude_code.project_name(folder)
+    (home / "calibration").mkdir(parents=True)
+    (home / "calibration" / f"{project}.json").write_text(json.dumps(
+        {"v": 1, "project": project, "method": "steps", "alpha": 0.05, "n": 19, "k": 19, "stop_line": 0,
+         "watch_only": False, "source": {}, "created": "2026-10-01", "version": "0.2.0"}))
+    data = {"session_id": "s1", "transcript_path": f"/x/projects/{folder}/s1.jsonl", "tool_name": "Bash",
+            "tool_input": {"command": "ls"}, "tool_use_id": "t1"}
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(data)))
+    code, out, _ = run_cli(capsys, "hook", "tool")
+    assert code == 0 and json.loads(out)["continue"] is False
+    for args, stdin in ((["hook", "tool"], "{bad"), (["hook", "no-such-event"], "{}"), (["hook"], "")):
+        monkeypatch.setattr("sys.stdin", io.StringIO(stdin))
+        assert run_cli(capsys, *args)[:2] == (0, "")

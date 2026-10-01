@@ -1,0 +1,14 @@
+{
+  "name": "loopbrake",
+  "description": "LoopBrake: stops stuck Claude Code turns, with a guaranteed limit on stopping good ones.",
+  "owner": {
+    "name": "Sahil Selokar"
+  },
+  "plugins": [
+    {
+      "name": "loopbrake",
+      "source": "./plugin",
+      "description": "Stops a Claude Code turn once it goes past a stop line set from your own past turns."
+    }
+  ]
+}

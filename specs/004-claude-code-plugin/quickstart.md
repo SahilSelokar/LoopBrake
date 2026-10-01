@@ -28,7 +28,7 @@ SC-001 is the hook-versus-`replay()` agreement test in `test_claude_code.py`.
 ## 2. Install the plugin from the local checkout
 
 ```sh
-export LOOPBRAKE_CMD="uv run --project $PWD loopbrake"   # hooks use this checkout, not PyPI
+export LOOPBRAKE_CMD="uv run --project '$PWD' loopbrake"   # hooks use this checkout; quoted, as paths can hold spaces
 claude plugin validate . && claude plugin validate ./plugin
 claude plugin marketplace add ./
 claude plugin install loopbrake@loopbrake

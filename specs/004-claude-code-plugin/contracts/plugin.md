@@ -29,6 +29,7 @@ plugin/
 ```json
 {
   "name": "loopbrake",
+  "description": "LoopBrake: stops stuck Claude Code turns, with a guaranteed limit on stopping good ones.",
   "owner": {"name": "Sahil Selokar"},
   "plugins": [
     {"name": "loopbrake", "source": "./plugin",
@@ -75,10 +76,11 @@ POSIX `sh`, mode 755, with `V=0.2.0` near the top (research R7):
 0. If LOOPBRAKE_LAUNCHER is already set: this is a loop.
    For `hook`: exit 0. Otherwise: print "loopbrake: LOOPBRAKE_CMD points back at the plugin launcher; set it to the real loopbrake" to stderr and exit 2.
    Then export LOOPBRAKE_LAUNCHER=1.
-1. If LOOPBRAKE_CMD is set: exec $LOOPBRAKE_CMD "$@".
-2. If $1 is `hook`:
-     uvx --offline --from loopbrake==$V loopbrake "$@" || uvx --from loopbrake==$V loopbrake "$@"
+1. If $1 is `hook`:
+     if LOOPBRAKE_CMD is set: run $LOOPBRAKE_CMD "$@"
+     else: uvx --offline --from loopbrake==$V loopbrake "$@" || uvx --from loopbrake==$V loopbrake "$@"
      exit 0                       (never 1 or 2: exit 2 would block a prompt or keep Claude running)
+2. If LOOPBRAKE_CMD is set: exec $LOOPBRAKE_CMD "$@".
 3. Otherwise (calibrate, status, feedback, agreement, ...):
      if uvx --offline --from loopbrake==$V loopbrake --version >/dev/null 2>&1
      then exec uvx --offline --from loopbrake==$V loopbrake "$@"
@@ -88,6 +90,8 @@ POSIX `sh`, mode 755, with `V=0.2.0` near the top (research R7):
 
 - **The hook path's retry**: `loopbrake hook` itself always exits 0, so a failure there can only
   come from uv. Retrying online is safe, and stdin hasn't been read yet.
+- **`LOOPBRAKE_CMD`**: it runs through `eval`, so it can hold arguments and a quoted path with spaces,
+  for example `LOOPBRAKE_CMD="uv run --project '/path/with space' loopbrake"`.
 - **Exit codes**: the hook path never exits with anything other than 0. uv exits 2 when it can't
   reach the network (measured).
 - **Paths**: no hard-coded paths, and nothing outside `~/.loopbrake` and uv's own cache is touched

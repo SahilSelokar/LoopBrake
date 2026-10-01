@@ -3,7 +3,7 @@ import argparse
 import os
 import sys
 
-from loopbrake import __version__, calibration, records
+from loopbrake import __version__, calibration, claude_code, records
 from loopbrake.brake import replay
 from loopbrake.traces import read_runs
 
@@ -71,7 +71,22 @@ def _replay(args):
     return 0
 
 
+def _hook(argv):
+    """`loopbrake hook <event>`: always exits 0, whatever goes wrong (contracts/hooks.md)."""
+    try:
+        text = sys.stdin.read()
+    except Exception:
+        text = ""
+    out = claude_code.hook(argv[1] if len(argv) > 1 else "", text)
+    if out:
+        print(out)
+    return 0
+
+
 def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
+    if argv[:1] == ["hook"]:  # before argparse, which exits 2 on bad arguments: a hook must never do that
+        return _hook(argv)
     ap = argparse.ArgumentParser(prog="loopbrake", description="Stops stuck AI agent runs, with a guaranteed limit on stopping good ones.")
     ap.add_argument("--version", action="store_true", help="print the version")
     sub = ap.add_subparsers(dest="command")
@@ -86,6 +101,7 @@ def main(argv=None):
     g = f.add_mutually_exclusive_group(required=True)
     g.add_argument("--mistaken", action="store_true")
     g.add_argument("--exclude", action="store_true")
+    sub.add_parser("hook", help="Claude Code hook entry point (reads the event from stdin)").add_argument("event", choices=claude_code.EVENTS)
     r = sub.add_parser("replay", help="show where recorded runs would stop (writes nothing)")
     r.add_argument("runs_file")
     g2 = r.add_mutually_exclusive_group(required=True)
