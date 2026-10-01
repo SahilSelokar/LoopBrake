@@ -287,7 +287,7 @@ The critical path is the Phase 1 gate. Nothing after Phase 1 is built until it r
 | Topic | Decision | Status |
 |---|---|---|
 | Git repository | `git init` before Phase 1 implementation, so the candidate pre-registration commit means something | default |
-| License | MIT. Lucide's ISC notice and the fonts' OFL ship alongside. | **confirm** |
+| License | MIT. Lucide's ISC notice and the fonts' OFL ship alongside (Phase 4). The τ-bench fixture's MIT notice is in `tests/fixtures/NOTICE.md`. | confirmed 2026-10-01 |
 | PyPI and npm name `loopbrake` | Free as of 2026-10-01. Reserve it at the start of Phase 2 by publishing 0.0.1 from your account. | **needs your account** |
 | Versioning | 0.x until launch; 1.0.0 at Phase 5 | default |
 | CI | GitHub Actions running pytest on push, from Phase 2 | default |

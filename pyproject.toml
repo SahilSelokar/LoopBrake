@@ -3,6 +3,8 @@ name = "loopbrake"
 version = "0.0.0"
 description = "Stops stuck AI agent runs, with a guaranteed limit on stopping good ones."
 requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = []
 
 [dependency-groups]
