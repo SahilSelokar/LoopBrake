@@ -154,9 +154,12 @@ def add_feedback(h, run, verdict):
     """Record that a stop was a mistake, or that a run should be left out of future calibration."""
     if verdict not in VERDICTS:
         raise ValueError(f"verdict must be one of {VERDICTS}")
-    start = next((e for e in read_events(h) if e.get("event") == "run_start" and e.get("run") == run), None)
+    events = list(read_events(h))
+    start = next((e for e in events if e.get("event") == "run_start" and e.get("run") == run), None)
     if start is None:
         raise LookupError(f"no run {run!r} in {h / 'runs'}")
+    if any(e.get("event") == "feedback" and e.get("run") == run and e.get("verdict") == verdict for e in events):
+        raise ValueError(f"run {run!r} is already marked")
     RunWriter(start["_file"]).write({"event": "feedback", "session": start.get("session"), "run": run, "verdict": verdict})
     if verdict == "exclude":
         add_exclude(h, run)

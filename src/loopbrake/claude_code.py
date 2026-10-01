@@ -11,7 +11,7 @@ import sys
 import warnings
 from pathlib import Path
 
-from loopbrake import records
+from loopbrake import calibration, records
 from loopbrake.brake import Brake, start
 
 EVENTS = ("prompt", "tool", "tool-failed", "stop")
@@ -29,6 +29,15 @@ def project_name(folder_name):
     """A LoopBrake project name for a history folder: readable, at most 50 characters, and unique."""
     safe = re.sub(r"[^A-Za-z0-9-]", "-", folder_name).lstrip("-")
     return f"cc-{safe[-40:]}-{hashlib.sha256(folder_name.encode()).hexdigest()[:6]}"
+
+
+def calibrate_claude_code(cwd=None, *, alpha=0.05, home=None):
+    """Set the stop line for the Claude Code project of a working folder, from its own history."""
+    folder = history_folder(cwd)
+    if not folder.is_dir():
+        raise FileNotFoundError(f"no Claude Code history for this folder at {folder}; "
+                                "run loopbrake calibrate <folder> --project <name>")
+    return calibration.calibrate(folder, project=project_name(folder.name), alpha=alpha, home=home)
 
 
 def action(tool_name, tool_input):

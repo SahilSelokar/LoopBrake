@@ -8,19 +8,45 @@ from loopbrake.brake import replay
 from loopbrake.traces import read_runs
 
 
+def _fail(message, code=2):
+    print(f"loopbrake: {message}", file=sys.stderr)
+    return code
+
+
 def _calibrate(args):
-    rec = calibration.calibrate(args.source, project=args.project, alpha=args.alpha)
+    if args.claude_code and (args.source or args.project):
+        return _fail("--claude-code takes no source and no --project: both come from the current folder")
+    if not args.claude_code and not args.source:
+        return _fail("give a runs file or a Claude Code project folder, or use --claude-code")
+    if args.claude_code:
+        rec = claude_code.calibrate_claude_code(alpha=args.alpha)
+        unit = "turns"
+        print(f"project {rec['project']}")
+    else:
+        rec = calibration.calibrate(args.source, project=args.project or "default", alpha=args.alpha)
+        unit = "runs"
     if rec["watch_only"]:
         more = calibration.runs_needed(args.alpha) - rec["n"]
-        print(f"watch-only: {rec['n']} successful runs found; need {more} more for α {args.alpha:.0%}")
+        print(f"watch-only: {rec['n']} successful {unit} found; need {more} more for α {args.alpha:.0%}")
     else:
-        print(f"stop line: {rec['stop_line']} steps (from {rec['n']} successful runs, k = {rec['k']}, α {args.alpha:.0%})")
-    print(f"saved: {calibration.path(args.project, records.home())}")
+        print(f"stop line: {rec['stop_line']} steps (from {rec['n']} successful {unit}, k = {rec['k']}, α {args.alpha:.0%})")
+    left, mistakes = rec["source"].get("stops_left_out", 0), rec["source"].get("mistakes_counted", 0)
+    if left or mistakes:
+        print(f"LoopBrake: turns left out (stopped or excluded): {left}; mistaken stops counted as long good turns: {mistakes}")
+    print(f"saved: {calibration.path(rec['project'], records.home())}")
     return 0
+
+
+NO_TURNS_HINT = ("  no turns recorded yet for this project; if you have used Claude Code here since installing, "
+                 "the hooks may not be running (see the README's troubleshooting)")
 
 
 def _status(args):
     h = records.home()
+    if args.claude_code and args.project:
+        return _fail("--claude-code and --project can't be used together")
+    if args.claude_code:
+        args.project = claude_code.project_name(claude_code.history_folder().name)
     projects = [args.project] if args.project else sorted(p.stem for p in (h / "calibration").glob("*.json")) or ["default"]
     for project in projects:
         rec = calibration.load(project, h)
@@ -35,17 +61,27 @@ def _status(args):
         print(f"  runs watched: {st['watched']} (of {st['runs']} recorded)")
         print(f"  runs stopped: {st['stopped']}")
         print(f"  mistaken stops: {st['mistaken']} of an allowance of {st['allowance']:.1f}")
+        if args.claude_code and rec is not None and st["runs"] == 0:
+            print(NO_TURNS_HINT)
     return 0
 
 
 def _feedback(args):
     verdict = "mistaken_stop" if args.mistaken else "exclude"
+    h, run, about = records.home(), args.run, ""
+    if run == "last":  # the stop just seen, or the turn just finished (contracts/cli.md)
+        found = records.last_run(h, "stop") if args.mistaken else records.last_run(h, "run_end", min_steps=1)
+        if found is None:
+            return _fail("no stops recorded yet" if args.mistaken else "no finished turns recorded yet", 1)
+        start, e = found
+        run = start["run"]
+        detail = f"stopped at step {e.get('step')}" if args.mistaken else f"{e.get('steps')} steps, {e.get('status')}"
+        about = f"run {run} (project {start.get('project')}, {detail})"
     try:
-        records.add_feedback(records.home(), args.run, verdict)
-    except LookupError as e:
-        print(f"loopbrake: {e}", file=sys.stderr)
-        return 1
-    print(f"recorded: {args.run} {'marked as a mistaken stop' if args.mistaken else 'left out of future calibration'}")
+        records.add_feedback(h, run, verdict)
+    except (LookupError, ValueError) as e:
+        return _fail(str(e).strip("'\""), 1)
+    print(f"recorded: {about or run} {'marked as a mistaken stop' if args.mistaken else 'left out of future calibration'}")
     return 0
 
 
@@ -91,13 +127,15 @@ def main(argv=None):
     ap.add_argument("--version", action="store_true", help="print the version")
     sub = ap.add_subparsers(dest="command")
     c = sub.add_parser("calibrate", help="set a stop line from past runs")
-    c.add_argument("source", help="a runs file, or a Claude Code project folder")
-    c.add_argument("--project", default="default")
+    c.add_argument("source", nargs="?", help="a runs file, or a Claude Code project folder")
+    c.add_argument("--project", help="project name (default: default)")
+    c.add_argument("--claude-code", action="store_true", help="the Claude Code project of the current folder, from its own history")
     c.add_argument("--alpha", type=float, default=0.05, help="highest share of good runs you accept stopping (default 0.05)")
     s = sub.add_parser("status", help="stop line, runs watched and stopped, mistaken stops")
     s.add_argument("--project")
+    s.add_argument("--claude-code", action="store_true", help="the Claude Code project of the current folder")
     f = sub.add_parser("feedback", help="mark a stop as a mistake, or leave a run out of calibration")
-    f.add_argument("run")
+    f.add_argument("run", help="a run id, or 'last': the latest stop (--mistaken) or finished turn (--exclude)")
     g = f.add_mutually_exclusive_group(required=True)
     g.add_argument("--mistaken", action="store_true")
     g.add_argument("--exclude", action="store_true")

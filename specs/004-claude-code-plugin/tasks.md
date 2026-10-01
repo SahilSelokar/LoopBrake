@@ -219,7 +219,7 @@ work in any project folder. Recalibration treats past LoopBrake stops as researc
 
 **Independent test**: quickstart scenario 6.
 
-- [ ] T016 [P] [US2] Add tests to `tests/test_calibrate.py`. Build a temporary `CLAUDE_CONFIG_DIR/projects/<slug>/` folder from a helper that writes N synthetic finished turns with known tool_use ids, plus matching run logs under `LOOPBRAKE_HOME`.
+- [X] T016 [P] [US2] Add tests to `tests/test_calibrate.py`. Build a temporary `CLAUDE_CONFIG_DIR/projects/<slug>/` folder from a helper that writes N synthetic finished turns with known tool_use ids, plus matching run logs under `LOOPBRAKE_HOME`.
   - **`calibrate_claude_code(cwd)`**:
     - uses that folder and `project_name(slug)`;
     - with 18 turns it's watch-only, and with 19 it sets a stop line;
@@ -230,30 +230,30 @@ work in any project folder. Recalibration treats past LoopBrake stops as researc
     - an `exclude` on a live run drops the transcript turn holding its `call_id`s;
     - `mistaken_stop` plus `exclude` counts as mistaken.
   - **Source counts**: `source.stops_left_out` and `source.mistakes_counted` are right, and the record holds no transcript text.
-- [ ] T017 [US2] Change `src/loopbrake/calibration.py`:
+- [X] T017 [US2] Change `src/loopbrake/calibration.py`:
   - **`_from_claude_code(folder, exclude, home=None, project=None)`**:
     - passes `call_ids={}` to `claude_code_turns`;
     - when `project` is given, reads that project's run logs (runs whose `run_start.project` equals it) and applies research R10 to each transcript turn whose ids contain a live run's `call_id`: mistaken counts as `math.inf`, exclude or a plain stop is left out;
     - adds `stops_left_out` and `mistakes_counted` to `source`.
-  - **`calibrate_claude_code(cwd=None, *, alpha=0.05, home=None)`**: derives the folder and project, raises `FileNotFoundError(f"no Claude Code history for this folder at {path}; run loopbrake calibrate <folder> --project <name>")` when the folder is missing, and calls `calibrate`'s saving path with that project.
+  - **`calibrate_claude_code(cwd=None, *, alpha=0.05, home=None)`** (built in `src/loopbrake/claude_code.py`, not here: calibration.py importing the adapter would be a circular import): derives the folder and project, raises `FileNotFoundError(f"no Claude Code history for this folder at {path}; run loopbrake calibrate <folder> --project <name>")` when the folder is missing, and calls `calibrate`'s saving path with that project.
   - **`threshold`**: already handles `math.inf`, and is unchanged.
 
   Makes T016 pass.
-- [ ] T018 [P] [US2] Add tests to `tests/test_cli.py`, matching contracts/cli.md:
+- [X] T018 [P] [US2] Add tests to `tests/test_cli.py`, matching contracts/cli.md:
   - **`calibrate --claude-code`**: prints the project line, the stop line (or watch-only) line, the LoopBrake stops line only when there are stops, and the `saved:` line;
   - **Argument errors** (exit 2): `calibrate` with both a source and `--claude-code`, with neither, or with `--project` and `--claude-code`;
   - **`status --claude-code`**: equals `status --project <derived>`, plus the "no turns recorded yet …" line from contracts/cli.md when the project has a calibration but no recorded turns, and not otherwise;
   - **`feedback last --mistaken`**: marks the most recent `stop`'s run and prints `recorded: run … (project …, stopped at step N) marked as a mistaken stop`;
   - **`feedback last --exclude`**: marks the run of the most recent `run_end` with `steps` ≥ 1, skipping a later empty turn, and prints `… left out of future calibration`;
   - **`feedback` errors** (exit 1): no stops yet, or the same verdict twice ("already marked").
-- [ ] T019 [US2] In `src/loopbrake/records.py`, make `add_feedback` raise `ValueError(f"run {run!r} is already marked")` when the same verdict exists for that run. Then implement the CLI in `src/loopbrake/cli.py`:
+- [X] T019 [US2] In `src/loopbrake/records.py`, make `add_feedback` raise `ValueError(f"run {run!r} is already marked")` when the same verdict exists for that run. Then implement the CLI in `src/loopbrake/cli.py`:
   - **`calibrate`**: `source` becomes optional (`nargs="?"`), with `--claude-code`, and the mutual-exclusion errors from T018.
   - **`status --claude-code`**: with the "no turns recorded yet …" line.
   - **`feedback last`**: resolved through `records.last_run(home, "stop")` for `--mistaken`, or `records.last_run(home, "run_end", min_steps=1)` for `--exclude`. Add `min_steps=0` to `last_run` in T008's function.
   - **Exit codes**: `LookupError` or `ValueError` from feedback exit 1, with one stderr line.
 
   Makes T018 pass.
-- [ ] T020 [P] [US2] Write `plugin/commands/calibrate.md`, `status.md`, `mistake.md` and `exclude.md`, per contracts/plugin.md:
+- [X] T020 [P] [US2] Write `plugin/commands/calibrate.md`, `status.md`, `mistake.md` and `exclude.md`, per contracts/plugin.md:
   - **Frontmatter**: `description`, and `allowed-tools: Bash(loopbrake <exact command>)`.
   - **Body**: tells Claude to run that single command with the Bash tool and repeat its output, adding nothing.
   - **`status.md`**: also says that when the output shows no stop line, Claude should show the status line setup line from quickstart scenario 7.

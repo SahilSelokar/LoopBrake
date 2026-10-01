@@ -26,7 +26,7 @@ history (research R6, R10).
 ```text
 project cc-home-me-my-app--c57a41
 stop line: 38 steps (from 898 successful turns, k = 854, α 5%)
-LoopBrake: 3 turns left out (stopped or excluded), 1 mistaken stop counted as a long good turn
+LoopBrake: turns left out (stopped or excluded): 3; mistaken stops counted as long good turns: 1
 saved: /home/me/.loopbrake/calibration/cc-home-me-my-app--c57a41.json
 ```
 

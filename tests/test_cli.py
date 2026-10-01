@@ -85,3 +85,68 @@ def test_hook_prints_the_stop_and_always_exits_0(capsys, home, tmp_path, monkeyp
     for args, stdin in ((["hook", "tool"], "{bad"), (["hook", "no-such-event"], "{}"), (["hook"], "")):
         monkeypatch.setattr("sys.stdin", io.StringIO(stdin))
         assert run_cli(capsys, *args)[:2] == (0, "")
+
+
+# ---- Claude Code commands (Phase 3, contracts/cli.md) ----
+
+def claude_project(tmp_path, monkeypatch, turns=19):
+    """Work in a made-up folder whose Claude Code history has `turns` finished 2-step turns."""
+    from loopbrake import claude_code
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude"))
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+    folder = claude_code.history_folder(work)
+    folder.mkdir(parents=True)
+    lines = []
+    for i in range(turns):
+        lines.append({"type": "user", "uuid": f"u{i}", "message": {"role": "user", "content": "hi"}})
+        lines.append({"type": "assistant", "uuid": f"a{i}", "message": {"id": f"m{i}", "role": "assistant", "stop_reason": "tool_use",
+                      "content": [{"type": "tool_use", "id": f"t{i}-{j}", "name": "Bash", "input": {}} for j in range(2)]}})
+        lines.append({"type": "assistant", "uuid": f"e{i}", "message": {"id": f"me{i}", "role": "assistant", "stop_reason": "end_turn",
+                      "content": [{"type": "text", "text": "done"}]}})
+    (folder / "s.jsonl").write_text("\n".join(json.dumps(l) for l in lines) + "\n")
+    return claude_code.project_name(folder.name)
+
+
+def test_calibrate_and_status_for_claude_code(capsys, home, tmp_path, monkeypatch):
+    project = claude_project(tmp_path, monkeypatch)
+    code, out, _ = run_cli(capsys, "calibrate", "--claude-code")
+    lines = out.splitlines()
+    assert code == 0 and lines[0] == f"project {project}"
+    assert lines[1] == "stop line: 2 steps (from 19 successful turns, k = 19, α 5%)"
+    assert lines[2].startswith("saved: ") and len(lines) == 3  # no LoopBrake line: nothing was stopped yet
+    code, out, _ = run_cli(capsys, "status", "--claude-code")
+    assert code == 0 and out.startswith(f"project {project}: stop line: 2 steps")
+    assert "no turns recorded yet for this project" in out
+    records.RunWriter(home / "runs" / "x.jsonl").write({"event": "run_start", "session": "x", "run": "r", "project": project, "calibration": {}})
+    assert "no turns recorded yet" not in run_cli(capsys, "status", "--claude-code")[1]
+
+
+def test_calibrate_argument_errors(capsys, home, tmp_path, monkeypatch):
+    claude_project(tmp_path, monkeypatch)
+    for args in (["calibrate"], ["calibrate", str(FIX), "--claude-code"], ["calibrate", "--claude-code", "--project", "x"],
+                 ["status", "--claude-code", "--project", "x"]):
+        code, _, err = run_cli(capsys, *args)
+        assert code == 2 and err.startswith("loopbrake:"), args
+
+
+def test_calibrate_claude_code_without_history(capsys, home, tmp_path, monkeypatch):
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude"))
+    monkeypatch.chdir(tmp_path)
+    code, _, err = run_cli(capsys, "calibrate", "--claude-code")
+    assert code == 2 and "no Claude Code history for this folder at" in err
+
+
+def test_feedback_last(capsys, home):
+    assert run_cli(capsys, "feedback", "last", "--mistaken") == (1, "", "loopbrake: no stops recorded yet\n")
+    assert run_cli(capsys, "feedback", "last", "--exclude") == (1, "", "loopbrake: no finished turns recorded yet\n")
+    w = records.RunWriter(home / "runs" / "s.jsonl")
+    w.write({"event": "run_start", "session": "s", "run": "a", "project": "cc-x", "calibration": {}})
+    w.write({"event": "stop", "session": "s", "run": "a", "step": 39, "stop_line": 38, "reason": "r"})
+    w.write({"event": "run_end", "session": "s", "run": "a", "status": "stopped", "steps": 39})
+    w.write({"event": "run_start", "session": "s", "run": "b", "project": "cc-x", "calibration": {}})
+    w.write({"event": "run_end", "session": "s", "run": "b", "status": "interrupted", "steps": 0})
+    assert run_cli(capsys, "feedback", "last", "--mistaken") == (0, "recorded: run a (project cc-x, stopped at step 39) marked as a mistaken stop\n", "")
+    assert run_cli(capsys, "feedback", "last", "--mistaken") == (1, "", "loopbrake: run 'a' is already marked\n")
+    assert run_cli(capsys, "feedback", "last", "--exclude") == (0, "recorded: run a (project cc-x, 39 steps, stopped) left out of future calibration\n", "")
