@@ -53,6 +53,10 @@ The calibration reader (`traces.claude_code_turns`):
 - **Mid-turn records**: a prompt, notification or compaction summary that arrives while Claude is
   waiting on a tool joins the current turn.
 - **Compaction summaries**: they never start a turn.
+- **A hook stopping Claude** (found during implementation): Claude's last answer still says
+  `tool_use`, so without a marker the next prompt would look mid-turn. Claude Code writes an
+  attachment of type `hook_stopped_continuation` when a hook stops Claude. The reader ends the turn
+  there, with exit `stopped`, and doesn't count it as a success (constitution: "was not killed").
 
 **Why**: after this change, the remaining known differences can only make live counts *lower*:
 - tool calls denied at a permission prompt (R2);

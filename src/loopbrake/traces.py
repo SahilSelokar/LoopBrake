@@ -100,6 +100,7 @@ class _Turn:
         self.interrupted, self.pending = False, 0
         self.msg, self.msg_tokens, self.msg_charged = None, 0, True
         self.last_stop = None  # why the latest answer stopped; "tool_use" means it's waiting on a tool
+        self.hook_stopped = False  # a hook (LoopBrake or another) told Claude to stop: the turn is over
 
     def add_tokens(self, n):  # to the previous step, or held for the first one
         if self.steps:
@@ -115,8 +116,9 @@ class _Turn:
     def run(self, group, exclude):
         self.close_message()
         steps = tuple(Step(s["action"], s["observation"], s["error"], s["tokens"]) for s in self.steps)
-        exit = "interrupted" if self.interrupted else None
-        return Run(group, "claude-code-local", self.id, self.id, not self.interrupted and self.id not in exclude, exit, True, steps)
+        exit = "interrupted" if self.interrupted else "stopped" if self.hook_stopped else None
+        ok = exit is None and self.id not in exclude  # killed turns are not successes (constitution 2.4.0)
+        return Run(group, "claude-code-local", self.id, self.id, ok, exit, True, steps)
 
 
 def claude_code_turns(transcript, exclude=(), call_ids=None):
@@ -150,6 +152,10 @@ def claude_code_turns(transcript, exclude=(), call_ids=None):
                 skipped["sidechain"] += 1
                 continue
             kind, msg = rec.get("type"), rec.get("message")
+            if kind == "attachment" and (rec.get("attachment") or {}).get("type") == "hook_stopped_continuation":
+                if turn:  # written when a hook replies continue: false; Claude's last answer still says tool_use
+                    turn.hook_stopped = True
+                continue
             if kind not in ("user", "assistant") or not isinstance(msg, dict):
                 skipped["not a message"] += 1
                 continue
@@ -172,7 +178,7 @@ def claude_code_turns(transcript, exclude=(), call_ids=None):
                     continue
                 if text.startswith("<local-command"):
                     continue
-                if turn and not turn.interrupted and turn.last_stop == "tool_use":
+                if turn and not turn.interrupted and not turn.hook_stopped and turn.last_stop == "tool_use":
                     continue  # arrived mid-turn: it joins the running turn
                 if turn:
                     close(turn)

@@ -472,8 +472,14 @@ builder's go-ahead.
     scope), with `env.LOOPBRAKE_CMD` in `~/.claude/settings.json`, so every Claude Code session
     (terminal and VS Code) runs it from this checkout.
   - A plain session with no flags recorded its turn correctly.
-  - Starting point: `loopbrake agreement --claude-code` in Project Building gives
-    "turns matched 4, equal 4, live lower 0, live higher 0".
+  - The first agreement run in Project Building gave "turns matched 5, equal 3, live lower 2,
+    live higher 0". The two lower counts were real: the reader had joined the 70-call stopped turn
+    and the next prompt's turn into one 61-step turn, because Claude's last answer before the stop
+    still said `tool_use`.
+  - **Fix**: Claude Code writes a `hook_stopped_continuation` attachment when a hook stops Claude,
+    and the reader now ends the turn there (exit `stopped`, not a success; research R1). After the
+    fix: "turns matched 5, equal 5, live lower 0, live higher 0". Project Building was recalibrated
+    with the fixed reader.
 - **Left for the builder**:
   - T030 (a week of use, then `loopbrake agreement --claude-code`);
   - T032 and T033 (release, with your go-ahead).
