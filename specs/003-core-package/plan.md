@@ -87,7 +87,7 @@ src/loopbrake/calibration.py        new: calibrate() from a runs file or a Claud
 src/loopbrake/records.py          new: home folder, reading run records, status, feedback, exclude list
 src/loopbrake/cli.py              new: the loopbrake command
 src/loopbrake/agent_sdk.py        new: the toolkit hook adapter (optional extra)
-.github/workflows/tests.yml       new: pytest on 3.11, 3.12 and 3.13 via astral-sh/setup-uv@v10, plus a build check of the wheel's contents
+.github/workflows/tests.yml       new: pytest on 3.11, 3.12 and 3.13 via astral-sh/setup-uv@v10.2.0, plus a build check of the wheel's contents
 .github/workflows/publish.yml     new: on a v* tag, build (version check, smoke test, contents check), then publish with uv publish (research R11)
 tests/test_brake.py, test_calibrate.py, test_records.py, test_cli.py, test_agent_sdk.py, test_no_network.py, test_replay_data.py
 tests/fixtures/calibration_runs.jsonl   made-up runs for the README example and tests

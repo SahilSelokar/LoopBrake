@@ -29,7 +29,7 @@ quickstart.md
   - set `[tool.hatch.build.targets.sdist] include = ["src/", "README.md", "LICENSE", "pyproject.toml"]`.
 
   Check with `uv build`, then list the wheel's files: only `loopbrake/` and `*.dist-info/` (research R11).
-- [X] T002 [P] Write `.github/workflows/tests.yml` (research R9). It runs on `push` and `pull_request` on `ubuntu-latest`, with a matrix over Python 3.11, 3.12 and 3.13. Steps: `actions/checkout@v7`, `astral-sh/setup-uv@v10`, then `uv run --python ${{ matrix.python }} pytest -q`. Add a `build` job that runs `uv build` and checks the wheel holds only `loopbrake/` and `*.dist-info/`.
+- [X] T002 [P] Write `.github/workflows/tests.yml` (research R9). It runs on `push` and `pull_request` on `ubuntu-latest`, with a matrix over Python 3.11, 3.12 and 3.13. Steps: `actions/checkout@v7`, `astral-sh/setup-uv@v10.2.0`, then `uv run --python ${{ matrix.python }} pytest -q`. Add a `build` job that runs `uv build` and checks the wheel holds only `loopbrake/` and `*.dist-info/`.
 
 ---
 

@@ -142,7 +142,7 @@ inputs and need neither the SDK nor an API key. A real-agent run is optional and
 ## R9. CI
 
 **Decision**: `.github/workflows/tests.yml` runs on `push` and `pull_request`, on `ubuntu-latest`,
-with a Python matrix of 3.11, 3.12 and 3.13. It uses `astral-sh/setup-uv@v10` (latest release
+with a Python matrix of 3.11, 3.12 and 3.13. It uses `astral-sh/setup-uv@v10.2.0` (latest release
 v10.2.0, 2026-09-21) and runs `uv run --python ${{ matrix.python }} pytest -q`.
 
 The data-dependent replay test skips itself when `~/.loopbrake/data` is missing, as it is in CI.
@@ -164,7 +164,7 @@ The data-dependent replay test skips itself when `~/.loopbrake/data` is missing,
 
 - **Trigger**: a pushed tag matching `v[0-9]+.[0-9]+.[0-9]+`.
 - **Job `build`** (no special permissions):
-  1. `astral-sh/setup-uv@v10`;
+  1. `astral-sh/setup-uv@v10.2.0`;
   2. check that the tag without its `v` equals `loopbrake.__version__`, and fail with a message if
      not (FR-016);
   3. `uv build`, which writes the sdist and the wheel to `dist/`;
