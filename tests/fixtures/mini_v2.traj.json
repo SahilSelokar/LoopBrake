@@ -1,0 +1,154 @@
+{
+ "instance_id": "demo__demo-1",
+ "trajectory_format": "mini-swe-agent-1.1",
+ "info": {
+  "exit_status": "Submitted",
+  "config": {
+   "agent": {}
+  }
+ },
+ "messages": [
+  {
+   "role": "system",
+   "content": "You are a helpful assistant."
+  },
+  {
+   "role": "user",
+   "content": "Fix the bug."
+  },
+  {
+   "object": "response",
+   "output": [
+    {
+     "type": "reasoning",
+     "summary": [],
+     "content": []
+    },
+    {
+     "type": "message",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "output_text",
+       "text": "THOUGHT: next."
+      }
+     ]
+    },
+    {
+     "type": "function_call",
+     "name": "bash",
+     "arguments": "{\"command\": \"ls\"}",
+     "call_id": "c1"
+    }
+   ],
+   "usage": {
+    "input_tokens": 100,
+    "output_tokens": 10
+   },
+   "extra": {
+    "actions": [
+     {
+      "command": "ls",
+      "tool_call_id": "c1"
+     }
+    ]
+   }
+  },
+  {
+   "type": "function_call_output",
+   "call_id": "c1",
+   "output": "<returncode>0</returncode>\n<output>\na\nb\n</output>",
+   "extra": {
+    "returncode": 0
+   }
+  },
+  {
+   "object": "response",
+   "output": [
+    {
+     "type": "reasoning",
+     "summary": [],
+     "content": []
+    },
+    {
+     "type": "message",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "output_text",
+       "text": "THOUGHT: next."
+      }
+     ]
+    },
+    {
+     "type": "function_call",
+     "name": "bash",
+     "arguments": "{\"command\": \"cat x\"}",
+     "call_id": "c2"
+    }
+   ],
+   "usage": {
+    "input_tokens": 150,
+    "output_tokens": 20
+   },
+   "extra": {
+    "actions": [
+     {
+      "command": "cat x",
+      "tool_call_id": "c2"
+     }
+    ]
+   }
+  },
+  {
+   "type": "function_call_output",
+   "call_id": "c2",
+   "output": "<returncode>1</returncode>\n<output>\ncat: x: No such file or directory\n</output>",
+   "extra": {
+    "returncode": 1
+   }
+  },
+  {
+   "object": "response",
+   "output": [
+    {
+     "type": "reasoning",
+     "summary": [],
+     "content": []
+    },
+    {
+     "type": "message",
+     "role": "assistant",
+     "content": [
+      {
+       "type": "output_text",
+       "text": "THOUGHT: next."
+      }
+     ]
+    },
+    {
+     "type": "function_call",
+     "name": "bash",
+     "arguments": "{\"command\": \"echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\"}",
+     "call_id": "c3"
+    }
+   ],
+   "usage": {
+    "input_tokens": 200,
+    "output_tokens": 5
+   },
+   "extra": {
+    "actions": [
+     {
+      "command": "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT",
+      "tool_call_id": "c3"
+     }
+    ]
+   }
+  },
+  {
+   "role": "exit",
+   "content": "diff --git a/x b/x"
+  }
+ ]
+}

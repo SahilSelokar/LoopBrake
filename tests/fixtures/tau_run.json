@@ -1,0 +1,46 @@
+[
+ {
+  "task_id": 0,
+  "trial": 0,
+  "reward": 1.0,
+  "info": {},
+  "traj": [
+   {
+    "role": "system",
+    "content": "# Retail agent policy\n\nAs a retail agent, you can help users cancel or modify pending orders, return or exchange delivered orders, modify their default user address, or provide information about their"
+   },
+   {
+    "role": "user",
+    "content": "Hello! I recently received an order and I'd like to exchange a couple of items."
+   },
+   {
+    "content": "I can help you with that. To get started, could you please provide your email address or your name and zip code so I can authenticate your identity?",
+    "role": "assistant"
+   },
+   {
+    "role": "user",
+    "content": "Sure, my name is Yusuf Rossi and my zip code is 19122."
+   },
+   {
+    "content": null,
+    "role": "assistant",
+    "tool_calls": [
+     {
+      "function": {
+       "arguments": "{\"first_name\":\"Yusuf\",\"last_name\":\"Rossi\",\"zip\":\"19122\"}",
+       "name": "find_user_id_by_name_zip"
+      },
+      "id": "call_SD4bASEbWY6Yc95vqQBB4YUU",
+      "type": "function"
+     }
+    ]
+   },
+   {
+    "role": "tool",
+    "tool_call_id": "call_SD4bASEbWY6Yc95vqQBB4YUU",
+    "name": "find_user_id_by_name_zip",
+    "content": "yusuf_rossi_9620"
+   }
+  ]
+ }
+]

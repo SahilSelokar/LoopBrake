@@ -1,0 +1,20 @@
+[project]
+name = "loopbrake"
+version = "0.0.0"
+description = "Stops stuck AI agent runs, with a guaranteed limit on stopping good ones."
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/loopbrake"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,98 @@
+{
+ "instance_id": "demo__demo-1",
+ "trajectory_format": "mini-swe-agent-1",
+ "info": {
+  "exit_status": "Submitted",
+  "config": {
+   "agent": {
+    "action_regex": "```bash\\s*\\n(.*?)\\n```"
+   }
+  }
+ },
+ "messages": [
+  {
+   "role": "system",
+   "content": "You are a helpful assistant."
+  },
+  {
+   "role": "user",
+   "content": "Fix the bug."
+  },
+  {
+   "role": "assistant",
+   "content": "THOUGHT: two at once.\n```bash\nls\n```\n```bash\npwd\n```",
+   "extra": {
+    "response": {
+     "usage": {
+      "prompt_tokens": 50,
+      "completion_tokens": 5
+     }
+    }
+   }
+  },
+  {
+   "role": "user",
+   "content": "Please always provide EXACTLY ONE action in triple backticks, found 2 actions."
+  },
+  {
+   "role": "assistant",
+   "content": "THOUGHT: look.\n```bash\nls\n```",
+   "extra": {
+    "response": {
+     "usage": {
+      "prompt_tokens": 100,
+      "completion_tokens": 10
+     }
+    }
+   }
+  },
+  {
+   "role": "user",
+   "content": "<returncode>0</returncode>\n<output>\na\n</output>"
+  },
+  {
+   "role": "assistant",
+   "content": "THOUGHT: two at once.\n```bash\nls\n```\n```bash\npwd\n```",
+   "extra": {
+    "response": {
+     "usage": {
+      "prompt_tokens": 120,
+      "completion_tokens": 15
+     }
+    }
+   }
+  },
+  {
+   "role": "user",
+   "content": "Please always provide EXACTLY ONE action in triple backticks, found 2 actions."
+  },
+  {
+   "role": "assistant",
+   "content": "THOUGHT: read.\n```bash\ncat x\n```",
+   "extra": {
+    "response": {
+     "usage": {
+      "prompt_tokens": 140,
+      "completion_tokens": 12
+     }
+    }
+   }
+  },
+  {
+   "role": "user",
+   "content": "<returncode>1</returncode>\n<output>\ncat: x: No such file or directory\n</output>"
+  },
+  {
+   "role": "assistant",
+   "content": "THOUGHT: submit.\n```bash\necho COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\n```",
+   "extra": {
+    "response": {
+     "usage": {
+      "prompt_tokens": 160,
+      "completion_tokens": 5
+     }
+    }
+   }
+  }
+ ]
+}
