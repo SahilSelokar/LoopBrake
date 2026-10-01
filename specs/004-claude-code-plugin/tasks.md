@@ -292,7 +292,7 @@ or `brake idle`.
   - write nothing.
 
   Makes T025 pass.
-- [ ] T027 [P] Update `README.md` with a "Claude Code" section:
+- [X] T027 [P] Update `README.md` with a "Claude Code" section:
   - the two install commands, and the need for `uv` and Claude Code 2.1.281 or later;
   - `/loopbrake:calibrate`;
   - what a stop looks like (the contracts/hooks.md example);

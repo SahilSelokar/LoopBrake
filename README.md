@@ -106,6 +106,56 @@ Everything stays on your machine, in `~/.loopbrake`. LoopBrake never uses the ne
 inside it fails, it switches to watching only. It never crashes or stops your agent because of its
 own problem.
 
+## Use it with Claude Code
+
+**Install the plugin.** It needs Claude Code 2.1.281 or later and [uv](https://docs.astral.sh/uv/).
+
+```text
+/plugin marketplace add SahilSelokar/LoopBrake
+/plugin install loopbrake@loopbrake
+```
+
+**Set the stop line** for the project you are in, from that project's own past turns:
+
+```text
+/loopbrake:calibrate
+```
+
+A **turn** is everything Claude does for one prompt. A **step** is one tool call by the main agent;
+tool calls inside subagents don't count. From then on, when a turn goes past the stop line, Claude
+stops and shows why. For example:
+
+```text
+LoopBrake stopped at step 39: past the stop line of 38 steps set from your 898 past successful
+turns (α 5%); repeating in 5 of last 5 steps. If this stop was wrong, run /loopbrake:mistake.
+```
+
+| Command | What it does |
+|---|---|
+| `/loopbrake:calibrate` | Sets or refreshes the stop line from this project's history |
+| `/loopbrake:status` | Stop line, turns watched and stopped, and mistaken stops against the allowance |
+| `/loopbrake:mistake` | Marks the last stop as a mistake. The next calibration counts that turn as a long good turn, so marking mistakes can only raise the line. |
+| `/loopbrake:exclude` | Leaves the last finished turn out of future calibration |
+
+**See the count while you work** (optional; plugins can't add a status line themselves). Add this to
+`~/.claude/settings.json` to see `brake 12/38` (steps so far against the stop line):
+
+```json
+"statusLine": {"type": "command", "command": "uvx --offline loopbrake statusline"}
+```
+
+**What the guarantee means here.** Each project has its own stop line. It holds its limit (at most 5
+in 100 good turns stopped, at α 5%) on average over turns, and only while your future turns are like
+your past ones: the same kind of work, used the same way. When your work changes, calibrate again.
+
+**No uv?** Install `loopbrake==0.2.0` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
+in the environment Claude Code starts from: `export LOOPBRAKE_CMD="'$(which loopbrake)'"`.
+
+**Troubleshooting.** If `/loopbrake:status` says "no turns recorded yet" after you have worked in the
+project, the hooks are not running. Start Claude Code with `claude --debug` and look for `loopbrake`
+hook errors, and check that `uv` is on the PATH Claude Code sees. The plugin never blocks Claude
+because of its own problem; it just stops recording.
+
 ## Phase 1 results
 
 Before building the product, we tested the idea offline. We replayed **2,979 recorded runs** from
@@ -202,7 +252,8 @@ uv run python eval/judge_eval.py --final                 # reads stored answers 
 ## Repository layout
 
 ```text
-src/loopbrake/   scoring core: stuck signals, stop-line rule, run readers (standard library only)
+src/loopbrake/   the package: brake, stop-line rule, run readers, Claude Code hooks (standard library only)
+plugin/          the Claude Code plugin: hooks, slash commands and the launcher; .claude-plugin/ is the marketplace
 eval/            the experiments: fetch.py downloads the data, run.py replays runs, judge.py asks the
                  progress judge, judge_eval.py scores its answers; results/ holds the published numbers
 specs/           design: constitution, roadmap, and the spec, plan, research and tasks of each experiment
@@ -217,7 +268,7 @@ liveness.py      the original naive rule, kept as the baseline
 | 1 | **Experiment**: does it work on real runs? | Done: NO-GO for cheap signals |
 | 1b | **Progress judge**: a hosted decision model judges whether each step moved the run forward | Done: NO-GO |
 | 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Done: v0.1.0 on PyPI |
-| 3 | **Claude Code plugin**: stop stuck sessions live, calibrated on your own history | Planned |
+| 3 | **Claude Code plugin**: stop stuck turns live, calibrated on your own history | Done: v0.2.0 |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
 
@@ -225,8 +276,9 @@ The full plan is in [specs/roadmap.md](https://github.com/SahilSelokar/LoopBrake
 
 ## Status
 
-v0.1.0 is on PyPI (`pip install loopbrake`). Its stop rule is a stop line on run length, set from your
-own past successful runs, with a guaranteed limit on stopping good runs. Next: the Claude Code plugin.
+v0.2.0 is on PyPI (`pip install loopbrake`), with the Claude Code plugin in this repository. The stop
+rule is a stop line on run length, set from your own past successful runs, with a guaranteed limit on
+stopping good runs. Next: the observability dashboard and OpenTelemetry export.
 
 ## License
 
