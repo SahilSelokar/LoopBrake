@@ -18,6 +18,18 @@ Only this computer can open it. Press Ctrl+C to stop.
 
 **Exit codes**: 0 on Ctrl+C, and 2 if the port is taken, with a one-line message.
 
+## `loopbrake dashboard --background | --stop` and `/loopbrake:dashboard [stop]`
+
+- **`--background`**: starts the dashboard detached and returns at once, printing its address, that
+  it keeps running, and how to stop it. If one is already serving this LoopBrake folder, it reopens
+  that one instead of starting a second. Exit code 1 if it didn't start.
+- **`--stop`**: stops it: "Stopped the LoopBrake dashboard." or "No LoopBrake dashboard is running.";
+  exit code 0 either way.
+- **The running dashboard** records its process and address in `~/.loopbrake/dashboard.json`
+  (owner-only, since the address holds the access key) and removes it when it stops.
+- **The plugin**: `/loopbrake:dashboard` runs `loopbrake dashboard --background`, and
+  `/loopbrake:dashboard stop` runs `loopbrake dashboard --stop`. Claude repeats the output as printed.
+
 ## `loopbrake export --pending | --test`
 
 - **`--pending`**: sends every finished task not yet sent (research R7). It prints one line, such as

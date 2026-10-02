@@ -294,6 +294,10 @@ after release (SC-008).
   how LoopBrake works in three steps. When LoopBrake stops a task while the dashboard is open, a
   notice MUST appear with a link to why.
 
+- **FR-023**: Claude Code users MUST be able to open the dashboard from Claude Code with one
+  command (`/loopbrake:dashboard`). It returns at once and keeps the dashboard running; running it
+  again reopens the same one, and `/loopbrake:dashboard stop` stops it.
+
 ### Key Entities
 
 - **Task**: one request's work by an agent. It has a project, a session, a start and end time, a

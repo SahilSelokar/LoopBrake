@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from loopbrake import __version__, cli, otlp, records
+from loopbrake import __version__, cli, dashboard, otlp, records
 from mimic_backends import Backend
 from test_otlp import closed_port, task, write
 
@@ -209,6 +209,22 @@ def test_replay_record_writes_tasks_for_the_dashboard(capsys, home):
     starts = [e for e in ev if e["event"] == "run_start"]
     assert len(starts) == 30 and {e["project"] for e in starts} == {"replay-calibration_runs"}
     assert sum(e["event"] == "stop" for e in ev) == 22 and sum(e["event"] == "run_end" for e in ev) == 30
+
+
+def test_dashboard_in_the_background(capsys, home):
+    """/loopbrake:dashboard runs this: it returns at once, reuses a running dashboard, and stops cleanly."""
+    code, out, _ = run_cli(capsys, "dashboard", "--background", "--no-open")
+    try:
+        first = dashboard.running(home)
+        assert code == 0 and first and f"LoopBrake dashboard: {first['url']}\n" in out and "/loopbrake:dashboard stop" in out
+        assert oct((home / "dashboard.json").stat().st_mode & 0o777) == "0o600"  # the address holds the key
+        assert run_cli(capsys, "dashboard", "--background", "--no-open")[0] == 0
+        assert dashboard.running(home)["pid"] == first["pid"]  # the same one, not a second
+    finally:
+        code, out, _ = run_cli(capsys, "dashboard", "--stop")
+    assert code == 0 and out == "Stopped the LoopBrake dashboard.\n"
+    assert dashboard.running(home) is None and not (home / "dashboard.json").exists()
+    assert run_cli(capsys, "dashboard", "--stop") == (0, "No LoopBrake dashboard is running.\n", "")
 
 
 def test_export_command(capsys, home, monkeypatch):

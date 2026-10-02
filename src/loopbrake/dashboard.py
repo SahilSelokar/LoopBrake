@@ -10,6 +10,8 @@ import json
 import os
 import re
 import secrets
+import signal
+import socket
 import statistics
 import threading
 import time
@@ -557,11 +559,37 @@ def make_server(home=None, port=0, days=None):
     return server, handler.key
 
 
+def _running_file(h):
+    return h / "dashboard.json"
+
+
+def running(home=None):
+    """The dashboard already serving this LoopBrake folder, as {"pid", "url"}, or None. Its address holds
+    the access key, so the file is readable by its owner only."""
+    try:
+        info = json.loads(_running_file(records.home(home)).read_text(encoding="utf-8"))
+        os.kill(info["pid"], 0)  # still alive?
+        with socket.create_connection(("127.0.0.1", urlsplit(info["url"]).port), timeout=1):
+            pass  # and still answering
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return info
+
+
 def serve(port=0, open_browser=True, days=None, home=None):
-    server, key = make_server(home, port, days)
+    h = records.home(home)
+    server, key = make_server(h, port, days)
     url = f"http://127.0.0.1:{server.server_address[1]}/?k={key}"
     print(f"LoopBrake dashboard: {url}")
     print("Only this computer can open it. Press Ctrl+C to stop.", flush=True)
+    note = _running_file(h)
+    note.parent.mkdir(parents=True, exist_ok=True)
+    with os.fdopen(os.open(note, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
+        json.dump({"pid": os.getpid(), "url": url}, f)
+    try:  # `loopbrake dashboard --stop` sends SIGTERM: shut down as on Ctrl+C
+        signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+    except ValueError:
+        pass  # not the main thread
     if open_browser:
         webbrowser.open(url)
     try:
@@ -570,3 +598,44 @@ def serve(port=0, open_browser=True, days=None, home=None):
         pass
     finally:
         server.server_close()
+        try:
+            if json.loads(note.read_text(encoding="utf-8")).get("pid") == os.getpid():
+                note.unlink()
+        except (OSError, ValueError):
+            pass
+
+
+def start_background(port=0, open_browser=True, days=None, home=None):
+    """For /loopbrake:dashboard: start the dashboard detached and return at once, or reuse the one already
+    running. Returns its {"pid", "url"}, or None if it didn't start."""
+    h = records.home(home)
+    info = running(h)
+    if info is None:
+        import subprocess
+        import sys
+        cmd = [sys.executable, "-m", "loopbrake.cli", "dashboard", "--no-open", "--port", str(port)] + (["--days", str(days)] if days else [])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", ResourceWarning)  # it outlives this process, on purpose
+            child = subprocess.Popen(cmd, env=os.environ | {"LOOPBRAKE_HOME": str(h)}, stdin=subprocess.DEVNULL,
+                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+        deadline = time.monotonic() + 15
+        while (info := running(h)) is None or info["pid"] != child.pid:
+            if child.poll() is not None or time.monotonic() > deadline:
+                return None
+            time.sleep(0.1)
+    if open_browser:
+        webbrowser.open(info["url"])
+    return info
+
+
+def stop(home=None):
+    """Stop the dashboard serving this LoopBrake folder. Returns False if none was running."""
+    h = records.home(home)
+    info = running(h)
+    if info is None:
+        return False
+    os.kill(info["pid"], signal.SIGTERM)
+    deadline = time.monotonic() + 5
+    while running(h) is not None and time.monotonic() < deadline:
+        time.sleep(0.1)
+    return True

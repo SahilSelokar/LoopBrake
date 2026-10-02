@@ -159,6 +159,18 @@ def _record_replay(run, cal, stem):
 
 
 def _dashboard(args):
+    if args.stop:
+        print("Stopped the LoopBrake dashboard." if dashboard.stop() else "No LoopBrake dashboard is running.")
+        return 0
+    if args.background:
+        info = dashboard.start_background(port=args.port, open_browser=not args.no_open, days=args.days)
+        if info is None:
+            return _fail("the dashboard didn't start; run loopbrake dashboard to see why", 1)
+        print(f"LoopBrake dashboard: {info['url']}")
+        print(("It's open in your browser. " if not args.no_open else "") + "It keeps running in the background, and only this "
+              "computer can open it.")
+        print("To stop it, run /loopbrake:dashboard stop in Claude Code, or loopbrake dashboard --stop in a terminal.")
+        return 0
     try:
         dashboard.serve(port=args.port, open_browser=not args.no_open, days=args.days)
     except OSError as e:
@@ -214,6 +226,9 @@ def main(argv=None):
     d.add_argument("--port", type=int, default=0, help="a fixed port (default: any free one)")
     d.add_argument("--no-open", action="store_true", help="don't open a browser")
     d.add_argument("--days", type=int, help="read only the last D days of records")
+    g4 = d.add_mutually_exclusive_group()
+    g4.add_argument("--background", action="store_true", help="keep it running in the background and return at once (reuses one already running)")
+    g4.add_argument("--stop", action="store_true", help="stop the dashboard running in the background")
     e = sub.add_parser("export", help="send finished tasks to your OpenTelemetry tools (needs LOOPBRAKE_EXPORT=otlp)")
     g3 = e.add_mutually_exclusive_group(required=True)
     g3.add_argument("--pending", action="store_true", help="send every finished task not sent yet")

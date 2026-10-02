@@ -503,6 +503,9 @@ calls, no glass switch. The release (T032) waits for this phase.
   again. Note the results.
 - [X] T042 [P] README's dashboard section and the roadmap's header (constitution 2.5.0) match the
   new screens.
+- [X] T043 [US5] `/loopbrake:dashboard` in the plugin (FR-023; the builder's request): `loopbrake
+  dashboard --background | --stop` in `src/loopbrake/cli.py` and `dashboard.py`, the command file
+  `plugin/commands/dashboard.md`, and a test in `tests/test_cli.py`.
 ---
 
 ## Dependencies and order
@@ -710,3 +713,7 @@ the go-ahead, and T034 comes after the release.
   on white (2.99:1), so light-theme text accents are a deep plum and coral is a fill there. Red stays
   for stops only. The logo mark next to the name is gone. Lighthouse accessibility: still 100 on all 7
   screens in both themes.
+- **T043**: `/loopbrake:dashboard` and `/loopbrake:dashboard stop`, through a headless Claude Code
+  run with this checkout's plugin: the first printed the address and returned, the dashboard kept
+  running after Claude exited, and the second stopped it and removed `dashboard.json`. A plain
+  `loopbrake dashboard` would have hung the command, since it serves until Ctrl+C.

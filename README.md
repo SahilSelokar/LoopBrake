@@ -144,6 +144,7 @@ also looks stuck: its last few tool calls repeat each other. If it wasn't stuck,
 | `/loopbrake:status` | Shows the limit, how many tasks it saw and stopped, and the stops you marked as mistakes |
 | `/loopbrake:mistake` | Tells LoopBrake its last stop was wrong. The next calibration counts that task as a long good one, so the limit can only go up. |
 | `/loopbrake:exclude` | Leaves your last finished task out of future calibration (for example, a task that went badly) |
+| `/loopbrake:dashboard` | Opens the dashboard (below) in your browser; it keeps running in the background. `/loopbrake:dashboard stop` stops it. |
 
 **See the count while you work** (optional; plugins can't add a status line themselves). Add this to
 `~/.claude/settings.json` to see `LoopBrake: <calls> of <limit> tool calls` at the bottom of Claude Code:
@@ -166,6 +167,8 @@ because of its own problem; it just stops recording.
 
 ## See what it did: the dashboard
 
+In Claude Code, run `/loopbrake:dashboard`. In a terminal:
+
 ```text
 loopbrake dashboard
 ```
@@ -187,7 +190,8 @@ Each thing your agent does (a tool call) is called an **action**.
   word means. A "?" next to each idea explains it in one line.
 
 Options: `--port N` for a fixed port, `--no-open` to skip opening the browser, `--days D` to read
-only the last D days.
+only the last D days, `--background` to keep it running and get your terminal back (running it again
+reopens the same one), and `--stop` to stop it.
 
 **Only your computer can open it.** The server listens on 127.0.0.1 only. Each start prints an address
 with a new secret key; the page swaps it for a cookie, and every request needs it. Requests from
