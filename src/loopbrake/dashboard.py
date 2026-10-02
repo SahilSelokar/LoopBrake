@@ -377,7 +377,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             limit = int(q("limit", "50")) if (q("limit") or "50").isdigit() else 50
             return self._json(200, idx.tasks(q("project"), q("status"), q("before"), min(limit, 200)))
         if parts and parts[0] == "task" and len(parts) == 3:
-            if not all(_PART.fullmatch(p) for p in parts[1:]):
+            if not all(_PART.fullmatch(p) and p.strip(".") for p in parts[1:]):
                 return self._json(400, {"error": "Not a task."})
             page = int(q("page", "0")) if (q("page") or "0").isdigit() else 0
             t = idx.task(parts[1], parts[2], page)
@@ -413,7 +413,56 @@ def export_status():
     return {"on": os.environ.get("LOOPBRAKE_EXPORT") == "otlp"}
 
 
-ACTIONS = {}  # POST path -> handler(index, body) -> (status, json); filled in by the actions below
+_TASK_ID = re.compile(r"[A-Za-z0-9._-]{1,128}/[A-Za-z0-9._-]{1,128}")
+
+
+def _task_for(index, body):
+    tid = body.get("task")
+    if not isinstance(tid, str) or not _TASK_ID.fullmatch(tid) or any(p.strip(".") == "" for p in tid.split("/")):
+        return None, (400, {"error": "Not a task."})
+    index.refresh()
+    t = index.tasks_by_id.get(tid)
+    return (t, None) if t else (None, (404, {"error": "No such task."}))
+
+
+def _mark(index, body, verdict):
+    """The same effect as /loopbrake:mistake or /loopbrake:exclude for one task (spec FR-005)."""
+    t, err = _task_for(index, body)
+    if err:
+        return err
+    state = index._state(t, datetime.now(timezone.utc))
+    if verdict == "mistaken_stop" and t["stop_at"] is None:
+        return 400, {"error": "Only a stopped task can be marked as a mistake."}
+    if verdict == "exclude" and state in ("running", "idle"):
+        return 400, {"error": "Wait until this task ends."}
+    try:
+        records.add_feedback(index.home, t["run"], verdict)
+    except ValueError:
+        return 409, {"error": "That one is already marked."}
+    except LookupError:
+        return 404, {"error": "No such task."}
+    index.refresh()
+    if verdict == "mistaken_stop":
+        return 200, {"message": "Marked as a mistake. LoopBrake will count this task as a long good one next time you set the limit."}
+    return 200, {"message": "Left out. The next time you set the limit, this task won't count."}
+
+
+def _recalibrate(index, body):
+    name = body.get("project")
+    if not isinstance(name, str) or not records.valid_project(name):
+        return 400, {"error": "Not a project."}
+    folder = index._history(name)
+    if folder is None:
+        return 400, {"error": f"LoopBrake can't find this project's history from here. Run: loopbrake calibrate <runs file> --project {name}"}
+    rec = calibration.calibrate(folder, project=name, home=index.home)
+    return 200, {"message": claude_code.calibrate_message(rec)}
+
+
+ACTIONS = {  # POST path -> handler(index, body) -> (status, json)
+    "/api/mistake": lambda index, body: _mark(index, body, "mistaken_stop"),
+    "/api/exclude": lambda index, body: _mark(index, body, "exclude"),
+    "/api/recalibrate": _recalibrate,
+}
 
 
 def make_server(home=None, port=0, days=None):

@@ -37,10 +37,22 @@ const TEXT = {
   limit: "Limit",
   perTask: "tool calls per task",
   notSet: "Not set yet: LoopBrake only watches.",
-  needs: (have, need) => `${have} successful past tasks found, ${need} needed.`,
-  setFrom: (n, d) => `Set ${d} from ${n} past successful tasks.`,
+  needs: (have, need) => `${TEXT.tasks(have).replace("task", "successful past task")} found, ${need} needed.`,
+  setFrom: (n, d) => `Set ${d} from ${TEXT.tasks(n).replace("task", "past successful task")}.`,
   pastLengths: "Past successful tasks, by tool calls",
-  counts: (p) => `${p.seen} tasks seen, ${p.stopped} stopped, ${p.mistaken} marked as mistakes (up to about ${p.normal_mistakes.toFixed(1)} would be normal)`,
+  counts: (p) => `${TEXT.tasks(p.seen)} seen, ${p.stopped} stopped, ${p.mistaken} marked as mistakes (up to about ${about(p.normal_mistakes)} would be normal)`,
+  markMistake: "Mark as mistake",
+  markMistakeTitle: "Mark this stop as a mistake?",
+  markMistakeText: "LoopBrake will count this task as a long good one next time you set the limit.",
+  leaveOut: "Leave out of future limits",
+  leaveOutTitle: "Leave this task out?",
+  leaveOutText: "The next time you set the limit, LoopBrake won't count this task.",
+  markedMistake: "Marked as a mistake.",
+  markedLeftOut: "Left out of future limits.",
+  setAgain: "Set the limit again",
+  setAgainTitle: "Set the limit again?",
+  setAgainText: "LoopBrake will look at this project's past tasks and set a new limit.",
+  setAgainOk: "Set the limit",
   exportTitle: "Send to your observability tools",
   exportSoon: "Export status appears here.",
   glassOn: "Glass on",
@@ -51,6 +63,8 @@ const TEXT = {
 };
 
 // ---- small helpers ----
+
+const about = (x) => Math.round(x * 10) / 10;  // 0 not "0.0", 2 not "2.0"
 
 const SVG = "http://www.w3.org/2000/svg";
 function h(tag, attrs = {}, ...kids) {
@@ -112,6 +126,7 @@ function confirmDialog(title, text, ok) {
   document.getElementById("confirm-title").textContent = title;
   document.getElementById("confirm-text").textContent = text;
   document.getElementById("confirm-ok").textContent = ok;
+  d.returnValue = "";  // Esc keeps the old value, so a past "ok" would count as yes
   return new Promise((resolve) => {
     d.addEventListener("close", () => resolve(d.returnValue === "ok"), { once: true });
     d.showModal();
@@ -170,6 +185,35 @@ function lengthsStrip(lengths, limit) {
   return h("svg", { class: "chart", viewBox: `0 0 ${w} ${hgt}`, role: "img", "aria-label": `${TEXT.pastLengths}: ${finite.length}` }, kids);
 }
 
+// ---- actions (spec FR-005): every change asks first ----
+
+async function act(path, body, title, text, ok) {
+  if (!(await confirmDialog(title, text, ok))) return;
+  try {
+    const r = await api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    toast(r.message);
+  } catch (e) {
+    toast(e.message);
+  }
+  state.version = -1;
+  render();
+}
+
+function taskActions(s) {
+  const out = [];
+  if (s.marks.includes("mistaken")) out.push(h("p", { class: "muted" }, icon("check"), " ", TEXT.markedMistake));
+  else if (s.state === "stopped") {
+    out.push(h("button", { class: "button", type: "button", onclick: () => act("/api/mistake", { task: s.id },
+      TEXT.markMistakeTitle, TEXT.markMistakeText, TEXT.markMistake) }, icon("shield-check"), TEXT.markMistake));
+  }
+  if (s.marks.includes("left_out")) out.push(h("p", { class: "muted" }, icon("check"), " ", TEXT.markedLeftOut));
+  else if (s.state === "finished") {
+    out.push(h("button", { class: "button quiet", type: "button", onclick: () => act("/api/exclude", { task: s.id },
+      TEXT.leaveOutTitle, TEXT.leaveOutText, TEXT.leaveOut) }, icon("funnel"), TEXT.leaveOut));
+  }
+  return out;
+}
+
 // ---- views ----
 
 const state = { version: -1, project: "", pages: {} };
@@ -201,7 +245,7 @@ async function overview() {
     h("section", { class: "tiles" },
       tile(TEXT.seen, o.seen, null, "layers"),
       tile(TEXT.stopped, o.stopped, null, "octagon-x"),
-      tile(TEXT.mistakes, o.mistaken, TEXT.normal(o.normal_mistakes.toFixed(1)), "shield-check")),
+      tile(TEXT.mistakes, o.mistaken, TEXT.normal(about(o.normal_mistakes)), "shield-check")),
     h("section", { class: "panel" }, h("h2", {}, icon("activity"), TEXT.runningNow),
       o.running.length ? h("div", { class: "rows" }, o.running.map(taskRow)) : h("p", { class: "muted" }, TEXT.noRunning)),
     h("section", { class: "panel" }, h("h2", {}, icon("octagon-x"), TEXT.recentStops),
@@ -226,7 +270,7 @@ async function task(session, run) {
     h("div", { class: "head" }, h("h1", {}, shortName(s.project)), chip(s), h("span", { class: "muted" }, ago(s.started))),
     h("section", { class: "panel" }, h("p", { class: "big num" }, countText(s)), taskChart(s, calls, first.total)),
     first.reason_text ? h("section", { class: "panel reason" }, h("h2", {}, icon("triangle-alert"), TEXT.why), h("p", {}, first.reason_text),
-      h("div", { class: "actions", id: "task-actions" })) : h("div", { class: "actions", id: "task-actions" }),
+      h("div", { class: "actions" }, taskActions(s))) : h("div", { class: "actions" }, taskActions(s)),
     h("section", { class: "panel" }, h("h2", {}, icon("wrench"), TEXT.toolCalls),
       h("ol", { class: "calls" }, calls.map((c) => h("li", { class: c.n === s.stop_at ? "call at-stop" : "call" },
         h("span", { class: "n num" }, c.n), h("span", { class: "tool" }, c.tool || ""),
@@ -260,7 +304,8 @@ async function project(name) {
           h("p", { class: "promise" }, p.promise), p.n ? h("p", { class: "muted" }, TEXT.setFrom(p.n, p.created)) : null],
       p.lengths ? [h("h2", {}, icon("gauge"), TEXT.pastLengths), lengthsStrip(p.lengths, p.limit)] : null,
       h("p", { class: "muted" }, TEXT.counts(p)),
-      h("div", { class: "actions", id: "project-actions" })),
+      p.can_recalibrate ? h("div", { class: "actions" }, h("button", { class: "button", type: "button", onclick: () => act("/api/recalibrate",
+        { project: p.name }, TEXT.setAgainTitle, TEXT.setAgainText, TEXT.setAgainOk) }, icon("gauge"), TEXT.setAgain)) : null),
   ];
 }
 

@@ -275,3 +275,59 @@ def test_live_update_within_two_seconds(server, home):
     while json.loads(call(port, "/api/changes", key=key)[2])["version"] == v1:
         assert time.time() - t0 < 2
         time.sleep(0.05)
+
+
+# ---- actions (T015, contracts/dashboard-http.md "Change endpoints") ----
+
+def post(port, key, path, body, origin=True):
+    return call(port, path, "POST", key=key, origin=f"http://127.0.0.1:{port}" if origin else None, body=body)
+
+
+def feedback(home):
+    return [(e["run"], e["verdict"]) for e in records.read_events(home) if e.get("event") == "feedback"]
+
+
+def test_mark_as_mistake(server, home):
+    _, key, port = server
+    write(home, "s1", task_events("fin", end="finished"))
+    code, _, body = post(port, key, "/api/mistake", {"task": "s1/stp"})
+    assert code == 200 and "long good one" in json.loads(body)["message"]
+    assert feedback(home) == [("stp", "mistaken_stop")]
+    code, _, body = post(port, key, "/api/mistake", {"task": "s1/stp"})
+    assert code == 409 and json.loads(body)["error"] == "That one is already marked."
+    assert post(port, key, "/api/mistake", {"task": "s1/nope"})[0] == 404
+    assert post(port, key, "/api/mistake", {"task": "s1/fin"})[0] == 400  # it wasn't stopped
+    assert post(port, key, "/api/mistake", {"task": "../x"})[0] == 400
+    assert post(port, key, "/api/mistake", {"task": "s1/stp"}, origin=False)[0] == 403
+    assert len(feedback(home)) == 1
+
+
+def test_leave_out(server, home):
+    _, key, port = server
+    write(home, "s1", task_events("fin", end="finished"))
+    write(home, "s2", task_events("live", calls=1))
+    assert post(port, key, "/api/exclude", {"task": "s1/fin"})[0] == 200
+    assert post(port, key, "/api/exclude", {"task": "s1/fin"})[0] == 409
+    assert post(port, key, "/api/exclude", {"task": "s2/live"})[0] == 400  # still running
+    assert ("fin", "exclude") in feedback(home) and "fin" in records.read_exclude(home)
+
+
+def test_set_the_limit_again(server, home):
+    _, key, port = server
+    folder = claude_code.history_folder("/home/me/demo")
+    folder.mkdir(parents=True)
+    lines = []
+    for i in range(19):
+        lines += [{"type": "user", "uuid": f"u{i}", "message": {"role": "user", "content": "hi"}},
+                  {"type": "assistant", "uuid": f"a{i}", "message": {"id": f"m{i}", "role": "assistant", "stop_reason": "tool_use",
+                   "content": [{"type": "tool_use", "id": f"t{i}", "name": "Bash", "input": {}}]}},
+                  {"type": "assistant", "uuid": f"e{i}", "message": {"id": f"me{i}", "role": "assistant", "stop_reason": "end_turn",
+                   "content": [{"type": "text", "text": "ok"}]}}]
+    (folder / "s.jsonl").write_text("\n".join(json.dumps(l) for l in lines) + "\n")
+    name = claude_code.project_name(folder.name)
+    code, _, body = post(port, key, "/api/recalibrate", {"project": name})
+    rec = calibration.load(name, home)
+    assert code == 200 and json.loads(body)["message"] == claude_code.calibrate_message(rec) and rec["stop_line"] == 1
+    code, _, body = post(port, key, "/api/recalibrate", {"project": "demo"})
+    assert code == 400 and "loopbrake calibrate" in json.loads(body)["error"]
+    assert post(port, key, "/api/recalibrate", {"project": "../x"})[0] == 400

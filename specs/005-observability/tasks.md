@@ -246,7 +246,7 @@ the commands' effects.
 
 **Independent test**: quickstart scenario 4.
 
-- [ ] T015 [P] [US2] Add tests to `tests/test_dashboard.py`, part 3 (actions, contracts/
+- [X] T015 [P] [US2] Add tests to `tests/test_dashboard.py`, part 3 (actions, contracts/
   dashboard-http.md, "Change endpoints"):
   - **`POST /api/mistake`** on a stopped task writes `feedback mistaken_stop` (the same as
     `records.add_feedback`). A second time gives 409 "That one is already marked."; an unknown task
@@ -259,16 +259,16 @@ the commands' effects.
     - on a project without a findable history, it gives 400 with the command to run.
   - **Bad bodies**: a task id not matching `[A-Za-z0-9._-]{1,128}/[A-Za-z0-9._-]{1,128}` gives 400.
   - **Origin**: a `POST` without the right `Origin` gives 403.
-- [ ] T016 [US2] Implement the POST handlers in `src/loopbrake/dashboard.py`, reusing
+- [X] T016 [US2] Implement the POST handlers in `src/loopbrake/dashboard.py`, reusing
   `records.add_feedback`, `calibration.calibrate` and `claude_code.calibrate_message`. Makes T015
   pass.
-- [ ] T017 [P] [US2] Add the action buttons and confirmation dialogs (a glass dialog, with focus
+- [X] T017 [P] [US2] Add the action buttons and confirmation dialogs (a glass dialog, with focus
   trapped and Esc to cancel) to `src/loopbrake/static/app.js` and `index.html`:
   - "Mark as mistake" on stopped tasks; "Leave out of future limits" on finished tasks; "Set the
     limit again" on `cc-` projects with history;
   - each confirmation is one plain sentence, from contracts/ui.md;
   - results show as a toast; errors show the server's plain message.
-- [ ] T018 [US2] Manual: run quickstart scenario 4. Note the result under "Outcome".
+- [X] T018 [US2] Manual: run quickstart scenario 4. Note the result under "Outcome".
 
 ---
 
@@ -549,3 +549,18 @@ the go-ahead, and T034 comes after the release.
     count went 0, 1, 2, 3, then Stopped at 4; each change was visible within 0.25 s of being written.
     The record had 4 unique steps with `duration_ms` 83, 23, 12, 12 and millisecond times. The
     installed 0.2.1 plugin also fired; its duplicate events were dropped by the call-id check.
+- **T015–T016**: 184 tests pass. Fixed while testing: a task id like `../x` passed the id check, so
+  parts made only of dots are now rejected (400) in both the read and the change endpoints.
+- **T017**: Esc on a `<dialog>` keeps the last `returnValue`, so after one confirmed change a later
+  Esc would have counted as yes. The dialog now clears it before opening. "Leave out" shows on
+  finished tasks only, since stopped tasks are already left out.
+- **T018, scenario 4**, clicked through in headless Chrome on a copy of real local data:
+  - Esc cancels and changes nothing; the dialog opens with focus on Cancel.
+  - "Mark as mistake": the mistaken count went 0 to 1, the button became a "Marked as a mistake."
+    note, and a second try said "That one is already marked."
+  - "Leave out of future limits" on a finished task showed its plain toast.
+  - "Set the limit again" on a Claude Code project showed exactly the text
+    `loopbrake calibrate --claude-code` prints for the same data, and it counted the stop just
+    marked as a mistake as a long good task.
+  - No sideways scroll at phone width. Fixed after looking: "1 successful past tasks" (now singular)
+    and "up to about 0.0" (now "0").
