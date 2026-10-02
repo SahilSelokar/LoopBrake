@@ -308,7 +308,7 @@ or `brake idle`.
   3. Restore the committed files with `git checkout eval/results/`, because local rows are never committed. Before restoring, `git diff eval/results/results.md eval/results/kill-stories.md` must be empty: the public results must come out unchanged.
   4. Note the counts (group labels and rates only, never folder names) under "Outcome". Any `invalid` local row is a bug in the reader change: fix it before T030.
 - [X] T029 Run the full suite over `tests/`: `uv run python -m pytest` and `uv run --with claude-agent-sdk python -m pytest tests/test_agent_sdk.py`. All must pass. Fix anything that fails before going on.
-- [ ] T030 Manual, over about a week (SC-008): use Claude Code normally with the plugin installed from the branch (`LOOPBRAKE_CMD` pointing at the checkout) until there are at least 200 turns. Then run `loopbrake agreement --claude-code` in each project used. **Gate**: `live higher 0`. Any higher count is a bug: fix it (reader or hooks) and repeat this task. Note the counts under "Outcome" in this file.
+- [X] T030 Manual, over about a week (SC-008): use Claude Code normally with the plugin installed from the branch (`LOOPBRAKE_CMD` pointing at the checkout) until there are at least 200 turns. Then run `loopbrake agreement --claude-code` in each project used. **Gate**: `live higher 0`. Any higher count is a bug: fix it (reader or hooks) and repeat this task. Note the counts under "Outcome" in this file.
 - [X] T031 Manual, before release:
   - re-run `claude plugin validate .` and `claude plugin validate ./plugin`;
   - check `git ls-files -s plugin/bin/loopbrake` shows mode `100755`;
@@ -480,6 +480,35 @@ builder's go-ahead.
     and the reader now ends the turn there (exit `stopped`, not a success; research R1). After the
     fix: "turns matched 5, equal 5, live lower 0, live higher 0". Project Building was recalibrated
     with the fixed reader.
+- **T030 (SC-008), 2026-10-02: 200 turns, 0 higher.** At the builder's request the turns were
+  generated, not typed by hand: 200 headless `claude -p` prompts (Sonnet), 40 sessions of 5 in
+  4 scratch copies of the repo.
+  - **Setup**: the installed plugin (no `--plugin-dir`), a stop line of 12, and a separate records
+    folder.
+  - **What the prompts did**: real coding requests (read and explain, find usages, run tests, add
+    docstrings, write a test, git diff and checkout, subagent searches, parallel reads,
+    `/loopbrake:status`).
+  - **Results**: 200 of 200 prompts succeeded, and 205 turns were recorded (199 finished, 6 stopped
+    by LoopBrake at step 13). Reported usage: $32.89.
+  - **`loopbrake agreement --claude-code`**:
+
+    | Copy | Turns matched | Equal | Live lower | Live higher |
+    |---|---|---|---|---|
+    | repo-1 | 40 | 31 | 9 | 0 |
+    | repo-2 | 42 | 35 | 7 | 0 |
+    | repo-3 | 38 | 34 | 4 | 0 |
+    | repo-4 | 41 | 33 | 8 | 0 |
+    | **Total** | **161** | **133** | **28** | **0** |
+
+    The other turns made no tool calls.
+  - **Every lower count has one cause**: Bash commands that Claude Code's permission system refused
+    to run (62 calls: "requires approval", "cannot be checked in advance"). They fire no Post hook.
+    That's research R2's predicted gap, in the safe direction.
+  - **Hook-stop markers**: each stopped turn had 4–6 `hook_stopped_continuation` markers, one per
+    tool call answered with stop, including calls running alongside it. The reader handled them.
+  - **Subagents**: 5 ran. Claude Code keeps their transcripts in subfolders, which the reader
+    doesn't read, and the hooks ignore `agent_id` events.
+  - **Not covered by generated turns**: Esc interrupts, prompts typed mid-turn, and automatic
+    compaction. Those stay covered by the history scan (research R1) and the unit tests.
 - **Left for the builder**:
-  - T030 (a week of use, then `loopbrake agreement --claude-code`);
   - T032 and T033 (release, with your go-ahead).
