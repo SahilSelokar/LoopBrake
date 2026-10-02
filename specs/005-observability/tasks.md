@@ -108,7 +108,7 @@ behind a key.
 
 **Independent test**: quickstart scenarios 2, 3 and 5.
 
-- [ ] T006 [P] [US1] Write `tests/test_dashboard.py`, part 1 (the index), against a temporary
+- [X] T006 [P] [US1] Write `tests/test_dashboard.py`, part 1 (the index), against a temporary
   `LOOPBRAKE_HOME`, with run records written through `records.RunWriter` and `Brake`:
   - **Summaries** (data-model.md, "Task summary"):
     - status `running`, `finished`, `stopped` or `interrupted`;
@@ -133,7 +133,7 @@ behind a key.
     read once and cached by size and modification time.
   - **Speed**: 220,000 synthetic lines load in under 3 s, and `overview()` then answers in under
     100 ms.
-- [ ] T007 [US1] Implement the index in `src/loopbrake/dashboard.py`: class `Index(home, days=None)`
+- [X] T007 [US1] Implement the index in `src/loopbrake/dashboard.py`: class `Index(home, days=None)`
   with `refresh()`, `overview()`, `tasks(project, status, before, limit)`, `task(session, run, page)`,
   `projects()` and `project(name)`. Rules:
   - **Reading**: per-file byte offsets. Step lines are counted by a text check, and only parsed when

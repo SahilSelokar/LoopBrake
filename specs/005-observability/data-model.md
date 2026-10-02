@@ -41,7 +41,7 @@ nothing is written to the records.
 `n` (step number), `tool`, `action` (the record's excerpt, at most 200 characters), `failed`
 (`error`), `tokens`, `duration_ms`, `call_id`, `ts`, plus:
 - **`repeats`**: true when this call's action matches one of the previous 10 by the existing
-  fuzzy-repeat signal (`signals.method("fuzzy")`) scoring 1.0. This is explanation only.
+  fuzzy-repeat signal (`signals.method("fuzzy", lam=0)`, which is the raw per-call value) scoring 1.0. This is explanation only.
 
 ## Project (in memory)
 
