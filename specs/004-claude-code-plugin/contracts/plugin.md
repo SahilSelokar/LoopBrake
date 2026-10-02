@@ -43,7 +43,7 @@ plugin/
 ```json
 {
   "name": "loopbrake",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Stops a Claude Code turn once it goes past a stop line set from your own past turns.",
   "author": {"name": "Sahil Selokar"},
   "homepage": "https://github.com/SahilSelokar/LoopBrake",
@@ -70,7 +70,7 @@ open turn that has no steps, so firing twice is harmless (research R3).
 
 ## `plugin/bin/loopbrake` (launcher)
 
-POSIX `sh`, mode 755, with `V=0.2.0` near the top (research R7):
+POSIX `sh`, mode 755, with `V=0.2.1` near the top (research R7):
 
 ```text
 0. If LOOPBRAKE_LAUNCHER is already set: this is a loop.

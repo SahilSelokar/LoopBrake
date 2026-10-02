@@ -338,9 +338,63 @@ would bias the line down, so the spec now follows this decision.
 recent *closed* turn that has at least one step: the turn the user just watched. Empty turns are
 skipped, because a slash command can leave one behind.
 
-## R11. Release
+## R11. Release (0.2.0 published 2026-10-02; 0.2.1 follows, see R13)
 
 The new commands need package **v0.2.0**: `hook`, `statusline`, `calibrate --claude-code`,
 `status --claude-code`, `feedback last`, and `agreement --claude-code`. They also pick up the
 reader change (R1). It also fixes the PyPI page with the new README. The
 release flow is Phase 2's (tag `v0.2.0`, trusted publishing). The plugin pins `0.2.0`.
+
+## R12. Plain-language messages for users (0.2.1)
+
+**What happened**: after 0.2.0 was published, the builder read the stop message as a user would and
+said nobody would understand it. "Step", "stop line", "α 5%", and run ids mean nothing to someone
+who just installed a plugin.
+
+**Decision**: everything a Claude Code user reads is written in everyday words (spec FR-013):
+- **Stop message**: built by `claude_code.stop_message` from the stop step, the stop line, the
+  calibration's n and α, and at most one symptom ("keeps hitting the same error", "repeat each
+  other", "turned up nothing new", in that order).
+- **Commands' replies**: `calibrate_message` and `status_message`, plus `feedback last`.
+- **Status line**: `LoopBrake: 12 of 38 tool calls`.
+- **Words**: "task" for a turn, "tool calls" for steps, "fewer than 1 in 20" for α 5%. Zero counts
+  are left out.
+- **Watch-only**: when the cause is mistaken stops, the reply says why more history is needed.
+
+**What stays technical**:
+- `Brake._explain`'s reason is still written to the run record's `stop` event, for the dashboard
+  and for audits.
+- The developer forms (a runs file, `--project`, `feedback RUN`) keep their 0.2.0 output, so the
+  Phase 2 contract doesn't change.
+
+**Alternatives considered**: rewording `Brake._explain` itself. No: that would change the Python API
+and the Phase 2 contract for developers, who want the precise form.
+
+## R13. Releasing 0.2.1
+
+0.2.0 is on PyPI (tag `v0.2.0`, 2026-10-02) but not merged to `main`, so nobody can install the
+plugin yet. 0.2.1 adds the plain-language messages. Before tagging `v0.2.1`:
+
+1. **Agreement on real use** (constitution 2.4.0; spec SC-008 (b)): run
+   `loopbrake agreement --claude-code` in every project the builder used with the plugin since
+   0.2.0. It must report `live higher 0`. SC-008 (a), the 200-turn volume, was met on 2026-10-02 by
+   generated headless sessions; see tasks.md T030.
+2. **T031's checks again**: the launcher's pin changed, so re-run `claude plugin validate`, the
+   launcher mode check, and the speed and offline runs against a locally built 0.2.1 wheel.
+3. **README numbers** (constitution, "Public claims": "every number shown in a … README MUST come
+   from committed evaluation results"):
+   - **The issue**: the 0.2.1 README shows sample replies with numbers from the builder's own history
+     (58, 59, 61), and the diagram has said "for example 38 steps" since 0.1.0.
+   - **Decision**: sample replies use placeholders (`<limit>`, `<limit + 1>`, `<n>`) instead of
+     numbers. "Fewer than 1 in 20" stays: it's the guarantee, backed by the committed evaluation.
+     The diagram drops "38 steps".
+   - **Alternative, the builder's call**: a PATCH amendment saying the rule covers claimed results,
+     and that clearly labeled sample output may show real numbers. Until the builder chooses that,
+     placeholders keep the README within the rule.
+4. **Then**:
+   - tag the branch head `v0.2.1` and push only the tag;
+   - wait for PyPI;
+   - merge into `main` and push;
+   - clean install from `SahilSelokar/LoopBrake` (SC-003), and the uninstall check (FR-012);
+   - switch the builder's settings from the checkout to the published package (remove
+     `env.LOOPBRAKE_CMD`, and set the status line to `uvx --offline loopbrake statusline`).

@@ -72,7 +72,7 @@ places get different names.
 | Event | New optional field | Meaning |
 |---|---|---|
 | `step` | `call_id` | Claude Code's `tool_use_id` for this step |
-| `stop` | `call_id` | the tool call at which the turn was stopped |
+| `stop` | `call_id` | the tool call at which the turn was stopped. Its `reason` stays the technical one from `Brake._explain`; the plain message the user reads is built at the hook and not stored (FR-013, R12). |
 | `feedback` | none | `verdict` `exclude` now also applies to live Claude Code turns (research R10) |
 
 These are additive, so `"v"` stays 1, and Phase 2 readers ignore unknown fields. The Agent SDK

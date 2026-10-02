@@ -1,6 +1,6 @@
 # Implementation Plan: Claude Code Plugin
 
-**Branch**: `004-claude-code-plugin` | **Date**: 2026-10-01 | **Spec**: [spec.md](spec.md)
+**Branch**: `004-claude-code-plugin` | **Date**: 2026-10-01, revised 2026-10-02 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `specs/004-claude-code-plugin/spec.md`
 
@@ -11,6 +11,8 @@ As in the spec:
 - **step**: one main-agent tool call;
 - **stop line**: the most steps a turn may take;
 - **braked**: a turn LoopBrake has told to stop.
+
+Users never see these words. They read "task", "tool calls" and "fewer than 1 in 20" (FR-013, R12).
 
 ## Summary
 
@@ -43,7 +45,18 @@ reason.
   uses `--offline` first. uv also exits with code 2 when offline, and Claude Code treats exit 2 from
   a hook as blocking, so the launcher's hook path always exits 0 (R7, constitution 2.4.0).
 
-Package v0.2.0 ships the new commands, the reader change, and the fixed PyPI README.
+**Where it stands (2026-10-02)**:
+- **Built**: everything above, and tested live in Claude Code.
+- **0.2.0**: on PyPI, but not merged to `main`, so nobody can install the plugin yet.
+- **0.2.1**: adds plain-language messages (FR-013, R12). It ships once the release checks in R13
+  pass.
+
+**Revision after `/speckit-analyze` (2026-10-02)**:
+- **The spec**: gained FR-013 (plain words), and SC-008 now has two parts: (a) 200 turns, real or
+  generated, and (b) the builder's own turns since the last release.
+- **README numbers**: the sample replies use placeholders, so every number in the README comes from
+  committed results (R13).
+- **The 0.2.1 release**: gets its own checks (R13).
 
 ## Technical Context
 
@@ -69,17 +82,18 @@ technical constraints after `/speckit-analyze` found the plan going beyond 2.3.0
 
 | Rule | Before | After | Why it passes |
 |---|---|---|---|
-| I. Guarantee First | PASS | PASS | The stop line still comes from `conformal.threshold`, and watch-only when k > n. Live and calibration turns are cut the same way (R1); every known difference can only make live counts lower. SC-008 checks this on real use, and `loopbrake agreement` fails on any higher count. Recalibration treats mistaken stops conservatively (R10). The reader change touches no committed result; a task re-checks the local rows anyway. Every stop carries a reason. |
+| I. Guarantee First | PASS | PASS | The stop line still comes from `conformal.threshold`, and watch-only when k > n. Live and calibration turns are cut the same way (R1, plus a hook stop ending a turn); every known difference can only make live counts lower. SC-008 checks this on 200 turns and on the builder's real use before each release, and `loopbrake agreement` fails on any higher count. Recalibration treats mistaken stops conservatively (R10). The reader change touches no committed result; a task re-checks the local rows anyway. Every stop carries a reason. |
 | II. One Scorer | PASS | PASS | The hook calls `Brake.step()`, which calls `_decide` with `method("steps")`. No hook-side decision. The Phase 2 replay test still runs, and a new test replays fixture turns through `loopbrake hook` against `replay()` (SC-001). |
 | III. Stdlib-Only Core | PASS | PASS | Standard library only. About 45 ms per hook, measured, against the 200 ms budget. |
 | IV. Evaluation Decides | PASS | PASS | No new stop rule. The step budget is the one with committed results. |
 | V. Thin Adapters | PASS | PASS | `claude_code.py` turns hook JSON into `Brake` calls and decisions into Claude Code's reply. Transcript parsing stays in the single loader `traces.claude_code_turns`, whose fixture test gains the mid-turn cases. |
 | VI. Local by Default | PASS | PASS | The hook path makes no network calls (tested by blocking sockets). The only download is uv fetching the package the first time. No tool outputs or prompts are written; action excerpts stay at 200 characters at most. |
-| Tech constraint: Claude Code integration (2.4.0) | PASS | PASS | Repo-as-marketplace. Post hooks with matcher `*` count main-agent calls; a stop is `continue: false` with `stopReason`. Turns start at UserPromptSubmit or the first call after Stop, and end at Stop or the next prompt (R1). The reader cuts the same way, and `loopbrake agreement` checks it before release. The hook path always exits 0 (R7). |
+| Tech constraint: Claude Code integration (2.4.0) | PASS | PASS | Repo-as-marketplace. Post hooks with matcher `*` count main-agent calls; a stop is `continue: false` with `stopReason`. Turns start at UserPromptSubmit or the first call after Stop, and end at Stop or the next prompt (R1). The reader cuts the same way. "Every plugin release MUST check this on the builder's real use": 0.2.0 was checked (5 of 5 real turns equal), and 0.2.1 has the check as its first release step (R13). The hook path always exits 0 (R7). |
 | Tech constraint: State | PASS | PASS | The per-session run log is the single source for live state and the status line (R4). |
 | Tech constraint: Success labels (2.4.0) | PASS | PASS | Not interrupted, not stopped; `/loopbrake:exclude` drops a turn. Mistaken stops count as successes longer than any line, and other stops are left out (R10). |
 | No warn-first in v1 | PASS | PASS | Nothing is sent to Claude before the stop. |
-| Releases (2.3.0) | PASS | PASS | v0.2.0 goes through the existing tag workflow. The plugin is static files in the public repo. |
+| Releases (2.3.0) | PASS | PASS | v0.2.0 went through the existing tag workflow (published 2026-10-02), and v0.2.1 does the same. The plugin is static files in the public repo. |
+| Workflow: public claims | FAIL → PASS | PASS | "Every number shown in a … README MUST come from committed evaluation results." The 0.2.1 README showed sample replies with numbers from the builder's history, and the diagram had "38 steps" since 0.1.0. The plan replaces them with placeholders (`<limit>`, `<n>`); "fewer than 1 in 20" is the guarantee itself (R13). Labeled real samples would need a constitution PATCH, which is the builder's call. |
 | Simplicity | PASS | PASS | One new module, one launcher script, static plugin files. See Complexity Tracking for the two shortcuts. |
 
 ## Project Structure
@@ -100,12 +114,13 @@ specs/004-claude-code-plugin/
 ### Source code (changes)
 
 ```text
-src/loopbrake/__init__.py       __version__ = "0.2.0"
+src/loopbrake/__init__.py       __version__ = "0.2.1" (0.2.0 published; 0.2.1 adds plain-language messages)
 src/loopbrake/brake.py          pick up an open turn from its logged events (no second run_start); step(call_id=…); "turns" wording
 src/loopbrake/traces.py         claude_code_turns: mid-turn prompts, notifications and compaction summaries join the running turn; each turn carries its tool call ids
 src/loopbrake/calibration.py    Claude Code source: apply live stops, mistakes and excludes by call id (R10); two new source counts
 src/loopbrake/records.py        locked open-and-read of a session log; open turn from events; last stop / last closed turn
-src/loopbrake/claude_code.py    new: project from history folder, hook handlers (prompt, tool, tool-failed, stop), statusline, agreement
+src/loopbrake/claude_code.py    new: project from history folder, hook handlers (prompt, tool, tool-failed, stop), statusline, agreement,
+                                plain-language messages (stop_message, calibrate_message, status_message)
 src/loopbrake/cli.py            hook, statusline, agreement; --claude-code on calibrate and status; feedback last
 .claude-plugin/marketplace.json new
 plugin/                         new: .claude-plugin/plugin.json, hooks/hooks.json, bin/loopbrake, commands/*.md

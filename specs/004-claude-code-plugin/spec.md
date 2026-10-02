@@ -19,6 +19,9 @@ puts it inside Claude Code itself:
 it is one run. A **step** is one tool call made by the main agent. Tool calls made inside subagents
 don't count, which matches how calibration counts.
 
+**Words users see** (FR-013): users read "task" for a turn, "tool calls" for steps, "limit" or
+"stop line" for the stop line, and "fewer than 1 in 20" for α 5%.
+
 ## User Scenarios & Testing *(mandatory)*
 
 The users are Claude Code users who want runaway turns stopped before they burn time and tokens.
@@ -27,8 +30,10 @@ The users are Claude Code users who want runaway turns stopped before they burn 
 
 A user installs the plugin and sets a stop line for their project. From then on, when a Claude Code
 turn goes past the stop line, Claude stops working on that turn, and the user sees LoopBrake's
-reason. For example: "stopped at step 39: past the stop line of 38 steps set from your 898 past
-successful turns; repeating in 5 of last 5 steps." The user can then redirect Claude. Without a stop
+reason, in plain words. For example: "LoopBrake stopped this task after 39 tool calls. Based on
+your 120 past successful tasks in this project, good tasks almost never need more than 38 (fewer than
+1 in 20 do). This one also looks stuck: its last few tool calls repeat each other. If it wasn't
+stuck, run /loopbrake:mistake, then tell Claude to continue." The user can then redirect Claude. Without a stop
 line, the plugin only watches and records.
 
 **Why this priority**: this is the whole point of the plugin. Everything else supports it.
@@ -63,7 +68,7 @@ as a mistake.
 history files live.
 
 **Independent Test**: in a project with at least 19 successful past turns, run the calibrate
-command and get a stop line. In a project with fewer, get "watch-only, need X more". Status shows
+command and get a stop line. In a project with fewer, get "Not enough history yet: … needs 19". Status shows
 the counts. Marking the last stop as a mistake raises the mistaken count by one.
 
 **Acceptance Scenarios**:
@@ -81,8 +86,8 @@ the counts. Marking the last stop as a mistake raises the mistaken count by one.
 ### User Story 3 - See the brake at a glance (Priority: P3)
 
 The user adds one documented line to their Claude Code settings. The status line then shows the
-current turn's step count against the stop line, for example `brake 12/38`, or `brake 12 (watching)`
-when there is none.
+current task's tool-call count against the stop line, for example `LoopBrake: 12 of 38 tool calls`,
+or `LoopBrake: 12 tool calls (watching only)` when there is none.
 
 **Why this priority**: it makes the brake visible, and it films well, but it's optional.
 
@@ -151,6 +156,10 @@ resets on a new prompt.
 - **FR-011**: Each Claude Code project MUST get its own stop line, identified by its working
   folder, with no setup per project beyond calibrating.
 - **FR-012**: Uninstalling the plugin MUST leave nothing behind outside LoopBrake's own folder.
+- **FR-013**: Everything a Claude Code user reads from the plugin (the stop message, the commands'
+  replies and the status line) MUST be in plain words: tasks and tool calls, "fewer than 1 in 20",
+  and no run ids or α symbols. The exact technical reason MUST still be kept in the run record.
+  (Added in 0.2.1, at the builder's request.)
 
 ### Key Entities
 
@@ -178,9 +187,14 @@ resets on a new prompt.
   reason visible to the user. That's the launch demo moment.
 - **SC-006**: With network access blocked, the hook still works (after the package is installed).
 - **SC-007**: The status line's count matches the turn's step count after every tool call.
-- **SC-008**: On at least 200 turns of the builder's real use with the plugin on, each turn's live
-  step count equals calibration's count for the same turn, or is lower (a lower count can only stop
-  later). Every higher count is a bug to fix before release.
+- **SC-008**: Before each release, every turn's live step count equals calibration's count for the
+  same turn, or is lower (a lower count can only stop later), on both of these:
+  - **(a) Volume**: at least 200 turns with the installed plugin. These may be the builder's own
+    turns or generated headless Claude Code sessions doing real coding work.
+  - **(b) Real use**: every turn of the builder's own use recorded since the previous release
+    (constitution 2.4.0: "Every plugin release MUST check this on the builder's real use").
+
+  Every higher count is a bug to fix before release.
 
 ## Assumptions
 

@@ -119,7 +119,7 @@ This runs **before release**, against a locally built wheel. Afterwards it's rep
 PyPI.
 
 1. Run `uv build`, then `export UV_FIND_LINKS=$PWD/dist` and `unset LOOPBRAKE_CMD`. uv now finds
-   0.2.0 in `dist/` even before it's on PyPI.
+   the new version in `dist/` even before it's on PyPI.
 2. Prime the cache by piping a saved `PostToolUse` input into `plugin/bin/loopbrake hook tool`
    once, while online.
 3. Time 100 more calls of the same command.
@@ -141,11 +141,18 @@ After at least 200 turns of real use with the plugin on, run
 
 **Expect**: `live higher 0`. Any higher count is a bug to fix before release (research R1, R2).
 
-## 10. Release (after all of the above)
+## 10. Release (after all of the above; 0.2.0 was published 2026-10-02, 0.2.1 is next)
 
-1. Tag the head of the feature branch `v0.2.0`, and push only the tag. That runs the existing
+Before tagging, do research R13's checks:
+- `loopbrake agreement --claude-code` shows `live higher 0` in every project you used since the
+  last release (SC-008 (b));
+- scenario 8 passes against a locally built wheel;
+- the README shows no numbers that don't come from committed results.
+
+Then:
+1. Tag the head of the feature branch `v0.2.1`, and push only the tag. That runs the existing
    publish workflow, and the PyPI page shows the new README.
-2. Once 0.2.0 is on PyPI, merge the branch into `main` and push. That way `main` never pins a version
+2. Once 0.2.1 is on PyPI, merge the branch into `main` and push. That way `main` never pins a version
    that isn't on PyPI.
 3. Check a clean install: `/plugin marketplace add SahilSelokar/LoopBrake`, then
    `/plugin install loopbrake@loopbrake`. Time it from the first command to the first watched turn.
