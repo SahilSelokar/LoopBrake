@@ -354,7 +354,7 @@ liveness.py      the original naive rule, kept as the baseline
 | 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Done: v0.1.0 on PyPI |
 | 3 | **Claude Code plugin**: stop stuck turns live, calibrated on your own history | Done: v0.2.1 |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Done: v0.3.0 |
-| 4b | **Codex CLI plugin**: the same live stops for OpenAI's Codex | Next |
+| 4b | **Codex CLI plugin**: the same live stops for OpenAI's Codex | In progress |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
 
 The full plan is in [specs/roadmap.md](https://github.com/SahilSelokar/LoopBrake/blob/main/specs/roadmap.md).

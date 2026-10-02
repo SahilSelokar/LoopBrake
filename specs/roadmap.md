@@ -286,7 +286,7 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
   in the tests enforce each tool's published intake rules, and a real OpenTelemetry Collector and
   Jaeger ran end to end, with LoopBrake's task nested inside Claude Code's own trace.
 
-### Phase 4b: Codex CLI plugin (next; the builder's decision, 2026-10-02)
+### Phase 4b: Codex CLI plugin (`006-codex-cli-plugin`, status: in progress; the builder's decision, 2026-10-02)
 
 - **Goal**: the same live stops for OpenAI's Codex CLI that the Claude Code plugin gives: a Codex
   plugin with hooks, the slash commands and the dashboard, calibrated on the user's own Codex history.

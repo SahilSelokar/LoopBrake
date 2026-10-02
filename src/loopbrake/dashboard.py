@@ -580,19 +580,19 @@ def serve(port=0, open_browser=True, days=None, home=None):
     h = records.home(home)
     server, key = make_server(h, port, days)
     url = f"http://127.0.0.1:{server.server_address[1]}/?k={key}"
-    print(f"LoopBrake dashboard: {url}")
-    print("Only this computer can open it. Press Ctrl+C to stop.", flush=True)
     note = _running_file(h)
-    note.parent.mkdir(parents=True, exist_ok=True)
-    with os.fdopen(os.open(note, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
-        json.dump({"pid": os.getpid(), "url": url}, f)
-    try:  # `loopbrake dashboard --stop` sends SIGTERM: shut down as on Ctrl+C
-        signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
-    except ValueError:
-        pass  # not the main thread
-    if open_browser:
-        webbrowser.open(url)
-    try:
+    try:  # from here on, Ctrl+C (or --stop) always shuts down cleanly
+        note.parent.mkdir(parents=True, exist_ok=True)
+        with os.fdopen(os.open(note, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
+            json.dump({"pid": os.getpid(), "url": url}, f)
+        try:  # `loopbrake dashboard --stop` sends SIGTERM: shut down as on Ctrl+C
+            signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+        except ValueError:
+            pass  # not the main thread
+        print(f"LoopBrake dashboard: {url}")  # printed last: once seen, the dashboard is ready
+        print("Only this computer can open it. Press Ctrl+C to stop.", flush=True)
+        if open_browser:
+            webbrowser.open(url)
         server.serve_forever()
     except KeyboardInterrupt:
         pass

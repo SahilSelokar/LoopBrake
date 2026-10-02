@@ -33,7 +33,7 @@ report to the builder (spec FR-001).
 
 ## Phase 1: Setup
 
-- [ ] T001 Set up the version and roadmap:
+- [X] T001 Set up the version and roadmap:
   - set `__version__ = "0.4.0"` in `src/loopbrake/__init__.py`, and the Claude Code plugin's version
     in `plugin/.claude-plugin/plugin.json` and `V=0.4.0` in `plugin/bin/loopbrake`, so
     `tests/test_plugin_files.py` keeps agreeing;
@@ -271,4 +271,11 @@ user's tools when export is on.
 
 ## Outcome
 
-(Filled in during implementation.)
+**2026-10-02, implementation run 1**
+
+- **T001**: package, Claude Code plugin and launcher at 0.4.0; Phase 4b marked in progress. Found
+  while running the suite: `test_dashboard_command_prints_its_address_and_stops_cleanly` failed about
+  1 run in 3. The dashboard printed its address before it wrote its address file and started catching
+  Ctrl+C, so a Ctrl+C in that window crashed it (exit -2) instead of stopping it cleanly. The window
+  came with v0.3.0's `--background` work. Now everything after the server starts sits inside the
+  Ctrl+C handling, and the address is printed last, once the dashboard is ready: 15 of 15 runs pass.
