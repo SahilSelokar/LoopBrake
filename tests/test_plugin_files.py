@@ -80,14 +80,14 @@ def test_a_hook_always_exits_0_and_never_waits_on_the_network(launch, tmp_path):
     for code in ("1", "2"):
         rc, out, _, calls = launch("hook", "prompt", FAKE_OFFLINE=code, FAKE_ONLINE=code)
         assert (rc, out) == (0, "")
-        assert len(calls) == 1 and "--offline" in calls[0]
+        assert "--offline" in calls[0]  # the background download may already have logged too
         log = tmp_path / "calls.log"
         for _ in range(50):  # the download runs in the background, after the hook has returned
             lines = log.read_text().splitlines()
-            if len(lines) == 2:
+            if len(lines) >= 2:
                 break
             time.sleep(0.05)
-        assert "--offline" not in lines[1] and lines[1].endswith("loopbrake --version")
+        assert len(lines) == 2 and "--offline" not in lines[1] and lines[1].endswith("loopbrake --version")
 
 
 def test_a_hook_uses_the_cache_without_retrying(launch):
