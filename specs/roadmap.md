@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.4.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 (observability) is next.
+**Date**: 2026-10-01 | **Constitution**: v2.4.1 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 (observability) is in progress: `specs/005-observability`, branch `005-observability`.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -151,7 +151,7 @@ package for explanations and future experiments, but they never decide a stop.
 - **Reel**: LoopBrake kills a stuck Claude Code session live. This is the strongest reel.
 - **Size**: M.
 
-### Phase 4: Observability (`004-observability`)
+### Phase 4: Observability (`005-observability`, status: in progress)
 
 - **Goal**: a working observability tool, local first, that also plugs into company tools.
 

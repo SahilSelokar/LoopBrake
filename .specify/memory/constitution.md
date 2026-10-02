@@ -1,30 +1,22 @@
 <!--
 Sync Impact Report
-- Version change: 2.3.0 → 2.4.0 (MINOR: two technical constraints materially expanded)
-- Modified: Technical Constraints, "Claude Code integration".
-  - Defines where a turn starts and ends: UserPromptSubmit, or the first tool call after Stop (work
-    woken by a background task).
-  - The calibration reader must cut turns the way the live hooks see them. Live counts may only
-    ever be lower, and each plugin release checks this on real use.
-  - The hook path must fail open: never block a prompt, a tool call or Claude stopping.
-  - Hooks run the pinned package through the plugin's offline-first launcher.
-  - Reason: research for specs/004 found that 18 of 1,351 local turn starts fall mid-turn. It also
-    found that uv exits with code 2 when offline, which Claude Code treats as blocking.
-- Modified: Technical Constraints, "Success labels". A kill the user marked as a mistake counts in
-  recalibration as a successful turn longer than any line. Other kills are left out. Leaving
-  mistaken kills out would lower the next line (specs/004 research R10).
+- Version change: 2.4.0 → 2.4.1 (PATCH: clarification)
+- Modified: Technical Constraints, "Integrations", "What is exported".
+  - Was: metrics are sent "as delta counters".
+  - Now: delta by default. Cumulative only when the standard
+    `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative` asks for it.
+  - Why: research for specs/005-observability (R8) found that Datadog's direct intake accepts only
+    delta, while Grafana Cloud and other Prometheus-based backends need cumulative. Without the
+    option, Grafana users get no metrics. `/speckit-analyze` flagged the plan's extension as a
+    conflict (C1).
 - Principles I–VI: unchanged.
-- Dependent docs: the specs/004 plan's Constitution Check rows for these two constraints now match
-  the text. specs/004 spec FR-001 still needs rewording to match the turn rule (see follow-ups).
-- Follow-ups (not governance, outside this command):
-  - re-measure the eval's local rows under the new turn rule (Principle I);
-  - fix the launcher's exit codes and the retry that re-runs commands;
-  - replace private folder names in the specs/004 docs;
-  - reword spec FR-001.
+- Dependent docs: the specs/005 plan's Constitution Check row "Integrations" and its Complexity
+  Tracking entry can now read as a plain pass.
 - History:
+  - 2.4.0 set turn boundaries, fail-safe hooks, and the mistaken-stop rule.
   - 2.3.0 added open core and releases.
-  - 2.2.0 recorded the v1 step-budget decision and the signal gate.
-  - 2.1.0 added liquid glass and the stdlib OTLP exporter.
+  - 2.2.0 recorded the step-budget decision and the signal gate.
+  - 2.1.0 added liquid glass and the OTLP exporter.
   - 2.0.0 redefined Principle VI as Local by Default.
 -->
 
@@ -188,7 +180,10 @@ an observability tool only when they control exactly what leaves the machine.
   already run: Datadog, Grafana, Honeycomb, New Relic, Langfuse, Phoenix, or any backend behind
   an OpenTelemetry Collector.
   - **What is exported**: one trace per run and one span per step. A kill is a span event.
-    Metrics cover runs, kills, user-reported false kills and tokens spent, as delta counters.
+    Metrics cover runs, kills, user-reported false kills and tokens spent, as counters. They are
+    delta by default (Datadog's direct intake accepts only delta). They are cumulative only when the
+    standard `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative` asks for it (Grafana and
+    other Prometheus-based backends need cumulative).
     Attributes follow the OpenTelemetry GenAI semantic conventions where they fit, plus
     `loopbrake.*` attributes.
   - **Configuration**: export is enabled explicitly. The endpoint and headers come from the
@@ -255,4 +250,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.4.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-01
+**Version**: 2.4.1 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-02

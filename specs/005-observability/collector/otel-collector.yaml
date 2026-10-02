@@ -1,0 +1,22 @@
+# A local OpenTelemetry Collector for LoopBrake's export checks (quickstart scenario 7).
+# Receives OTLP over HTTP (JSON or protobuf) on 4318, prints what it gets, and forwards traces to Jaeger.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+exporters:
+  debug:
+    verbosity: detailed
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [debug, otlp/jaeger]
+    metrics:
+      receivers: [otlp]
+      exporters: [debug]

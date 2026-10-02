@@ -1,0 +1,15 @@
+# Local, no-account backends for checking LoopBrake's export: a Collector and Jaeger.
+# Start: docker compose up -d   Jaeger UI: http://localhost:16686   Send to: http://localhost:4318
+services:
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.161.0  # checked 2026-10-02
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "127.0.0.1:4318:4318"
+    depends_on: [jaeger]
+  jaeger:
+    image: jaegertracing/jaeger:2.21.0  # checked 2026-10-02
+    ports:
+      - "127.0.0.1:16686:16686"

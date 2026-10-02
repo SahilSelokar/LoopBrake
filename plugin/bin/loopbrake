@@ -3,7 +3,7 @@
 # Contract: specs/004-claude-code-plugin/contracts/plugin.md.
 # A hook call always exits 0: exit code 2 from a hook would block a prompt or keep Claude
 # running, and uv itself exits 2 when it can't reach the network (constitution 2.4.0).
-V=0.2.1
+V=0.3.0
 
 if [ -n "$LOOPBRAKE_LAUNCHER" ]; then  # we were started by ourselves: LOOPBRAKE_CMD points back here
   [ "$1" = hook ] && exit 0
