@@ -233,7 +233,7 @@ behind a key.
   - **Words**: `app.js` and the dashboard's API strings contain none of "τ", "α", " kill", "score",
     or "step " as on-screen words. The test checks the user-facing string literals listed in
     `app.js`'s `TEXT` object.
-- [ ] T014 [US1] Manual: run quickstart scenarios 2 (replayed evaluation records), 3 (a live Claude
+- [X] T014 [US1] Manual: run quickstart scenarios 2 (replayed evaluation records), 3 (a live Claude
   Code task with a low limit) and 5 (the security checks). Note the results under "Outcome".
   **Checkpoint: MVP.**
 
@@ -518,4 +518,34 @@ the go-ahead, and T034 comes after the release.
 
 ## Outcome
 
-(Filled in during `/speckit-implement`.)
+**2026-10-02, implementation run 1**
+
+- **T002**: the fonts come from google/fonts `9710da1`, the icons from lucide-static 1.49.0, all
+  sha256-checked, subset and committed. The static folder is 128 KB.
+- **T006–T013**: 181 tests pass. On 220,000 synthetic lines, the index loads in under 3 s and the
+  overview answers in under 0.1 s.
+- **Fixed in T007**: the repeat flag uses `method("fuzzy", lam=0)`, the raw per-call value, because
+  `method("fuzzy")` needs a smoothing setting.
+- **T011–T013, checked with headless Chrome screenshots** (on macOS headless Chrome's viewport is at
+  least 500 px wide, so the phone layout was checked at 500 px, under the 640 px cutoff). Fixed after
+  looking:
+  - the Glass label was doubled;
+  - long project names now show their end;
+  - stopped tasks read "stopped after N tool calls (limit L)", not "18 of 12";
+  - the duplicate tool name in each row is gone;
+  - charts got height caps and labels;
+  - the phone nav was trapped by the bar's backdrop-filter (the bar is solid on phones now);
+  - the main grid column could overflow.
+  - **Color**: ink on red is 4.46:1, just under AA, so "Stopped" sits on a red-tinted panel with the
+    red behind the icon. The static test checks every text pair.
+- **T014**:
+  - **Scenario 2**: `replay --record` on swe-gpt5mini (stop line 27) wrote 500 tasks, 85 stopped. The
+    API shows them, with the plain reason on each stopped task.
+  - **Scenario 5**:
+    - no cookie gives 401, an evil `Host` 403, a foreign `Origin` POST 403;
+    - the key exchange gives 303 to a clean `/`;
+    - the server listens on `127.0.0.1` only.
+  - **Scenario 3**: a live headless Claude Code task (limit 3) polled through the API. The running
+    count went 0, 1, 2, 3, then Stopped at 4; each change was visible within 0.25 s of being written.
+    The record had 4 unique steps with `duration_ms` 83, 23, 12, 12 and millisecond times. The
+    installed 0.2.1 plugin also fired; its duplicate events were dropped by the call-id check.
