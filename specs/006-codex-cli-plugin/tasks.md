@@ -231,14 +231,14 @@ user's tools when export is on.
 - [X] T023 [P] README: a "Use it with Codex" section (install, the five skills, the sandbox approval
   if any, and what differs from Claude Code: no action durations, no nesting in a Codex trace); the
   roadmap table. Absolute links only; check with `readme_renderer[md]`.
-- [ ] T024 Run the full suite and the release checks: pytest on 3.11–3.13; the launcher speed against
+- [X] T024 Run the full suite and the release checks: pytest on 3.11–3.13; the launcher speed against
   a local 0.4.0 wheel; `claude plugin validate` for the Claude Code plugin; Codex's own plugin check
   if it has one; `loopbrake agreement --claude-code` and `--codex` on real use (live higher 0). Push
   the branch and confirm GitHub's tests pass.
-- [ ] T025 Release v0.4.0, with the builder's go-ahead (a release is public): tag and push the tag;
+- [X] T025 Release v0.4.0, with the builder's go-ahead (a release is public): tag and push the tag;
   confirm PyPI serves 0.4.0; merge into `main` and push; confirm `main`'s tests; update the builder's
   Claude Code plugin; the builder installs the Codex plugin from the marketplace.
-- [ ] T026 Wrap up: roadmap Phase 4b done, README status; note the outcomes below.
+- [X] T026 Wrap up: roadmap Phase 4b done, README status; note the outcomes below.
 
 ---
 
@@ -333,3 +333,14 @@ user's tools when export is on.
   `loopbrake agreement --claude-code` on the builder's real use: 8 matched, 8 equal, live higher 0. The
   Codex numbers are under T011 and T017. Codex has no plugin check command; installing from the local
   marketplace is the check. Pushing the branch waits for the builder's go-ahead.
+- **T024, pushed** (the builder's go-ahead, 2026-10-02): GitHub's tests pass on 3.11, 3.12 and 3.13.
+  The README's pip fallback still named 0.3.0; it now names 0.4.0, and a test keeps it on the
+  launcher's version.
+- **T025**: tag `v0.4.0`; PyPI serves 0.4.0 (wheel and source); `main` fast-forwarded and its tests
+  pass. The builder's Claude Code plugin updated from 0.3.0 to 0.4.0, and uv's cache holds 0.4.0, so
+  the hooks find it offline. The builder has no Codex account, so instead of the builder's own install,
+  a scratch Codex home installed the plugin from GitHub (`codex plugin marketplace add
+  SahilSelokar/LoopBrake`, then `codex plugin add loopbrake@loopbrake`): installed and enabled, 0.4.0.
+- **T026**: roadmap Phase 4b done; README status v0.4.0. The README's workflow diagram became a
+  motion graphic (Remotion) of a real public SWE-bench run (GPT-5-mini) replayed through the brake:
+  every command and number in it is real.
