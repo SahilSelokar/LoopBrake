@@ -1,5 +1,15 @@
 <!--
 Sync Impact Report
+- Version change: 2.6.0 → 2.6.1 (PATCH: wording, for the Codex CLI plugin, specs/006 T021)
+- Modified: Technical Constraints. "Failing safely" and "Same turns live and in calibration" now
+  apply to every agent plugin, not only Claude Code; the Claude Code example of what stays in a
+  running turn moved under its own "Turns". Added a "Codex CLI integration" note: the Codex
+  marketplace, the two-part stop, trusting hooks once with `/hooks`, turns named by `turn_id`, and
+  typed commands. No principle changes.
+- History:
+  - 2.6.0 changed the dashboard's colors to the Visual Vortex brand.
+
+Previous report (2.6.0):
 - Version change: 2.5.0 → 2.6.0 (MINOR: the dashboard's visual identity changed)
 - Modified: Technical Constraints, "Dashboard", "Visual identity" (the builder's decision,
   2026-10-02).
@@ -122,19 +132,33 @@ an observability tool only when they control exactly what leaves the machine.
     uses uv's cached copy first, so the hook path needs no network. PostToolUse and
     PostToolUseFailure hooks (matcher `*`) count the main agent's tool calls. Tool calls made inside
     subagents never count. A stop is `{"continue": false, "stopReason": "<reason>"}`.
-  - **Failing safely**: a failure in the plugin's own hook path MUST NOT block a prompt, a tool call
-    or Claude stopping. It exits 0 with no output.
   - **Turns**: a run is one turn.
     - It starts at UserPromptSubmit, or at the first main-agent tool call after Stop (work woken by
       a background task).
     - It ends at Stop. If a new prompt arrives first, it ends there as interrupted (or stopped, if
       LoopBrake stopped it).
-  - **Same turns live and in calibration**: the Claude Code calibration reader MUST cut transcripts
-    at the same boundaries the live hooks see. A record that arrives while Claude is still waiting
-    on a tool (a compaction summary, a prompt typed mid-turn, a task notification) stays in the
-    running turn. Where live and calibration counts can still differ, the live count MUST be the
-    lower one, because a lower count can only stop later. Every plugin release MUST check this on
-    the builder's real use (`loopbrake agreement`).
+    - A record that arrives while Claude is still waiting on a tool (a compaction summary, a prompt
+      typed mid-turn, a task notification) stays in the running turn.
+- **Codex CLI integration**: the repo also offers a Codex plugin (`codex-plugin/`) from its Codex
+  marketplace (`.agents/plugins/marketplace.json`).
+  - **Hooks**: through the same launcher. `PostToolUse` counts the main agent's tool calls; helper
+    agents' calls never count. A stop is a `PostToolUse` reply with `continue: false`, and every
+    later tool call of that task is refused in `PreToolUse`, including calls of a parallel batch
+    already on their way that would run after the stop (asked of the brake, never decided by the
+    adapter).
+  - **Trust**: Codex runs a plugin's hooks only after the user trusts them once with `/hooks`, so
+    the hook definitions MUST NOT change between versions; only the launcher's pinned version does.
+  - **Turns**: a run is one Codex turn, named by Codex's own `turn_id` in both the hooks and the
+    session history.
+  - **Commands**: typed as a message (`loopbrake: status` and so on) and run by the prompt hook,
+    outside Codex's sandbox.
+- **Every agent plugin** (Claude Code and Codex CLI):
+  - **Failing safely**: a failure in the plugin's own hook path MUST NOT block a prompt, a tool call
+    or the agent stopping. It exits 0 with no output.
+  - **Same turns live and in calibration**: each agent's history reader MUST cut its history at the
+    same boundaries its live hooks see. Where live and calibration counts can still differ, the live
+    count MUST be the lower one, because a lower count can only stop later. Every plugin release
+    MUST check this on the builder's real use (`loopbrake agreement`).
 - **No warn-first in v1**: feeding warnings back to the agent changes its trajectory and breaks
   exchangeability with the calibration runs. It may be added only with calibration done under
   the same warnings.
@@ -270,4 +294,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.6.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-02
+**Version**: 2.6.1 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-02
