@@ -1,18 +1,21 @@
 <!--
 Sync Impact Report
-- Version change: 2.4.0 → 2.4.1 (PATCH: clarification)
-- Modified: Technical Constraints, "Integrations", "What is exported".
-  - Was: metrics are sent "as delta counters".
-  - Now: delta by default. Cumulative only when the standard
-    `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative` asks for it.
-  - Why: research for specs/005-observability (R8) found that Datadog's direct intake accepts only
-    delta, while Grafana Cloud and other Prometheus-based backends need cumulative. Without the
-    option, Grafana users get no metrics. `/speckit-analyze` flagged the plan's extension as a
-    conflict (C1).
+- Version change: 2.4.1 → 2.5.0 (MINOR: dashboard guidance materially expanded)
+- Modified: Technical Constraints, "Dashboard" (the builder's redesign decisions, 2026-10-02).
+  - What it shows: brought up to date with what Phase 4 built and the redesign. Was: a score line,
+    the τ line and a "false-kill budget". Now: actions over time against the limit, the loop shown
+    as repeats, the past tasks as a picture, and mistakes next to how many are expected.
+  - Added "Plain words": the dashboard is for people who don't code. A tool call is an "action";
+    tools are named by what they did; never τ, α, score, kill, step or ids on screen.
+  - Visual identity: the same reel colors, now in a light and a dark theme that follow the system,
+    with a choice in Settings. On light backgrounds lime is a fill only.
+  - Glass behavior: the manual "Glass off" toggle is removed. Glass turns off by itself under
+    reduced transparency and increased contrast, and sits only behind chrome, never content.
 - Principles I–VI: unchanged.
-- Dependent docs: the specs/005 plan's Constitution Check row "Integrations" and its Complexity
-  Tracking entry can now read as a plain pass.
+- Dependent docs: specs/005-observability spec FR-007 and contracts/ui.md (screens, words, look),
+  and the roadmap's Phase 4 design notes, follow in the redesign tasks.
 - History:
+  - 2.4.1 made export counters delta by default, cumulative on request.
   - 2.4.0 set turn boundaries, fail-safe hooks, and the mistaken-stop rule.
   - 2.3.0 added open core and releases.
   - 2.2.0 recorded the step-budget decision and the signal gate.
@@ -147,30 +150,43 @@ an observability tool only when they control exactly what leaves the machine.
 - **Dashboard**: a working local observability app served by `loopbrake dashboard`. It uses a
   standard-library HTTP server, with no framework and no build step. It reads the run logs live
   and shows:
-  - every run with its status: running, finished or killed;
-  - a step-by-step run view with signal values, the score line and the τ line;
-  - kill reasons;
-  - calibration state per project (sample size, α, τ), with actions to refresh calibration and
-    exclude runs;
-  - kills and tokens spent over time, and the false-kill budget: kills the user marked as
-    mistakes, against α × runs.
+  - every task with its status: running, finished, stopped or interrupted;
+  - a task view: its actions over time against the limit, the repeats that show a loop, and every
+    action in plain words;
+  - why a task stopped, in plain words, with the project's past tasks drawn as a picture next to
+    the limit;
+  - per project: the limit and the past tasks it came from, with actions to set the limit again
+    and to leave tasks out;
+  - stops and tokens spent over time, and the stops the user marked as mistakes next to how many
+    are expected (α × tasks watched).
 
-  It MUST NOT show live "tokens saved". A killed run's counterfactual cost is unknown, so savings
+  It MUST NOT show live "tokens saved". A stopped run's counterfactual cost is unknown, so savings
   are claimed only from the offline evaluation (Principle IV).
 
+  - **Plain words**: the dashboard MUST be readable by people who don't code.
+    - One word per idea: "task", "action" (one tool call; a "?" explains it), "limit", "stopped",
+      "mistake".
+    - Tools are named by what they did ("Ran a command", "Read a file").
+    - τ, α, score, kill, step and run or session ids MUST NOT appear on screen. Ids appear only in
+      page addresses.
   - **Security**: it binds to `127.0.0.1` only. It requires a per-launch token, checks the
     `Host` header, and accepts write actions only as POST.
-  - **Visual identity**: the Episode 1 reel brand in a **liquid glass** theme.
+  - **Visual identity**: the Episode 1 reel brand, with **liquid glass** on chrome.
     - Colors: night `#08110D`, lime `#CFFF3E`, green `#0F3D2E`, red `#E5341F`, paper `#ECEBE4`,
       ink `#0D0E0B`.
+    - Themes: a light theme and a dark theme from these colors. The page follows the system's
+      setting, and Settings offers light, dark or system. Every text color pair in both themes MUST
+      meet WCAG AA. On light backgrounds lime is a fill only, never text.
     - Fonts: Inter Tight for headings, JetBrains Mono for numbers, Instrument Serif italic for
       annotations.
   - **Glass placement**: glass goes on chrome and floating controls only: navigation, toolbars,
-    dialogs, toasts. Content such as tables, charts and step lists sits on near-opaque panels.
+    dialogs, toasts. Content such as tables, charts and action lists sits on near-opaque panels,
+    so glass never stands behind information.
   - **Glass behavior**: it MUST degrade gracefully, with an opaque base, blur where supported and
     refraction where supported. It MUST respect reduced motion, reduced transparency, increased
-    contrast and forced colors, and it MUST offer a manual "Glass off" toggle.
-  - **Red** is used as a fill, never as text. A kill state always pairs it with an icon and a
+    contrast and forced colors: under reduced transparency or increased contrast, glass turns off
+    by itself. There is no manual glass switch (the builder's decision, 2026-10-02).
+  - **Red** is used as a fill, never as text. A stopped state always pairs it with an icon and a
     word.
   - **Icons**: an SVG icon set (Lucide) only. **No emoji anywhere in the UI.**
   - **Assets**: fonts and icons are vendored with their licenses. The page MUST NOT load
@@ -250,4 +266,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.4.1 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-02
+**Version**: 2.5.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-02
