@@ -328,3 +328,30 @@ def test_the_same_call_reported_twice_counts_once(home):
     stop = [hook(home, "tool", tool(3)), hook(home, "tool", tool(3))]
     assert all(json.loads(x)["continue"] is False for x in stop)
     assert [e["step"] for e in log(home) if e["event"] == "step"] == [1, 2, 3]
+
+
+# ---- Phase 4: tool durations and Claude Code's trace context ----
+
+def test_hooks_record_duration_and_traceparent(home, monkeypatch):
+    tp = "00-7c34dde18d794cfe024a074bf0190d06-6b75b47cab499875-01"
+    monkeypatch.setenv("TRACEPARENT", tp)
+    hook(home, "prompt", payload())
+    hook(home, "tool", tool(1, duration_ms=64))
+    hook(home, "tool", tool(2))
+    ev = log(home)
+    assert ev[0]["traceparent"] == tp
+    assert [e.get("duration_ms") for e in ev if e["event"] == "step"] == [64, None]
+    monkeypatch.delenv("TRACEPARENT")
+    hook(home, "prompt", payload(session="s2"))
+    assert "traceparent" not in log(home, "s2")[0]
+
+
+def test_plain_stop_and_reason_codes():
+    reason = "stopped at step 7: past the stop line of 6 steps set from your 40 past successful turns (α 5%); repeating in 5 of last 5 steps"
+    text = claude_code.plain_stop(7, 6, 40, 0.05, reason, " Use the button if it wasn't stuck.")
+    assert text == ("LoopBrake stopped this task after 7 tool calls. Based on your 40 past successful tasks in this project, "
+                    "good tasks almost never need more than 6 (fewer than 1 in 20 do). This one also looks stuck: its last few "
+                    "tool calls repeat each other. Use the button if it wasn't stuck.")
+    assert claude_code.reason_codes(reason) == ["past_limit", "repeating"]
+    assert claude_code.reason_codes("stopped at step 3: past the stop line of 2 steps") == ["past_limit"]
+    assert claude_code.reason_codes("…; same error again in 2 of last 5 steps; nothing new in 3 of last 5 steps") == ["past_limit", "same_error", "nothing_new"]

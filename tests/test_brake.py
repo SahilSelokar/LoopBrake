@@ -201,3 +201,26 @@ def test_turns_wording(home):
     b = loopbrake.start(project="demo", unit="turns")
     b.step("bash a")
     assert "past successful turns" in b.step("bash b").reason
+
+
+# ---- Phase 4 record fields (specs/005-observability data-model) ----
+
+TP = "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"
+
+
+def test_duration_and_traceparent_are_recorded(home):
+    calibrate_by_hand(home, stop_line=None)
+    b = loopbrake.start(project="demo", session="s", run="r1", traceparent=TP)
+    b.step("bash a", duration_ms=68)
+    b.step("bash b")
+    ev = turn_events(home)
+    assert ev[0]["traceparent"] == TP
+    steps = [e for e in ev if e["event"] == "step"]
+    assert steps[0]["duration_ms"] == 68 and "duration_ms" not in steps[1]
+    assert brake_mod.Brake.from_events("demo", "s", home, ev).step("bash c").step == 3
+
+
+def test_bad_traceparent_is_dropped(home):
+    for bad in ("garbage", "00-" + "0" * 32 + "-00f067aa0ba902b7-01", "00-4bf92f3577b34da6a3ce929d0e0e4736-" + "0" * 16 + "-01", "ff-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"):
+        loopbrake.start(project="demo", session=f"s{len(bad)}", run="r", traceparent=bad)
+    assert not any("traceparent" in e for e in events(home))

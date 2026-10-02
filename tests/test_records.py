@@ -144,3 +144,13 @@ def test_last_run(home):
     assert records.last_run(home, "run_end")[0]["run"] == "b"
     assert records.last_run(home, "run_end", min_steps=1)[0]["run"] == "a"
     assert records.last_run(records.home(home / "empty"), "stop") is None
+
+
+def test_times_have_milliseconds(home):
+    import re
+    w = records.RunWriter(home / "runs" / "ms.jsonl")
+    w.write({"event": "run_start", "session": "ms", "run": "a"})
+    ts = json.loads((home / "runs" / "ms.jsonl").read_text())["ts"]
+    assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}\+00:00", ts)
+    (home / "runs" / "old.jsonl").write_text(json.dumps({"v": 1, "ts": "2026-10-01T00:00:00+00:00", "event": "run_start", "session": "old", "run": "b"}) + "\n")
+    assert {e["run"] for e in records.read_events(home)} == {"a", "b"}  # old seconds-only records still read

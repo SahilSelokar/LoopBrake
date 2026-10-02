@@ -155,3 +155,11 @@ def test_recalibration_after_the_brake_was_on(tmp_path, home, monkeypatch, case,
 def test_runs_needed_counts_mistaken_stops_as_taking_the_top_places():
     assert calibration.runs_needed(0.05) == 19
     assert calibration.runs_needed(0.05, unbounded=1) == 39  # ceil(0.95 * 40) = 38 = 39 - 1
+
+
+def test_record_keeps_the_lengths(tmp_path, home, monkeypatch):
+    history(tmp_path, monkeypatch, list(range(1, 41)))
+    live_turn(home, 0, 1, stopped=True, verdicts=["mistaken_stop"])
+    rec = claude_code.calibrate_claude_code(CWD)
+    assert rec["lengths"] == list(range(2, 41)) + [None]  # sorted; the mistaken stop counts as unbounded
+    assert "secret" not in json.dumps(rec)

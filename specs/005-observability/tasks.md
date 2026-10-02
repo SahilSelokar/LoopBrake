@@ -61,7 +61,7 @@ story's tests come first and must fail before its code is written.
 
 ## Phase 2: Foundational (record fields and shared helpers; needed by every story)
 
-- [ ] T003 [P] Add tests for the new optional record fields (data-model.md, "Changes to existing
+- [X] T003 [P] Add tests for the new optional record fields (data-model.md, "Changes to existing
   records"):
   - **`tests/test_records.py`**: `ts` now has milliseconds
     (`^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}\+00:00$`), and the old seconds format still reads.
@@ -76,7 +76,7 @@ story's tests come first and must fail before its code is written.
     - a `tool` hook input with `"duration_ms": 64` records it;
     - with `TRACEPARENT` set in the environment, the `prompt` hook records it on `run_start`;
     - without it, there's no field.
-- [ ] T004 Make T003 pass:
+- [X] T004 Make T003 pass:
   - **`src/loopbrake/records.py`**: `_now()` uses `timespec="milliseconds"`.
   - **`src/loopbrake/brake.py`**:
     - `Brake.__init__(…, traceparent=None)` records it on `run_start` when it's valid;
@@ -86,7 +86,7 @@ story's tests come first and must fail before its code is written.
     `null`.
   - **`src/loopbrake/claude_code.py`**: passes `data.get("duration_ms")` (an int ≥ 0, or nothing) to
     `step`, and `os.environ.get("TRACEPARENT")` to `start`.
-- [ ] T005 Refactor the plain stop message into a function of plain values, so the dashboard and
+- [X] T005 Refactor the plain stop message into a function of plain values, so the dashboard and
   export can use it without a `Brake`. In `src/loopbrake/claude_code.py`:
   - add `plain_stop(step, limit, n, alpha, reason, next_step)`, where `next_step` is the closing
     sentence;

@@ -3,6 +3,7 @@ successful runs, and says why. Contract: specs/003-core-package/contracts/python
 
 v1's stop rule is the calibrated step budget (constitution 2.2.0). The stuck signals only explain.
 """
+import re
 import uuid
 import warnings
 from typing import NamedTuple
@@ -11,6 +12,12 @@ from loopbrake import calibration, records
 from loopbrake.signals import Step, method
 
 EXCERPT = 200
+_TRACEPARENT = re.compile(r"00-(?!0{32})[0-9a-f]{32}-(?!0{16})[0-9a-f]{16}-[0-9a-f]{2}")
+
+
+def _traceparent(value):
+    """A W3C trace context the agent passed (Claude Code sets TRACEPARENT when its tracing is on), or None."""
+    return value if isinstance(value, str) and _TRACEPARENT.fullmatch(value) else None
 
 
 class Decision(NamedTuple):
@@ -28,7 +35,7 @@ def _decide(steps, stop_line):
 
 
 class Brake:
-    def __init__(self, project, session, run, home, calibration, record=True, unit="runs"):
+    def __init__(self, project, session, run, home, calibration, record=True, unit="runs", traceparent=None):
         self.project, self.session, self.run, self.home, self.unit = project, session, run, home, unit
         self.calibration = calibration
         line = calibration.get("stop_line") if calibration and not calibration.get("watch_only") else None
@@ -40,9 +47,10 @@ class Brake:
         self._writer = records.RunWriter(home / "runs" / f"{session}.jsonl")
         self._writer.on = record
         cal = calibration or {}
+        trace = {"traceparent": t} if (t := _traceparent(traceparent)) else {}
         self._record("run_start", project=project, calibration={
             "method": "steps", "alpha": cal.get("alpha"), "n": cal.get("n"), "k": cal.get("k"),
-            "stop_line": self.stop_line, "watch_only": self.watch_only})
+            "stop_line": self.stop_line, "watch_only": self.watch_only}, **trace)
 
     @classmethod
     def from_events(cls, project, session, home, events, unit="runs"):
@@ -65,10 +73,10 @@ class Brake:
 
     # ---- public ----
 
-    def step(self, action, result="", *, tool=None, tokens=None, error=None, call_id=None):
+    def step(self, action, result="", *, tool=None, tokens=None, error=None, call_id=None, duration_ms=None):
         """Report one step. Returns a Decision; once it says stop, it keeps saying stop."""
         try:
-            return self._step(action, result, tool, tokens, error, call_id)
+            return self._step(action, result, tool, tokens, error, call_id, duration_ms)
         except Exception as e:  # never hurt the host agent (spec FR-005)
             self._fail(e)
             return Decision(self.stopped, len(self.steps), self.reason, self.watch_only)
@@ -92,14 +100,15 @@ class Brake:
 
     # ---- internals ----
 
-    def _step(self, action, result, tool, tokens, error, call_id=None):
+    def _step(self, action, result, tool, tokens, error, call_id=None, duration_ms=None):
         action = str(action)
         self.steps.append(Step(action, "" if result is None else str(result), error, int(tokens or 0)))
         if tokens is not None:
             self.tokens = (self.tokens or 0) + int(tokens)
         t = len(self.steps)
         ref = {"call_id": call_id} if call_id is not None else {}
-        self._record("step", step=t, tool=tool, action_excerpt=action[:EXCERPT], tokens=tokens, error=error, **ref)
+        took = {"duration_ms": duration_ms} if isinstance(duration_ms, int) and not isinstance(duration_ms, bool) and duration_ms >= 0 else {}
+        self._record("step", step=t, tool=tool, action_excerpt=action[:EXCERPT], tokens=tokens, error=error, **ref, **took)
         if self.stopped:
             return Decision(True, t, self.reason, False)
         if _decide(self.steps, self.stop_line):
@@ -136,9 +145,10 @@ def replay(run, calibration):
     return None
 
 
-def start(project="default", *, session=None, run=None, home=None, unit="runs"):
+def start(project="default", *, session=None, run=None, home=None, unit="runs", traceparent=None):
     """Start one run. Missing or damaged calibration means watch-only, never an exception."""
     if not records.valid_project(project):
         raise ValueError(f"project names may use letters, digits, '.', '_' and '-' (got {project!r})")
     h = records.home(home)
-    return Brake(project, session or uuid.uuid4().hex, run or uuid.uuid4().hex[:12], h, calibration.load(project, h), unit=unit)
+    return Brake(project, session or uuid.uuid4().hex, run or uuid.uuid4().hex[:12], h, calibration.load(project, h),
+                 unit=unit, traceparent=traceparent)

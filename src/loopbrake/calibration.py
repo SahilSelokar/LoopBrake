@@ -140,6 +140,7 @@ def calibrate(source, *, project="default", alpha=0.05, home=None):
         "n": len(lengths), "k": rank(len(lengths), alpha),
         "stop_line": None if line == math.inf else int(line), "watch_only": line == math.inf,
         "source": src_info, "created": date.today().isoformat(), "version": __version__,
+        "lengths": [None if x == math.inf else x for x in sorted(lengths)],  # numbers only; None = mistaken stop
     }
     p = path(project, h)
     p.parent.mkdir(parents=True, exist_ok=True)

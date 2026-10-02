@@ -93,7 +93,7 @@ def _hook(event, text, h):
                 b.end("stopped" if b.stopped else "interrupted")
                 b = None
             if b is None:  # an open turn with no steps is kept, so a second prompt event is harmless
-                start(project, session=session, home=h, unit="turns")
+                start(project, session=session, home=h, unit="turns", traceparent=os.environ.get("TRACEPARENT"))
             return None
         if event == "stop":
             if b:
@@ -103,9 +103,9 @@ def _hook(event, text, h):
         if b is not None and call_id and any(e.get("event") == "step" and e.get("call_id") == call_id for e in turn):
             return _stop_reply(b) if b.stopped else None  # the same call reported twice: count it once
         if b is None:  # a step after Stop: work woken by a background task is its own turn
-            b = start(project, session=session, home=h, unit="turns")
+            b = start(project, session=session, home=h, unit="turns", traceparent=os.environ.get("TRACEPARENT"))
         d = b.step(action(data.get("tool_name"), data.get("tool_input")), tool=data.get("tool_name"),
-                   error=event == "tool-failed", call_id=call_id)
+                   error=event == "tool-failed", call_id=call_id, duration_ms=data.get("duration_ms"))
         return _stop_reply(b) if d.stop else None
 
 
@@ -119,20 +119,33 @@ def one_in(alpha):
     return f"fewer than 1 in {round(k)}" if abs(k - round(k)) < 1e-9 else f"under {alpha:.0%}"
 
 
-def stop_message(b):
-    """What the user reads when a task is stopped (contracts/hooks.md). Plain words; the technical
-    reason stays in the run record."""
-    cal = b.calibration or {}
-    n, alpha = cal.get("n"), cal.get("alpha") or 0.05
+_SYMPTOMS = (("same error", "same_error", "it keeps hitting the same error"),
+             ("repeating", "repeating", "its last few tool calls repeat each other"),
+             ("nothing new", "nothing_new", "its last few tool calls turned up nothing new"))
+
+
+def plain_stop(step, limit, n, alpha, reason, next_step):
+    """A stop in plain words (Phase 3 FR-013), from plain values, so the hook, the dashboard and export
+    share it. `next_step` is the closing sentence, which differs per surface."""
     based = f"Based on your {n} past successful tasks in this project, good" if n else "Good"
-    text = (f"LoopBrake stopped this task after {b.stop_step} tool calls. {based} tasks almost never need more "
-            f"than {b.stop_line} ({one_in(alpha)} do).")
-    symptom = ("it keeps hitting the same error" if "same error" in b.reason else
-               "its last few tool calls repeat each other" if "repeating" in b.reason else
-               "its last few tool calls turned up nothing new" if "nothing new" in b.reason else None)
+    text = (f"LoopBrake stopped this task after {step} tool calls. {based} tasks almost never need more "
+            f"than {limit} ({one_in(alpha or 0.05)} do).")
+    symptom = next((plain for key, _, plain in _SYMPTOMS if key in (reason or "")), None)
     if symptom:
         text += f" This one also looks stuck: {symptom}."
-    return text + " If it wasn't stuck, run /loopbrake:mistake, then tell Claude to continue."
+    return text + next_step
+
+
+def reason_codes(reason):
+    """Short codes for a stop, for export: past_limit, then any explanation signals that fired."""
+    return ["past_limit"] + [code for key, code, _ in _SYMPTOMS if key in (reason or "")]
+
+
+def stop_message(b):
+    """What the user reads in Claude Code when a task is stopped (contracts/hooks.md)."""
+    cal = b.calibration or {}
+    return plain_stop(b.stop_step, b.stop_line, cal.get("n"), cal.get("alpha"), b.reason,
+                      " If it wasn't stuck, run /loopbrake:mistake, then tell Claude to continue.")
 
 
 # ---- status line (contracts/cli.md) ----
