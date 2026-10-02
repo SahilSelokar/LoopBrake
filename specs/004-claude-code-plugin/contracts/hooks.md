@@ -34,12 +34,16 @@ Setting `LOOPBRAKE_DEBUG=1` re-raises errors, for development only.
 `Brake`'s reason, with "turns" in place of "runs" for Claude Code:
 
 ```text
-LoopBrake stopped at step 39: past the stop line of 38 steps set from your 898 past successful
-turns (α 5%); repeating in 5 of last 5 steps. If this stop was wrong, run /loopbrake:mistake.
+LoopBrake stopped this task after 59 tool calls. Based on your 61 past successful tasks in this
+project, good tasks almost never need more than 58 (fewer than 1 in 20 do). This one also looks
+stuck: its last few tool calls repeat each other. If it wasn't stuck, run /loopbrake:mistake, then
+tell Claude to continue.
 ```
 
-The hook adds "LoopBrake " at the start and the last sentence at the end. The middle is
-`Brake._explain`'s reason.
+Plain words for the user (changed in 0.2.1, at the builder's request). `claude_code.stop_message`
+builds it from the stop step, the stop line, the calibration's n and α, and the explanation signals
+("same error", "repeating", "nothing new", in that order, at most one). The technical reason
+(`Brake._explain`) stays in the run record's `stop` event.
 
 ## Decision
 

@@ -56,8 +56,8 @@ so the hooks load.
 4. Ask Claude: "Run `echo hi` ten times, one Bash call each."
 
 **Expect**:
-- Claude stops right after the 4th call, and the reason is shown ("LoopBrake stopped at step 4:
-  past the stop line of 3 …").
+- Claude stops right after the 4th call, and the reason is shown ("LoopBrake stopped this task after
+  4 tool calls …").
 - `runs/<session>.jsonl` holds `run_start`, 4 `step` events with `call_id`, a `stop` with
   `call_id`, and then a `run_end` with status `stopped`, either at `Stop` or at your next prompt.
 
@@ -90,10 +90,10 @@ Run these in a project with real history (19 or more finished turns), using your
 
 | Command | Expect |
 |---|---|
-| `/loopbrake:calibrate` | A one-line stop line, with the turn count and α. A project with less history gets `watch-only: … need X more`. |
+| `/loopbrake:calibrate` | `LoopBrake is set up for this project.`, then the limit and how many past tasks it came from. A project with less history gets `Not enough history yet: …`. |
 | `/loopbrake:status` | The stop line, turns watched, turns stopped, and mistaken stops against the allowance |
-| `/loopbrake:mistake`, right after a stop | `recorded: run … marked as a mistaken stop`. Status shows mistaken + 1. |
-| `/loopbrake:exclude` | `recorded: run … left out of future calibration` |
+| `/loopbrake:mistake`, right after a stop | `Done: the stop after N tool calls is marked as a mistake. …` Status shows mistaken + 1. |
+| `/loopbrake:exclude` | `Done: your last finished task (N tool calls) will be left out …` |
 | `/loopbrake:calibrate` again | The output names the stops left out and the mistakes counted (research R10). The line never drops because of a marked mistake. |
 
 Two different project folders get different `cc-…` names and their own stop lines.
@@ -109,9 +109,9 @@ Add this to `~/.claude/settings.json`:
 While developing, use `uv run --project <repo> loopbrake statusline` instead.
 
 **Expect**:
-- `brake 0/38` when a turn starts, counting up by one per tool call;
-- `brake idle` after the turn ends;
-- `brake N (watching)` in a project without a stop line.
+- `LoopBrake: 0 of 38 tool calls` when a task starts, counting up by one per tool call;
+- `LoopBrake: ready` after the task ends;
+- `LoopBrake: N tool calls (watching only)` in a project without a stop line.
 
 ## 8. Speed and offline through the real launcher (SC-002, SC-006)
 

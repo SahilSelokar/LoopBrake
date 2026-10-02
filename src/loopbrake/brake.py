@@ -35,6 +35,7 @@ class Brake:
         self.stop_line = line
         self.watch_only = line is None
         self.steps, self.stopped, self.reason, self.ended, self.tokens = [], False, "", False, None
+        self.stop_step = None  # the step at which it stopped
         self._warned = False
         self._writer = records.RunWriter(home / "runs" / f"{session}.jsonl")
         self._writer.on = record
@@ -59,7 +60,7 @@ class Brake:
         b.tokens = sum(known) if known else None
         stop = next((e for e in rest if e.get("event") == "stop"), None)
         if stop:
-            b.stopped, b.reason = True, stop.get("reason", "")
+            b.stopped, b.reason, b.stop_step = True, stop.get("reason", ""), stop.get("step")
         return b
 
     # ---- public ----
@@ -102,7 +103,7 @@ class Brake:
         if self.stopped:
             return Decision(True, t, self.reason, False)
         if _decide(self.steps, self.stop_line):
-            self.stopped = True
+            self.stopped, self.stop_step = True, t
             self.reason = self._explain(t)
             self._record("stop", step=t, stop_line=self.stop_line, reason=self.reason, **ref)
             return Decision(True, t, self.reason, False)

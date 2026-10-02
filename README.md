@@ -115,43 +115,51 @@ own problem.
 /plugin install loopbrake@loopbrake
 ```
 
-**Set the stop line** for the project you are in, from that project's own past turns:
+**Set it up** for the project you are in. LoopBrake looks at how many tool calls your past successful
+tasks in this project needed, and picks a limit:
 
 ```text
 /loopbrake:calibrate
 ```
 
-A **turn** is everything Claude does for one prompt. A **step** is one tool call by the main agent;
-tool calls inside subagents don't count. From then on, when a turn goes past the stop line, Claude
-stops and shows why. For example:
+```text
+LoopBrake is set up for this project.
+It will stop a task that goes past 58 tool calls. That limit comes from your 61 past successful
+tasks here: fewer than 1 in 20 good tasks should go past it.
+```
+
+A **task** is everything Claude does for one message you send. Tool calls made by subagents don't
+count. From then on, when a task goes past the limit, Claude stops and tells you why:
 
 ```text
-LoopBrake stopped at step 39: past the stop line of 38 steps set from your 898 past successful
-turns (α 5%); repeating in 5 of last 5 steps. If this stop was wrong, run /loopbrake:mistake.
+LoopBrake stopped this task after 59 tool calls. Based on your 61 past successful tasks in this
+project, good tasks almost never need more than 58 (fewer than 1 in 20 do). This one also looks
+stuck: its last few tool calls repeat each other. If it wasn't stuck, run /loopbrake:mistake, then
+tell Claude to continue.
 ```
 
 | Command | What it does |
 |---|---|
-| `/loopbrake:calibrate` | Sets or refreshes the stop line from this project's history |
-| `/loopbrake:status` | Stop line, turns watched and stopped, and mistaken stops against the allowance |
-| `/loopbrake:mistake` | Marks the last stop as a mistake. The next calibration counts that turn as a long good turn, so marking mistakes can only raise the line. |
-| `/loopbrake:exclude` | Leaves the last finished turn out of future calibration |
+| `/loopbrake:calibrate` | Sets the limit from this project's past tasks (run it again any time) |
+| `/loopbrake:status` | Shows the limit, how many tasks it saw and stopped, and the stops you marked as mistakes |
+| `/loopbrake:mistake` | Tells LoopBrake its last stop was wrong. The next calibration counts that task as a long good one, so the limit can only go up. |
+| `/loopbrake:exclude` | Leaves your last finished task out of future calibration (for example, a task that went badly) |
 
 **See the count while you work** (optional; plugins can't add a status line themselves). Add this to
-`~/.claude/settings.json` to see `brake 12/38` (steps so far against the stop line):
+`~/.claude/settings.json` to see `LoopBrake: 12 of 58 tool calls` at the bottom of Claude Code:
 
 ```json
 "statusLine": {"type": "command", "command": "uvx --offline loopbrake statusline"}
 ```
 
-**What the guarantee means here.** Each project has its own stop line. It holds its limit (at most 5
-in 100 good turns stopped, at α 5%) on average over turns, and only while your future turns are like
-your past ones: the same kind of work, used the same way. When your work changes, calibrate again.
+**What the promise means here.** Each project gets its own limit. On average, fewer than 1 in 20 of
+your good tasks will be stopped (5%), as long as your future tasks are like your past ones: the same
+kind of work, done the same way. When your work changes, run `/loopbrake:calibrate` again.
 
-**No uv?** Install `loopbrake==0.2.0` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
+**No uv?** Install `loopbrake==0.2.1` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
 in the environment Claude Code starts from: `export LOOPBRAKE_CMD="'$(which loopbrake)'"`.
 
-**Troubleshooting.** If `/loopbrake:status` says "no turns recorded yet" after you have worked in the
+**Troubleshooting.** If `/loopbrake:status` says "No tasks recorded here yet" after you have worked in the
 project, the hooks are not running. Start Claude Code with `claude --debug` and look for `loopbrake`
 hook errors, and check that `uv` is on the PATH Claude Code sees. The plugin never blocks Claude
 because of its own problem; it just stops recording.
@@ -268,7 +276,7 @@ liveness.py      the original naive rule, kept as the baseline
 | 1 | **Experiment**: does it work on real runs? | Done: NO-GO for cheap signals |
 | 1b | **Progress judge**: a hosted decision model judges whether each step moved the run forward | Done: NO-GO |
 | 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Done: v0.1.0 on PyPI |
-| 3 | **Claude Code plugin**: stop stuck turns live, calibrated on your own history | Done: v0.2.0 |
+| 3 | **Claude Code plugin**: stop stuck turns live, calibrated on your own history | Done: v0.2.1 |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
 
@@ -276,7 +284,7 @@ The full plan is in [specs/roadmap.md](https://github.com/SahilSelokar/LoopBrake
 
 ## Status
 
-v0.2.0 is on PyPI (`pip install loopbrake`), with the Claude Code plugin in this repository. The stop
+v0.2.1 is on PyPI (`pip install loopbrake`), with the Claude Code plugin in this repository. The stop
 rule is a stop line on run length, set from your own past successful runs, with a guaranteed limit on
 stopping good runs. Next: the observability dashboard and OpenTelemetry export.
 

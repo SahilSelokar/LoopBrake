@@ -112,15 +112,17 @@ def claude_project(tmp_path, monkeypatch, turns=19):
 def test_calibrate_and_status_for_claude_code(capsys, home, tmp_path, monkeypatch):
     project = claude_project(tmp_path, monkeypatch)
     code, out, _ = run_cli(capsys, "calibrate", "--claude-code")
-    lines = out.splitlines()
-    assert code == 0 and lines[0] == f"project {project}"
-    assert lines[1] == "stop line: 2 steps (from 19 successful turns, k = 19, α 5%)"
-    assert lines[2].startswith("saved: ") and len(lines) == 3  # no LoopBrake line: nothing was stopped yet
+    assert code == 0 and out.splitlines() == [
+        "LoopBrake is set up for this project.",
+        "It will stop a task that goes past 2 tool calls. That limit comes from your 19 past successful tasks here: "
+        "fewer than 1 in 20 good tasks should go past it."]  # no line about earlier stops: there were none
+    assert (home / "calibration" / f"{project}.json").exists()
     code, out, _ = run_cli(capsys, "status", "--claude-code")
-    assert code == 0 and out.startswith(f"project {project}: stop line: 2 steps")
-    assert "no turns recorded yet for this project" in out
+    assert code == 0 and out.startswith("LoopBrake in this project:\n  Stop line: 2 tool calls per task (set ")
+    assert "No tasks recorded here yet" in out and "α" not in out
     records.RunWriter(home / "runs" / "x.jsonl").write({"event": "run_start", "session": "x", "run": "r", "project": project, "calibration": {}})
-    assert "no turns recorded yet" not in run_cli(capsys, "status", "--claude-code")[1]
+    out = run_cli(capsys, "status", "--claude-code")[1]
+    assert "No tasks recorded here yet" not in out and "  Tasks seen: 1 (the stop line was on for 0)" in out
 
 
 def test_calibrate_argument_errors(capsys, home, tmp_path, monkeypatch):
@@ -139,17 +141,19 @@ def test_calibrate_claude_code_without_history(capsys, home, tmp_path, monkeypat
 
 
 def test_feedback_last(capsys, home):
-    assert run_cli(capsys, "feedback", "last", "--mistaken") == (1, "", "loopbrake: no stops recorded yet\n")
-    assert run_cli(capsys, "feedback", "last", "--exclude") == (1, "", "loopbrake: no finished turns recorded yet\n")
+    assert run_cli(capsys, "feedback", "last", "--mistaken") == (1, "", "loopbrake: there's no stop to mark yet: LoopBrake hasn't stopped anything.\n")
+    assert run_cli(capsys, "feedback", "last", "--exclude") == (1, "", "loopbrake: there's no finished task to leave out yet.\n")
     w = records.RunWriter(home / "runs" / "s.jsonl")
     w.write({"event": "run_start", "session": "s", "run": "a", "project": "cc-x", "calibration": {}})
     w.write({"event": "stop", "session": "s", "run": "a", "step": 39, "stop_line": 38, "reason": "r"})
     w.write({"event": "run_end", "session": "s", "run": "a", "status": "stopped", "steps": 39})
     w.write({"event": "run_start", "session": "s", "run": "b", "project": "cc-x", "calibration": {}})
     w.write({"event": "run_end", "session": "s", "run": "b", "status": "interrupted", "steps": 0})
-    assert run_cli(capsys, "feedback", "last", "--mistaken") == (0, "recorded: run a (project cc-x, stopped at step 39) marked as a mistaken stop\n", "")
-    assert run_cli(capsys, "feedback", "last", "--mistaken") == (1, "", "loopbrake: run 'a' is already marked\n")
-    assert run_cli(capsys, "feedback", "last", "--exclude") == (0, "recorded: run a (project cc-x, 39 steps, stopped) left out of future calibration\n", "")
+    code, out, _ = run_cli(capsys, "feedback", "last", "--mistaken")
+    assert code == 0 and out.startswith("Done: the stop after 39 tool calls is marked as a mistake.")
+    assert run_cli(capsys, "feedback", "last", "--mistaken") == (1, "", "loopbrake: that one is already marked.\n")
+    code, out, _ = run_cli(capsys, "feedback", "last", "--exclude")
+    assert code == 0 and out.startswith("Done: your last finished task (39 tool calls) will be left out")
 
 
 def test_watch_only_because_of_a_mistaken_stop(capsys, home, tmp_path, monkeypatch):
@@ -160,7 +164,9 @@ def test_watch_only_because_of_a_mistaken_stop(capsys, home, tmp_path, monkeypat
     w.write({"event": "stop", "session": "live", "run": "L", "step": 1, "call_id": "t0-0"})
     w.write({"event": "feedback", "session": "live", "run": "L", "verdict": "mistaken_stop"})
     code, out, _ = run_cli(capsys, "calibrate", "--claude-code")
-    assert code == 0 and "watch-only: 19 successful turns found; need 20 more for α 5%" in out
-    assert "mistaken stops counted as long good turns: 1" in out
+    assert code == 0 and "LoopBrake found 19 successful past tasks in this project and needs 39." in out
+    assert "Counted as long good tasks: 1 stop you marked as a mistake." in out
+    assert "more than the usual 19 because each stop you marked as a mistake counts as a very long good task" in out
+    assert "Left out:" not in out  # nothing to say about zero
     out = run_cli(capsys, "status", "--claude-code")[1]
-    assert "watch-only (19 successful turns; 39 needed)" in out and "turns watched: 0 (of 1 recorded)" in out
+    assert "only watching (19 successful past tasks found, 39 needed)" in out and "Tasks seen: 1 (the stop line was on for 0)" in out

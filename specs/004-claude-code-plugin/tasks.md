@@ -510,5 +510,10 @@ builder's go-ahead.
     doesn't read, and the hooks ignore `agent_id` events.
   - **Not covered by generated turns**: Esc interrupts, prompts typed mid-turn, and automatic
     compaction. Those stay covered by the history scan (research R1) and the unit tests.
+- **Plain-language messages (0.2.1, the builder's request after 0.2.0 was published)**: everything a
+  Claude Code user reads now uses everyday words ("task", "tool calls", "fewer than 1 in 20"). That
+  covers the stop message, the four commands' replies, and the status line. The run records keep the
+  technical reason. Version 0.2.1 in the package, `plugin.json` and the launcher. 0.2.0 stays on PyPI;
+  the plugin on `main` will pin 0.2.1.
 - **Left for the builder**:
   - T032 and T033 (release, with your go-ahead).

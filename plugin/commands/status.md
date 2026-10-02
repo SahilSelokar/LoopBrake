@@ -6,7 +6,7 @@ allowed-tools: Bash(loopbrake status --claude-code)
 Run `loopbrake status --claude-code` with the Bash tool. Then repeat its output to me exactly as
 printed, adding nothing.
 
-Only if the output shows no stop line yet (it says watch-only or no calibration), add one line: the
+Only if the output says the stop line is not set yet, add one line: the
 step count can also be shown in the status line by adding
 `"statusLine": {"type": "command", "command": "uvx --offline loopbrake statusline"}` to
 `~/.claude/settings.json`.

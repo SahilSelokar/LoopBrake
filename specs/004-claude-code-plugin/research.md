@@ -288,10 +288,12 @@ release.
 **What it shows**: `loopbrake statusline` reads the status line's input (`session_id`) and that
 session's run log (the open turn, as in R4, with no lock because it only reads), then prints one
 of:
-- `brake 12/38`
-- `brake 12 (watching)`
-- `brake stopped at 39`
-- `brake idle`
+- `LoopBrake: 12 of 38 tool calls`
+- `LoopBrake: 12 tool calls (watching only)`
+- `LoopBrake: stopped this task at 39 tool calls`
+- `LoopBrake: ready`
+
+(Plain-language wording since 0.2.1; it was `brake 12/38` in 0.2.0.)
 
 **Setup**: plugins can't set a status line, so the user adds one line to `~/.claude/settings.json`:
 `"statusLine": {"type": "command", "command": "uvx --offline loopbrake statusline"}`.

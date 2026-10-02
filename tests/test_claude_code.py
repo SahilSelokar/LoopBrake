@@ -78,9 +78,12 @@ def test_stops_right_after_the_stop_line(home):
     assert [hook(home, "tool", tool(i)) for i in (1, 2, 3)] == [None] * 3
     out = json.loads(hook(home, "tool", tool(4)))
     assert out["continue"] is False
-    assert out["stopReason"].startswith("LoopBrake stopped at step 4: past the stop line of 3 steps set from your 19 past successful turns")
-    assert out["stopReason"].endswith(". If this stop was wrong, run /loopbrake:mistake.")
-    assert json.loads(hook(home, "tool", tool(5)))["continue"] is False  # a parallel call still in flight
+    assert out["stopReason"].startswith("LoopBrake stopped this task after 4 tool calls. Based on your 19 past successful "
+                                        "tasks in this project, good tasks almost never need more than 3 (fewer than 1 in 20 do).")
+    assert out["stopReason"].endswith(" If it wasn't stuck, run /loopbrake:mistake, then tell Claude to continue.")
+    assert "α" not in out["stopReason"] and "step " not in out["stopReason"]  # plain words for the user
+    again = json.loads(hook(home, "tool", tool(5)))  # a parallel call still in flight
+    assert again["continue"] is False and again["stopReason"] == out["stopReason"]
     assert hook(home, "stop", payload()) is None
     ev = log(home)
     assert [e["call_id"] for e in ev if e["event"] == "stop"] == ["t4"]
@@ -250,27 +253,27 @@ def snapshot(home):
 
 
 def test_statusline_states(home):
-    assert line(home) == "brake idle"
+    assert line(home) == "LoopBrake: ready"
     calibrate(home, 3)
     hook(home, "prompt", payload())
-    assert line(home) == "brake 0/3"
+    assert line(home) == "LoopBrake: 0 of 3 tool calls"
     for i in range(1, 4):
         hook(home, "tool", tool(i))
-        assert line(home) == f"brake {i}/3"  # SC-007: the count follows every tool call
+        assert line(home) == f"LoopBrake: {i} of 3 tool calls"  # SC-007: the count follows every tool call
     hook(home, "tool", tool(4))
-    assert line(home) == "brake stopped at 4"
+    assert line(home) == "LoopBrake: stopped this task at 4 tool calls"
     hook(home, "stop", payload())
-    assert line(home) == "brake idle"
+    assert line(home) == "LoopBrake: ready"
     hook(home, "prompt", payload(session="w", folder="-home-me-other-"))
     hook(home, "tool", tool(1, session_id="w", transcript_path=payload(session="w", folder="-home-me-other-")["transcript_path"]))
-    assert line(home, "w") == "brake 1 (watching)"
+    assert line(home, "w") == "LoopBrake: 1 tool call (watching only)"
 
 
 def test_statusline_never_fails_or_writes(home):
     hook(home, "prompt", payload())
     before = snapshot(home)
     for bad in ("", "{bad", "[]", json.dumps({"session_id": "../x"}), json.dumps({"session_id": "nobody"})):
-        assert claude_code.statusline(bad, home) == "brake idle"
+        assert claude_code.statusline(bad, home) == "LoopBrake: ready"
     line(home)
     assert snapshot(home) == before
 

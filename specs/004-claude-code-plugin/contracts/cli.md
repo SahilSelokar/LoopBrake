@@ -1,4 +1,4 @@
-# Contract: CLI additions (v0.2.0)
+# Contract: CLI additions (v0.2.0; plain-language replies since v0.2.1)
 
 The Phase 2 commands are unchanged ([cli contract](../003-core-package/contracts/cli.md)). The
 additions below follow the same rules:
@@ -9,6 +9,14 @@ additions below follow the same rules:
 ## `loopbrake hook <prompt|tool|tool-failed|stop>`
 
 See [hooks.md](hooks.md). Always exits 0.
+
+## Plain-language replies (v0.2.1)
+
+Everything a Claude Code user reads, through `--claude-code` and `feedback last`, is written in
+plain words: "task" for a turn, "tool calls" for steps, and "fewer than 1 in 20" for α 5%. No run
+ids or α symbols. The exact texts are pinned in `tests/test_cli.py` and `tests/test_claude_code.py`,
+and the README shows them. The developer forms (a runs file, `--project`, `feedback RUN`) keep the
+v0.2.0 output below.
 
 ## `loopbrake calibrate --claude-code [--alpha A]`
 
@@ -89,9 +97,9 @@ that session's log without locking, and prints one line:
 
 | State | Output |
 |---|---|
-| An open turn with a stop line | `brake 12/38` |
-| An open turn, watch-only | `brake 12 (watching)` |
-| A braked turn | `brake stopped at 39` |
-| No open turn, or bad input | `brake idle` |
+| An open turn with a stop line | `LoopBrake: 12 of 38 tool calls` |
+| An open turn, watch-only | `LoopBrake: 12 tool calls (watching only)` |
+| A braked turn | `LoopBrake: stopped this task at 39 tool calls` |
+| No open turn, or bad input | `LoopBrake: ready` |
 
 It always exits 0 and never writes anything. Plain text only, with no colors in v1.
