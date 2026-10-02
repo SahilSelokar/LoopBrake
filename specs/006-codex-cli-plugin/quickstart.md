@@ -3,8 +3,8 @@
 Run these on a real Codex. Scenario 0 is the gate: nothing else is built until it passes.
 
 **Prerequisites**:
-- Codex CLI installed (`npm install -g @openai/codex` or `brew install codex`) and signed in, with a
-  ChatGPT login or an OpenAI API key;
+- Codex CLI installed (`npm install -g @openai/codex`), and either signed in (a ChatGPT login or an
+  OpenAI API key) or pointed at a local model through a custom provider, as in research R10;
 - `uv` installed;
 - a scratch folder to work in, and a scratch LoopBrake folder (`LOOPBRAKE_HOME`), so real records
   stay untouched.
@@ -27,7 +27,7 @@ refused attempts.
 - the `tool_name` values, and whether each `tool_use_id` equals the session file's `call_id`;
 - the session file's task boundaries, including a message sent while Codex works;
 - installing a plugin from a local marketplace, and `$PLUGIN_ROOT` in a hook command;
-- a skill running `uvx --offline …` and writing to `~/.loopbrake` under the default sandbox;
+- a command run by the model under the default sandbox (`uvx`, writing `~/.loopbrake`);
 - hook times.
 
 If the gate fails, stop and report to the builder.
@@ -39,11 +39,12 @@ codex plugin marketplace add <this repository, or a local path to it>
 ```
 
 then install `loopbrake` (contracts/plugin.md). **Expect**: the hooks run on the next task (a run log
-appears under `LOOPBRAKE_HOME/runs/`), and the five skills are listed.
+appears under `LOOPBRAKE_HOME/runs/`) once the hooks are trusted with `/hooks` (or with
+`--dangerously-bypass-hook-trust` for a scripted check).
 
 ## 2. Set the limit (User Story 2)
 
-Use the `loopbrake-calibrate` skill in a folder with enough Codex history. **Expect**: the Claude Code
+Send `loopbrake: calibrate` in a folder with enough Codex history. **Expect**: the Claude Code
 wording, with a limit; in a folder with too little, "Not enough history yet … needs N".
 
 ## 3. A live stop (User Story 1; SC-001)
@@ -72,7 +73,7 @@ After some real Codex use, `loopbrake agreement --codex`. **Expect**: live highe
 
 ## 8. Dashboard and export (User Story 3; SC-007)
 
-Open the dashboard (the `loopbrake-dashboard` skill) during a Codex task. **Expect**: the count rises
+Open the dashboard (`loopbrake: dashboard`) during a Codex task. **Expect**: the count rises
 within 2 seconds of each tool call; the task is marked Codex, with plain action names. With export
 on, the task reaches a local Collector named as `codex`.
 

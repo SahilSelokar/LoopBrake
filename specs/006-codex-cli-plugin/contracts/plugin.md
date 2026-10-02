@@ -8,35 +8,36 @@ commands and the manifest fields before release.
 ```text
 codex-plugin/
 ├── .codex-plugin/plugin.json   # name "loopbrake", version = the package's, description, hooks
-├── hooks/hooks.json            # the five hooks of contracts/hooks.md
-├── bin/loopbrake               # the launcher, byte for byte plugin/bin/loopbrake (V = the version)
-└── skills/
-    ├── loopbrake-calibrate/SKILL.md
-    ├── loopbrake-status/SKILL.md
-    ├── loopbrake-mistake/SKILL.md
-    ├── loopbrake-exclude/SKILL.md
-    └── loopbrake-dashboard/SKILL.md
+├── hooks/hooks.json            # the hooks of contracts/hooks.md (seven events)
+└── bin/loopbrake               # the launcher, byte for byte plugin/bin/loopbrake (V = the version)
 ```
+
+**Hook definitions never change between versions** (research R10): Codex runs a plugin's hooks only
+after the user trusts their exact definitions with `/hooks`, and a changed definition needs trusting
+again. Only the launcher's pinned version changes from release to release.
 
 **Versions in step**: the manifest's `version`, the launcher's `V=` and `loopbrake.__version__` agree;
 `tests/test_plugin_files.py` checks it, and that the two launchers are identical.
 
-## The skills (the commands)
+## The commands: typed messages (research R10)
 
-Each skill's instructions: run one command with the shell tool, then repeat its output exactly as
-printed, adding nothing. The program is the pinned package from uv's cache:
-`uvx --offline --from loopbrake==<version> loopbrake …`.
+Codex's sandbox stops commands the model runs from writing `~/.loopbrake` or starting `uvx`, so the
+commands aren't skills. The user types one as the whole message; the `UserPromptSubmit` hook, which
+runs outside the sandbox, runs it and hands its output to the model as `additionalContext`, to repeat
+exactly (contracts/hooks.md).
 
-| Skill | Runs | Same as |
+| Typed message | Runs | Same as |
 |---|---|---|
-| `loopbrake-calibrate` | `calibrate --codex` | `/loopbrake:calibrate` |
-| `loopbrake-status` | `status --codex` | `/loopbrake:status` |
-| `loopbrake-mistake` | `feedback last --mistaken` | `/loopbrake:mistake` |
-| `loopbrake-exclude` | `feedback last --exclude` | `/loopbrake:exclude` |
-| `loopbrake-dashboard` | `dashboard --background`, or `--stop` when asked to stop | `/loopbrake:dashboard [stop]` |
+| `loopbrake: calibrate` | `calibrate --codex` | `/loopbrake:calibrate` |
+| `loopbrake: status` | `status --codex` | `/loopbrake:status` |
+| `loopbrake: mistake` | `feedback last --mistaken` | `/loopbrake:mistake` |
+| `loopbrake: exclude` | `feedback last --exclude` | `/loopbrake:exclude` |
+| `loopbrake: dashboard` | `dashboard --background` | `/loopbrake:dashboard` |
+| `loopbrake: dashboard stop` | `dashboard --stop` | `/loopbrake:dashboard stop` |
+| `loopbrake: help` | lists these | |
 
-**Sandbox** (R6): if Codex's sandbox refuses the write to `~/.loopbrake` for calibrate, mistake or
-exclude, the skill asks for Codex's normal approval for that one command; the README says so.
+Matching: the whole message, trimmed, case-insensitive, with or without the colon (`loopbrake
+status` works too). Anything else is an ordinary message.
 
 ## Installing (README)
 
@@ -44,7 +45,8 @@ exclude, the skill asks for Codex's normal approval for that one command; the RE
 codex plugin marketplace add SahilSelokar/LoopBrake
 ```
 
-then install `loopbrake` from that marketplace (the probe records the exact command). The
+then `codex plugin add loopbrake@loopbrake`, then open Codex once and trust LoopBrake's hooks with
+`/hooks` (until then Codex skips them silently, research R10). The
 repository's `.agents/plugins/marketplace.json` lists one plugin, `loopbrake`, with a `git-subdir`
 source at `./codex-plugin` on `main`.
 

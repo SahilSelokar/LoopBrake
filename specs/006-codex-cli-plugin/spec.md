@@ -208,9 +208,10 @@ observability tool.
 
 - **Codex version**: a Codex CLI with hooks and plugins (hooks have been on by default since early
   2026). The plan pins the lowest version that works.
-- **The builder's setup**: Codex isn't installed on the builder's Mac yet. Live checks need Codex CLI
-  installed and signed in (a ChatGPT login or an OpenAI API key), as the Claude Code checks used the
-  builder's Claude account.
+- **The builder's setup**: the builder has no Codex account (2026-10-02). The builder's decision:
+  check on a real Codex running a local model instead, which exercises Codex's own hooks, history and
+  sandbox; what a GPT model does after a refused call is then checked by the first users (research
+  R10). The README says how it was checked.
 - **The same core**: the plugin uses the same LoopBrake package and the same records, dashboard and
   export as v0.3.0; only the part that talks to Codex is new.
 - **Separate limits per agent**: Claude Code and Codex tasks differ in size, so mixing them would

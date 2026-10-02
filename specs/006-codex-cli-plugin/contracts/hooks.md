@@ -14,16 +14,28 @@ package is missing or uv can't reach the network, as for Claude Code.
 
 | Hook | Event name | Reads | Does | Replies (stdout) |
 |---|---|---|---|---|
-| `UserPromptSubmit` | `codex-prompt` | `session_id`, `turn_id`, `cwd`, `transcript_path` | closes an open task (stopped or interrupted), opens a new one with `turn_id`, `transcript` and `folder` | nothing |
+| `UserPromptSubmit` | `codex-prompt` | `session_id`, `turn_id`, `cwd`, `transcript_path`, `prompt` | a typed command (contracts/plugin.md): runs it, opens no task. Otherwise closes an open task (stopped or interrupted) and opens a new one with `turn_id`, `transcript` and `folder` | for a command, the reply below; otherwise nothing |
 | `PreToolUse` | `codex-pre-tool` | `session_id`, `turn_id` | if this task is stopped, refuses | the refusal below, or nothing |
 | `PostToolUse` | `codex-tool` | `session_id`, `turn_id`, `transcript_path`, `tool_name`, `tool_use_id`, `tool_input` | counts a main-agent call once (helpers' and repeats skipped); decides | the stop below, or nothing |
 | `Stop` | `codex-stop` | `session_id`, `turn_id` | closes the task (finished, or stopped) | nothing (never `decision: "block"`) |
 | `Interrupt` | `codex-interrupt` | `session_id`, `turn_id` | closes the task as interrupted | nothing |
+| `SubagentStart` / `SubagentStop` | `codex-subagent-start` / `codex-subagent-stop` | `session_id`, `turn_id`, `agent_id` | marks a helper running in this task, or done | nothing |
+
+**Helpers** (research R3, R10; untested on a real helper): a `PostToolUse` isn't counted if its
+`transcript_path` differs from the task's, or if it arrives while a helper of this task is running.
+Either mistake can only lower the count, which can only stop later (the safe side).
 
 Matchers: `PreToolUse` and `PostToolUse` use `.*` (every local tool). Timeouts: 30 s, as for Claude
 Code; `Interrupt` keeps Codex's 1 s default.
 
-## The stop (R1)
+## A typed command (research R10)
+
+```json
+{"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
+ "additionalContext": "LoopBrake ran the user's command and printed the text below. Repeat it to the user exactly as printed, adding nothing, and call no tools.\n\n<the command's output>"}}
+```
+
+## The stop (R1, R10)
 
 **At the decision**, the `PostToolUse` that passes the limit replies:
 
@@ -43,7 +55,7 @@ Code; `Interrupt` keeps Codex's 1 s default.
 **The plain stop message** is the Claude Code plugin's, with Codex's commands:
 "LoopBrake stopped this task after N tool calls. Based on your M past successful tasks in this
 project, good tasks almost never need more than L (fewer than 1 in 20 do). [This one also looks
-stuck: ….] If it wasn't stuck, use the loopbrake-mistake skill, then tell Codex to continue."
+stuck: ….] If it wasn't stuck, send "loopbrake: mistake", then tell Codex to continue."
 
 **Watch-only projects** (no limit yet) never reply anything.
 

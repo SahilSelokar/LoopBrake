@@ -155,3 +155,45 @@ call at p95) is checked for the pair.
 
 **Needs from the builder**: Codex CLI installed (`npm install -g @openai/codex` or Homebrew) and
 signed in, with a ChatGPT login or an OpenAI API key.
+
+## R10. Probe results (2026-10-02, Codex CLI 0.160.0)
+
+**How it was run**: the builder has no Codex account, so Codex ran on a local model instead: a
+llama.cpp server with Qwen3-4B-Instruct, set as a custom provider (`-c model_provider=…`). Hooks,
+plugins, history files and the sandbox are Codex's own, whatever the model; what a GPT model does
+after a refused call may differ from this small model (see "Limits" below). The probe plugin and its
+logs stayed in the scratch folder.
+
+| R9 item | Finding |
+|---|---|
+| 1. **The gate** | **Passed, 10 of 10**: each run executed exactly 4 commands and the task ended. In 9 runs the model stopped after reading the stop message in place of the 4th result; in 1 it tried a 5th call, the `PreToolUse` refusal blocked it, and the task then ended. With LoopBrake's real message (which doesn't say "call no more tools"). |
+| 2. What the user sees | The model relays the stop message ("The command was stopped after 4 executions…"). `systemMessage` isn't printed by `codex exec`. |
+| 3. Helpers | **Not settled**: the small model claimed to start a helper but didn't (no `SubagentStart`; both calls came from the main session). |
+| 4. Tool names and ids | Hooks see `tool_name: "Bash"` for shell commands (the history says `exec_command`); `tool_use_id` equals the history's `call_id` exactly. |
+| 5. History boundaries | `event_msg` `task_started` and `task_complete` carry the `turn_id`, the same id the hooks get; a stopped task's 4th result holds LoopBrake's message and the task ends `task_complete`. |
+| 6. Install and `PLUGIN_ROOT` | `codex plugin marketplace add <path or owner/repo>`, then `codex plugin add <plugin>@<marketplace>`. Plugin hooks get `PLUGIN_ROOT` and `PLUGIN_DATA`. |
+| 7. Commands under the sandbox | **Blocked**: under Codex's normal (`workspace-write`) sandbox, a command the model runs can't write `~/.loopbrake`, and `uvx` can't open its cache even with `--offline`. The 4B model also couldn't operate a skill. |
+| 8. Hook times | Each probe hook took under 1 ms of its own work; the launcher's cost is measured with the real plugin (T011). |
+
+**Three findings the docs didn't make plain:**
+1. **Hooks must be trusted first.** Codex runs a non-managed hook (plugin hooks included) only after
+   the user reviews and trusts its exact definition with `/hooks`; the trust is tied to the hook's
+   hash, and `codex exec` skips untrusted hooks **with no warning**. So: the README tells users to open
+   `/hooks` once after installing; the hook definitions must never change between versions (only the
+   launcher's pinned version changes); and status says to check `/hooks` when nothing was recorded.
+2. **Commands can't run as skills** (item 7). **Decision**: the user types the command as their
+   message, `loopbrake: status`, `loopbrake: calibrate`, `loopbrake: mistake`, `loopbrake: exclude`,
+   `loopbrake: dashboard` or `loopbrake: dashboard stop`. The `UserPromptSubmit` hook, which runs outside
+   the sandbox, runs the command and passes its output as `additionalContext` with "repeat it exactly";
+   the model repeats it (checked: exact, no tool calls, about 380 tokens). A command message never
+   opens a LoopBrake task. (A hook reply with `continue: false` also stops the prompt, but `codex exec`
+   shows neither its `stopReason` nor its `systemMessage`.)
+3. **Task boundaries come from `turn_id`** in both the hooks and the history, so live and learned
+   tasks match by construction (constitution, "Same turns live and in calibration").
+
+**Limits, said plainly**: the gate ran on a small local model. A GPT model may try more refused calls
+before ending the task; refused calls never run, so the limit still holds, but a stubborn model would
+spend a few more tokens. Helpers are untested; the design counts nothing that comes from a helper's
+transcript or between `SubagentStart` and `SubagentStop`, so a mistake there can only lower the count
+(the safe side). Both need a check on a real Codex account before the README calls the Codex plugin
+more than "tested on a local model".

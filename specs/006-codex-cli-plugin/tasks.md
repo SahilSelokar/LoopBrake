@@ -39,7 +39,7 @@ report to the builder (spec FR-001).
     `tests/test_plugin_files.py` keeps agreeing;
   - mark Phase 4b "in progress" in `specs/roadmap.md` and the README roadmap table;
   - commit.
-- [ ] T002 Builder, by hand: install Codex CLI (`npm install -g @openai/codex` or `brew install
+- [X] T002 Builder, by hand: install Codex CLI (`npm install -g @openai/codex` or `brew install
   codex`) and sign in (a ChatGPT login or an OpenAI API key). Record `codex --version` in research.md
   under a new "R10. Probe results" heading.
 
@@ -50,7 +50,7 @@ report to the builder (spec FR-001).
 **Purpose**: settle research R9 on a real Codex before anything is built. Nothing in Phases 3–6
 starts until T004 passes.
 
-- [ ] T003 Build a throwaway probe plugin in the scratch folder (never committed):
+- [X] T003 Build a throwaway probe plugin in the scratch folder (never committed):
   - a local marketplace (`.agents/plugins/marketplace.json`) and a plugin with
     `.codex-plugin/plugin.json` and `hooks/hooks.json` hooking `UserPromptSubmit`, `PreToolUse`,
     `PostToolUse`, `Stop`, `Interrupt`, `SubagentStart` and `SubagentStop`;
@@ -59,7 +59,7 @@ starts until T004 passes.
     `PostToolUse` on the fourth replies `continue: false` with a `stopReason` and `systemMessage`;
   - one skill that runs `uvx --offline --from loopbrake==0.3.0 loopbrake --version` and writes a file
     under `~/.loopbrake/probe/`.
-- [ ] T004 Run quickstart scenario 0 and write the findings in research.md "R10. Probe results":
+- [X] T004 Run quickstart scenario 0 and write the findings in research.md "R10. Probe results":
   - **the gate**: 10 runs of `codex exec "Run 'echo hi' ten times, one command at a time."`; at most
     4 ran and the task ended within 3 refused attempts, 10 of 10;
   - items 2–8 of R9: what the user sees; helpers' `transcript_path`; the exact `tool_name` values;
@@ -121,15 +121,17 @@ reason; failures inside LoopBrake never affect Codex.
   - the same never-raise wrapper as `claude_code.hook`. Makes T006 pass.
 - [ ] T009 [US1] In `src/loopbrake/cli.py`, route `loopbrake hook codex-<event>` to `codex.hook`
   before argument parsing, always exiting 0; add a test to `tests/test_cli.py`.
-- [ ] T010 [US1] Write the plugin, per contracts/plugin.md:
+- [ ] T010 [US1] Write the plugin, per contracts/plugin.md (no skills; hook definitions that never
+  change between versions, research R10):
   - `codex-plugin/.codex-plugin/plugin.json` (name `loopbrake`, version 0.4.0, description), using
     the field names T004 confirmed;
-  - `codex-plugin/hooks/hooks.json`: the five hooks of contracts/hooks.md, each running
+  - `codex-plugin/hooks/hooks.json`: the seven events of contracts/hooks.md, each running
     `"$PLUGIN_ROOT/bin/loopbrake" hook codex-<event>` with a 30 s timeout (`Interrupt` keeps 1 s);
   - `codex-plugin/bin/loopbrake`: a copy of `plugin/bin/loopbrake`, mode 755;
   - `.agents/plugins/marketplace.json`: one plugin, `loopbrake`, `git-subdir` source
     `./codex-plugin` on `main`;
   - `tests/test_plugin_files.py`: the manifest and marketplace parse; the hooks run the launcher;
+    `hooks/hooks.json` holds no version (so updates need no new trust);
     the two launchers are byte for byte identical; every version agrees with `__version__`; the
     plugin isn't packaged in the wheel.
 - [ ] T011 [US1] Manual, on a real Codex with `LOOPBRAKE_CMD` pointing at this checkout and a scratch
@@ -173,12 +175,12 @@ the skills.
   (contracts/cli.md), with the Claude Code wording; `agreement --codex` in `src/loopbrake/codex.py`
   matches each live task to the history task holding its first call id and exits 1 if any live
   count is higher. Add tests to `tests/test_cli.py`.
-- [ ] T016 [US2] Write the five skills in `codex-plugin/skills/loopbrake-{calibrate,status,mistake,
-  exclude,dashboard}/SKILL.md` (contracts/plugin.md): run one pinned `uvx --offline --from
-  loopbrake==0.4.0 loopbrake …` command and repeat its output exactly; the dashboard skill runs
-  `--stop` when asked to stop; if T004 found the sandbox refuses writes to `~/.loopbrake`, the
-  writing skills ask for Codex's approval for that command. Extend `tests/test_plugin_files.py`: each
-  skill names exactly its command and the package's version.
+- [ ] T016 [US2] The typed commands (contracts/plugin.md, research R10; they replace the skills,
+  which Codex's sandbox blocks): in `src/loopbrake/codex.py`, `codex-prompt` recognizes `loopbrake:
+  calibrate|status|mistake|exclude|dashboard|dashboard stop|help` (the whole message, trimmed,
+  case-insensitive, colon optional), runs it in-process, opens no task, and replies with the output as
+  `additionalContext` to repeat exactly. Add tests to `tests/test_codex.py`: each command's reply, a
+  near-miss message ("loopbrake: status please") treated as ordinary, and no task opened.
 - [ ] T017 [US2] Manual: quickstart scenario 2 on a folder with real Codex history, each skill once,
   and scenario 7 (`loopbrake agreement --codex`: live higher 0). Note the results.
 
@@ -279,3 +281,11 @@ user's tools when export is on.
   Ctrl+C, so a Ctrl+C in that window crashed it (exit -2) instead of stopping it cleanly. The window
   came with v0.3.0's `--background` work. Now everything after the server starts sits inside the
   Ctrl+C handling, and the address is printed last, once the dashboard is ready: 15 of 15 runs pass.
+- **T002**: Codex CLI 0.160.0 installed in the builder's user folder (npm). The builder has no Codex
+  account, so the probe ran Codex on a local model (research R10).
+- **T003–T004**: the probe plugin installed from a local marketplace. **The gate passed, 10 of 10**
+  (research R10). Findings that changed the design: Codex runs hooks only after the user trusts them
+  with `/hooks` (and `codex exec` skips untrusted hooks silently); commands can't run as skills under
+  Codex's sandbox, so they're typed messages run by the prompt hook; task boundaries come from
+  `turn_id` on both sides. Not settled: helpers (the small model never started one), and how a GPT
+  model behaves after a refusal.

@@ -23,8 +23,10 @@ for Codex CLI, with the same brake, records, dashboard and export, and a new thi
   - every later tool call of that task is refused.
 - **The limit** is learned from the user's own Codex session files, through one new reader cut at the
   same task boundaries as the live hooks (R4).
-- **The plugin** is a new `codex-plugin/` folder with hooks, five skills (the commands) and the same
-  launcher, installed from this repository's Codex marketplace (R5, R6).
+- **The plugin** is a new `codex-plugin/` folder with hooks and the same launcher, installed from
+  this repository's Codex marketplace (R5). **The commands are typed messages** (`loopbrake: status`
+  and so on) that the prompt hook runs outside Codex's sandbox (R10), because the sandbox blocks them
+  as skills.
 - **Codex tasks** show in the dashboard and export as agent `codex` (R8).
 
 **The gate comes first** (spec FR-001): a probe on a real Codex must show that refusing every call
@@ -33,7 +35,7 @@ and goes back to the builder. The probe also settles seven smaller unknowns (R9)
 
 ## Technical Context
 
-**Language/Version**: Python 3.11+ (package), POSIX shell (the launcher), Markdown (skills).
+**Language/Version**: Python 3.11+ (package), POSIX shell (the launcher).
 
 **Primary Dependencies**: none at runtime (standard library only, constitution Principle III). Codex
 CLI, a recent version with hooks and plugins; the probe pins the lowest one that works.
@@ -54,7 +56,7 @@ by hand on a real Codex (quickstart.md).
 **Constraints**: fail safe (a broken plugin never blocks Codex); no network on the hook path; Codex
 history never committed (Principle VI).
 
-**Scale/Scope**: one adapter module, one history reader, one plugin folder with five skills, small
+**Scale/Scope**: one adapter module, one history reader, one plugin folder with its hooks, small
 changes to the CLI, dashboard and export.
 
 ## Constitution Check
@@ -87,7 +89,7 @@ specs/006-codex-cli-plugin/
 ├── quickstart.md        # Phase 1: the probe and the live checks
 ├── contracts/
 │   ├── hooks.md         # Codex events in, replies out
-│   ├── plugin.md        # the Codex plugin, its skills and marketplace entry
+│   ├── plugin.md        # the Codex plugin, its typed commands and marketplace entry
 │   └── cli.md           # new command options
 ├── checklists/requirements.md
 └── tasks.md             # Phase 2 (/speckit-tasks)
@@ -108,14 +110,13 @@ codex-plugin/            # new: the Codex plugin
 ├── .codex-plugin/plugin.json
 ├── hooks/hooks.json
 ├── bin/loopbrake        # the same launcher as plugin/bin/loopbrake (a test keeps them identical)
-└── skills/loopbrake-{calibrate,status,mistake,exclude,dashboard}/SKILL.md
 
 .agents/plugins/marketplace.json   # new: offers codex-plugin/ to `codex plugin marketplace add`
 
 tests/
 ├── test_codex.py        # new: hook replies, the two-part stop, helper calls, failing safely
 ├── test_traces.py       # + codex_turns on the pinned sample
-├── test_plugin_files.py # + the Codex plugin: manifest, hooks, skills, launcher, versions
+├── test_plugin_files.py # + the Codex plugin: manifest, hooks, launcher, versions
 └── fixtures/codex_rollout.jsonl   # new, synthetic
 ```
 
