@@ -136,9 +136,9 @@ def test_last_run(home):
     w.write(ev("run_start", "a", project="p1"))
     w.write(ev("stop", "a", step=4, stop_line=3, reason="r"))
     w.write(ev("run_end", "a", status="stopped", steps=4))
-    w2 = records.RunWriter(home / "runs" / "s2.jsonl")
-    w2.write(ev("run_start", "b", project="p2") | {"session": "s2"})
-    w2.write(ev("run_end", "b", status="interrupted", steps=0) | {"session": "s2"})
+    w2 = records.RunWriter(home / "runs" / "s2.jsonl")  # one second later: file times alone can tie on Linux
+    w2.write(ev("run_start", "b", project="p2") | {"session": "s2", "ts": "2026-10-01T00:00:01+00:00"})
+    w2.write(ev("run_end", "b", status="interrupted", steps=0) | {"session": "s2", "ts": "2026-10-01T00:00:01+00:00"})
     start, stop = records.last_run(home, "stop")
     assert (start["run"], start["project"], stop["step"]) == ("a", "p1", 4)
     assert records.last_run(home, "run_end")[0]["run"] == "b"
