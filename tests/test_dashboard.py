@@ -182,3 +182,96 @@ def test_large_history_loads_fast(home):
     t = time.perf_counter()
     idx.overview()
     assert time.perf_counter() - t < 0.1
+
+
+# ---- the server and its access rules (T008, contracts/dashboard-http.md) ----
+
+import http.client
+import threading
+
+
+@pytest.fixture
+def server(home):
+    write(home, "s1", task_events("stp", calls=4, stop_at=4, end="stopped"))
+    calibrate(home, "demo", 3)
+    srv, key = dashboard.make_server(home)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield srv, key, srv.server_address[1]
+    srv.shutdown()
+    srv.server_close()
+
+
+def call(port, path, method="GET", key=None, host=None, origin=None, body=None):
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=10)
+    headers = {"Host": host or f"127.0.0.1:{port}"}
+    if key:
+        headers["Cookie"] = f"lb={key}"
+    if origin:
+        headers["Origin"] = origin
+    if body is not None:
+        headers["Content-Type"] = "application/json"
+        body = json.dumps(body)
+    conn.request(method, path, body=body, headers=headers)
+    r = conn.getresponse()
+    data = r.read()
+    conn.close()
+    return r.status, dict(r.getheaders()), data
+
+
+def test_key_exchange_and_access(server):
+    _, key, port = server
+    code, headers, _ = call(port, f"/?k={key}")
+    cookie = headers["Set-Cookie"]
+    assert code == 303 and headers["Location"] == "/"
+    assert f"lb={key}" in cookie and "HttpOnly" in cookie and "SameSite=Strict" in cookie and "Path=/" in cookie
+    assert call(port, "/?k=wrong")[0] == 401
+    code, _, body = call(port, "/api/overview")
+    assert code == 401 and b"Open the address loopbrake dashboard printed." in body
+    assert call(port, "/api/overview", key=key, host="evil.example")[0] == 403
+    assert call(port, "/api/overview", key=key, host=f"localhost:{port}")[0] == 200
+    assert call(port, "/api/mistake", "POST", key=key, origin="http://evil.example", body={"task": "s1/stp"})[0] == 403
+
+
+def test_headers_and_bind_address(server):
+    srv, key, port = server
+    assert srv.server_address[0] == "127.0.0.1"
+    _, headers, _ = call(port, "/api/overview", key=key)
+    assert headers["Content-Security-Policy"] == "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'"
+    assert headers["X-Content-Type-Options"] == "nosniff" and headers["Referrer-Policy"] == "no-referrer"
+    assert headers["Cache-Control"] == "no-store" and headers["Content-Type"] == "application/json"
+
+
+def test_read_endpoints(server):
+    _, key, port = server
+    get = lambda p: json.loads(call(port, p, key=key)[2])
+    assert set(get("/api/changes?since=0")) == {"version"}
+    o = get("/api/overview")
+    assert {"seen", "stopped", "mistaken", "normal_mistakes", "running", "recent_stops", "days", "skipped_lines"} <= set(o)
+    assert get("/api/tasks?limit=5")["tasks"][0]["id"] == "s1/stp"
+    t = get("/api/task/s1/stp")
+    assert t["summary"]["status"] == "Stopped" and len(t["calls"]) == 4 and t["reason_text"]
+    assert get("/api/projects")[0]["name"] == "demo" and get("/api/project/demo")["limit"] == 3
+    assert call(port, "/api/task/s1/nope", key=key)[0] == 404 and call(port, "/api/project/nope", key=key)[0] == 404
+    assert call(port, "/api/task/..%2F/x", key=key)[0] in (400, 404)
+
+
+def test_static_files_and_no_traversal(server):
+    _, key, port = server
+    code, headers, body = call(port, "/", key=key)
+    assert code == 200 and headers["Content-Type"].startswith("text/html") and b"<html" in body
+    code, headers, _ = call(port, "/static/icons.svg", key=key)
+    assert code == 200 and headers["Content-Type"] == "image/svg+xml"
+    assert call(port, "/static/fonts/inter-tight.woff2", key=key)[1]["Content-Type"] == "font/woff2"
+    for bad in ("/static/../dashboard.py", "/static/%2e%2e/dashboard.py", "/static/fonts/../../dashboard.py", "/nope"):
+        assert call(port, bad, key=key)[0] == 404, bad
+    assert call(port, "/static/icons.svg")[0] == 401  # files need the key too
+
+
+def test_live_update_within_two_seconds(server, home):
+    _, key, port = server
+    v1 = json.loads(call(port, "/api/changes", key=key)[2])["version"]
+    write(home, "s1", [{"event": "step", "run": "stp", "step": 5, "tool": "Bash", "action_excerpt": "Bash x", "error": False}])
+    t0 = time.time()
+    while json.loads(call(port, "/api/changes", key=key)[2])["version"] == v1:
+        assert time.time() - t0 < 2
+        time.sleep(0.05)

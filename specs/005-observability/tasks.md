@@ -148,7 +148,7 @@ behind a key.
     cached per file by `(size, mtime)`. Only numbers are kept.
 
   Makes T006 pass.
-- [ ] T008 [P] [US1] Write `tests/test_dashboard.py`, part 2 (server and access, contracts/
+- [X] T008 [P] [US1] Write `tests/test_dashboard.py`, part 2 (server and access, contracts/
   dashboard-http.md), starting the real server on `127.0.0.1:0` in a thread:
   - **The key exchange**: `GET /?k=KEY` gives 303 to `/` and sets the cookie `lb=KEY; HttpOnly;
     SameSite=Strict; Path=/`; a wrong key gives 401.
@@ -162,7 +162,7 @@ behind a key.
   - **Path traversal**: `/static/../records.py` gives 404, and so do unknown paths.
   - **Live update (SC-001)**: after a hook writes a step, `/api/changes` reports a new version
     within 2 s.
-- [ ] T009 [US1] Implement the server in `src/loopbrake/dashboard.py`: `serve(port=0,
+- [X] T009 [US1] Implement the server in `src/loopbrake/dashboard.py`: `serve(port=0,
   open_browser=True, days=None, home=None)`.
   - `http.server.ThreadingHTTPServer(("127.0.0.1", port))`, with a request handler holding the
     access rules from research R1;
@@ -172,7 +172,7 @@ behind a key.
   - the browser opened with `webbrowser.open`.
 
   Makes T008 pass.
-- [ ] T010 [US1] Add `loopbrake dashboard [--port N] [--no-open] [--days D]` to
+- [X] T010 [US1] Add `loopbrake dashboard [--port N] [--no-open] [--days D]` to
   `src/loopbrake/cli.py`, per contracts/cli.md:
   - it prints the two lines and exits 0 on Ctrl+C;
   - a taken port exits 2 with one line.

@@ -170,3 +170,39 @@ def test_watch_only_because_of_a_mistaken_stop(capsys, home, tmp_path, monkeypat
     assert "Left out:" not in out  # nothing to say about zero
     out = run_cli(capsys, "status", "--claude-code")[1]
     assert "only watching (19 successful past tasks found, 39 needed)" in out and "Tasks seen: 1 (the stop line was on for 0)" in out
+
+
+# ---- Phase 4: dashboard and replay --record ----
+
+def test_dashboard_command_prints_its_address_and_stops_cleanly(home, tmp_path):
+    import os
+    import signal
+    import subprocess
+    import sys
+    env = os.environ | {"LOOPBRAKE_HOME": str(home), "PYTHONPATH": str(Path(cli.__file__).parents[1])}
+    p = subprocess.Popen([sys.executable, "-m", "loopbrake.cli", "dashboard", "--no-open"], stdout=subprocess.PIPE, text=True, env=env)
+    first = p.stdout.readline()
+    second = p.stdout.readline()
+    assert re.fullmatch(r"LoopBrake dashboard: http://127\.0\.0\.1:\d+/\?k=[A-Za-z0-9_-]{43}\n", first)
+    assert second == "Only this computer can open it. Press Ctrl+C to stop.\n"
+    p.send_signal(signal.SIGINT)
+    assert p.wait(timeout=10) == 0
+
+
+def test_dashboard_port_taken(capsys, home):
+    import socket
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    s.listen(1)
+    code, _, err = run_cli(capsys, "dashboard", "--no-open", "--port", str(s.getsockname()[1]))
+    s.close()
+    assert code == 2 and err.startswith("loopbrake: port") and "--port" in err
+
+
+def test_replay_record_writes_tasks_for_the_dashboard(capsys, home):
+    code, out, _ = run_cli(capsys, "replay", str(FIX), "--stop-line", "10", "--record")
+    assert code == 0 and "runs 30, stopped 22" in out
+    ev = [json.loads(l) for l in (home / "runs" / "replay-calibration_runs.jsonl").read_text().splitlines()]
+    starts = [e for e in ev if e["event"] == "run_start"]
+    assert len(starts) == 30 and {e["project"] for e in starts} == {"replay-calibration_runs"}
+    assert sum(e["event"] == "stop" for e in ev) == 22 and sum(e["event"] == "run_end" for e in ev) == 30

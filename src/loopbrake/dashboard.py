@@ -4,13 +4,20 @@ Contracts: specs/005-observability/contracts/dashboard-http.md and ui.md. It rea
 LoopBrake already writes; its actions reuse the Phase 3 code. It listens on 127.0.0.1 only and the
 page loads nothing from anywhere else (constitution, Principle VI and Dashboard security).
 """
+import http.cookies
+import http.server
 import json
+import os
 import re
+import secrets
 import threading
 import time
 import warnings
+import webbrowser
 from datetime import datetime, timedelta, timezone
+from importlib import resources
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlsplit
 
 from loopbrake import calibration, claude_code, records
 from loopbrake.signals import Step, method
@@ -278,3 +285,158 @@ class Index:
         if p is not None:
             p["promise"] = f"{claude_code.one_in(p['alpha'])} good tasks should go past it"
         return p
+
+
+# ---- the server (research R1, contracts/dashboard-http.md) ----
+
+CSP = "default-src 'self'; img-src 'self' data:; frame-ancestors 'none'"
+HINT = b"Open the address loopbrake dashboard printed.\n"
+_PART = re.compile(r"[A-Za-z0-9._-]{1,128}")
+_TYPES = {".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+          ".svg": "image/svg+xml", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8"}
+
+
+class _Handler(http.server.BaseHTTPRequestHandler):
+    index = key = port = None
+    server_version = "loopbrake"
+    sys_version = ""
+
+    def log_message(self, *args):  # quiet: nothing about the user's tasks goes to the terminal
+        pass
+
+    def _send(self, code, body=b"", ctype=None, extra=None):
+        self.send_response(code)
+        self.send_header("Content-Security-Policy", CSP)
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        if ctype:
+            self.send_header("Content-Type", ctype)
+        if ctype == "application/json":
+            self.send_header("Cache-Control", "no-store")
+        for k, v in (extra or {}).items():
+            self.send_header(k, v)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def _json(self, code, obj):
+        self._send(code, json.dumps(obj, ensure_ascii=False).encode(), "application/json")
+
+    def _allowed(self):
+        """The Host check (DNS rebinding) and the per-launch key, as a cookie."""
+        if self.headers.get("Host") not in (f"127.0.0.1:{self.port}", f"localhost:{self.port}"):
+            self._send(403)
+            return False
+        jar = http.cookies.SimpleCookie()
+        try:
+            jar.load(self.headers.get("Cookie") or "")
+        except http.cookies.CookieError:
+            pass
+        if "lb" not in jar or not secrets.compare_digest(jar["lb"].value, self.key):
+            self._send(401, HINT, "text/plain; charset=utf-8")
+            return False
+        return True
+
+    def do_GET(self):
+        url = urlsplit(self.path)
+        query = parse_qs(url.query)
+        if url.path == "/" and "k" in query and self.headers.get("Host") in (f"127.0.0.1:{self.port}", f"localhost:{self.port}"):
+            if secrets.compare_digest(query["k"][0], self.key):  # the printed address: swap the key for a cookie
+                return self._send(303, extra={"Location": "/", "Set-Cookie": f"lb={self.key}; HttpOnly; SameSite=Strict; Path=/"})
+            return self._send(401, HINT, "text/plain; charset=utf-8")
+        if not self._allowed():
+            return
+        if url.path == "/":
+            return self._static("index.html")
+        if url.path.startswith("/static/"):
+            return self._static(url.path[len("/static/"):])
+        if url.path.startswith("/api/"):
+            return self._api_get(url.path, query)
+        self._send(404)
+
+    def _static(self, rel):
+        parts = unquote(rel).split("/")
+        if not parts or any(not _PART.fullmatch(p) or p in (".", "..") for p in parts):
+            return self._send(404)
+        f = resources.files("loopbrake").joinpath("static", *parts)
+        if not f.is_file():
+            return self._send(404)
+        self._send(200, f.read_bytes(), _TYPES.get(Path(parts[-1]).suffix, "application/octet-stream"))
+
+    def _api_get(self, path, query):
+        q = lambda name, default=None: (query.get(name) or [default])[0]
+        idx = self.index
+        idx.refresh()
+        parts = [unquote(p) for p in path.split("/")[2:]]
+        if parts == ["changes"]:
+            return self._json(200, {"version": idx.version})
+        if parts == ["overview"]:
+            return self._json(200, idx.overview(q("project")))
+        if parts == ["tasks"]:
+            limit = int(q("limit", "50")) if (q("limit") or "50").isdigit() else 50
+            return self._json(200, idx.tasks(q("project"), q("status"), q("before"), min(limit, 200)))
+        if parts and parts[0] == "task" and len(parts) == 3:
+            if not all(_PART.fullmatch(p) for p in parts[1:]):
+                return self._json(400, {"error": "Not a task."})
+            page = int(q("page", "0")) if (q("page") or "0").isdigit() else 0
+            t = idx.task(parts[1], parts[2], page)
+            return self._json(200, t) if t else self._json(404, {"error": "No such task."})
+        if parts == ["projects"]:
+            return self._json(200, idx.projects())
+        if parts and parts[0] == "project" and len(parts) == 2:
+            p = idx.project(parts[1]) if records.valid_project(parts[1]) else None
+            return self._json(200, p) if p else self._json(404, {"error": "No such project."})
+        if parts == ["export"]:
+            return self._json(200, export_status())
+        self._send(404)
+
+    def do_POST(self):
+        if not self._allowed():
+            return
+        if self.headers.get("Origin") not in (f"http://127.0.0.1:{self.port}", f"http://localhost:{self.port}"):
+            return self._send(403)
+        try:
+            body = json.loads(self.rfile.read(min(int(self.headers.get("Content-Length") or 0), 10_000)) or b"{}")
+        except (ValueError, json.JSONDecodeError):
+            return self._json(400, {"error": "Not valid JSON."})
+        action = urlsplit(self.path).path
+        handler = ACTIONS.get(action)
+        if handler is None:
+            return self._send(404)
+        code, obj = handler(self.index, body if isinstance(body, dict) else {})
+        self._json(code, obj)
+
+
+def export_status():
+    """Placeholder until export exists (US3)."""
+    return {"on": os.environ.get("LOOPBRAKE_EXPORT") == "otlp"}
+
+
+ACTIONS = {}  # POST path -> handler(index, body) -> (status, json); filled in by the actions below
+
+
+def make_server(home=None, port=0, days=None):
+    """A ready server bound to 127.0.0.1, and its per-launch key."""
+    index = Index(home, days)
+    index.refresh()
+    handler = type("Handler", (_Handler,), {"index": index, "key": secrets.token_urlsafe(32)})
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
+    server.daemon_threads = True
+    handler.port = server.server_address[1]
+    return server, handler.key
+
+
+def serve(port=0, open_browser=True, days=None, home=None):
+    server, key = make_server(home, port, days)
+    url = f"http://127.0.0.1:{server.server_address[1]}/?k={key}"
+    print(f"LoopBrake dashboard: {url}")
+    print("Only this computer can open it. Press Ctrl+C to stop.", flush=True)
+    if open_browser:
+        webbrowser.open(url)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()

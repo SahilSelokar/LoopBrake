@@ -3,8 +3,11 @@ import argparse
 import os
 import sys
 
-from loopbrake import __version__, calibration, claude_code, records
-from loopbrake.brake import replay
+import re
+from pathlib import Path
+
+from loopbrake import __version__, calibration, claude_code, dashboard, records
+from loopbrake.brake import Brake, replay
 from loopbrake.traces import read_runs
 
 
@@ -100,10 +103,11 @@ def _replay(args):
             return 2
     runs, _ = read_runs(args.runs_file)
     stopped_ok = stopped_failed = 0
+    stem = re.sub(r"[^A-Za-z0-9._-]", "-", Path(args.runs_file).stem)[:50]
     for r in runs:
         if not r.steps:
             continue
-        step = replay(r, cal)
+        step = _record_replay(r, cal, stem) if args.record else replay(r, cal)
         if step is not None:
             stopped_ok += r.success
             stopped_failed += not r.success
@@ -141,6 +145,27 @@ def _agreement(args):
     return 1 if higher else 0
 
 
+def _record_replay(run, cal, stem):
+    """Replay one run through a recording brake, so the dashboard can show it (spec SC-007)."""
+    rid = re.sub(r"[^A-Za-z0-9._-]", "-", run.run)[:128]
+    b = Brake(f"replay-{stem}", f"replay-{stem}", rid, records.home(), cal)
+    stop = None
+    for s in run.steps:
+        if b.step(s.action, s.observation, tokens=s.tokens, error=s.error).stop:
+            stop = len(b.steps)
+            break
+    b.end("stopped" if stop else "finished")
+    return stop
+
+
+def _dashboard(args):
+    try:
+        dashboard.serve(port=args.port, open_browser=not args.no_open, days=args.days)
+    except OSError as e:
+        return _fail(f"port {args.port} is taken ({e.strerror}); pick another with --port", 2)
+    return 0
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == ["hook"]:  # before argparse, which exits 2 on bad arguments: a hook must never do that
@@ -164,9 +189,14 @@ def main(argv=None):
     sub.add_parser("hook", help="Claude Code hook entry point (reads the event from stdin)").add_argument("event", choices=claude_code.EVENTS)
     sub.add_parser("agreement", help="check live step counts against calibration's, turn by turn (writes nothing)").add_argument(
         "--claude-code", action="store_true", help="the Claude Code project of the current folder")
+    d = sub.add_parser("dashboard", help="open the local dashboard (only this computer can reach it)")
+    d.add_argument("--port", type=int, default=0, help="a fixed port (default: any free one)")
+    d.add_argument("--no-open", action="store_true", help="don't open a browser")
+    d.add_argument("--days", type=int, help="read only the last D days of records")
     sub.add_parser("statusline", help="one line for Claude Code's status line (reads its input from stdin)")
-    r = sub.add_parser("replay", help="show where recorded runs would stop (writes nothing)")
+    r = sub.add_parser("replay", help="show where recorded runs would stop (writes nothing, unless --record)")
     r.add_argument("runs_file")
+    r.add_argument("--record", action="store_true", help="write the replayed runs as records, for the dashboard")
     g2 = r.add_mutually_exclusive_group(required=True)
     g2.add_argument("--project")
     g2.add_argument("--stop-line", type=int)
@@ -178,7 +208,7 @@ def main(argv=None):
         ap.print_help()
         return 0
     try:
-        return {"calibrate": _calibrate, "status": _status, "feedback": _feedback, "replay": _replay, "statusline": _statusline, "agreement": _agreement}[args.command](args)
+        return {"calibrate": _calibrate, "status": _status, "feedback": _feedback, "replay": _replay, "statusline": _statusline, "agreement": _agreement, "dashboard": _dashboard}[args.command](args)
     except (OSError, ValueError, KeyError) as e:
         if os.environ.get("LOOPBRAKE_DEBUG") == "1":
             raise
