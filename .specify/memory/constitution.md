@@ -1,20 +1,20 @@
 <!--
 Sync Impact Report
-- Version change: 2.4.1 → 2.5.0 (MINOR: dashboard guidance materially expanded)
-- Modified: Technical Constraints, "Dashboard" (the builder's redesign decisions, 2026-10-02).
-  - What it shows: brought up to date with what Phase 4 built and the redesign. Was: a score line,
-    the τ line and a "false-kill budget". Now: actions over time against the limit, the loop shown
-    as repeats, the past tasks as a picture, and mistakes next to how many are expected.
-  - Added "Plain words": the dashboard is for people who don't code. A tool call is an "action";
-    tools are named by what they did; never τ, α, score, kill, step or ids on screen.
-  - Visual identity: the same reel colors, now in a light and a dark theme that follow the system,
-    with a choice in Settings. On light backgrounds lime is a fill only.
-  - Glass behavior: the manual "Glass off" toggle is removed. Glass turns off by itself under
-    reduced transparency and increased contrast, and sits only behind chrome, never content.
+- Version change: 2.5.0 → 2.6.0 (MINOR: the dashboard's visual identity changed)
+- Modified: Technical Constraints, "Dashboard", "Visual identity" (the builder's decision,
+  2026-10-02).
+  - Was: the Episode 1 reel colors (night, lime, green, red, paper, ink).
+  - Now: the Visual Vortex brand (visualvortexcreatives.dev): night, surface and paper, coral as the
+    main accent, the coral to rose to plum gradient, green and blue as secondary colors. Red stays,
+    for the stopped state only.
+  - On light backgrounds coral is a fill only; text accents there use a deep plum (coral on white
+    is 2.99:1, below WCAG AA).
+  - No logo mark next to the LoopBrake name. Fonts unchanged.
 - Principles I–VI: unchanged.
-- Dependent docs: specs/005-observability spec FR-007 and contracts/ui.md (screens, words, look),
-  and the roadmap's Phase 4 design notes, follow in the redesign tasks.
+- Dependent docs: specs/005-observability contracts/ui.md ("Look") and the roadmap's Phase 4 design
+  notes follow in the dashboard tasks.
 - History:
+  - 2.5.0 made the dashboard plain-worded, light and dark, with no glass switch.
   - 2.4.1 made export counters delta by default, cumulative on request.
   - 2.4.0 set turn boundaries, fail-safe hooks, and the mistaken-stop rule.
   - 2.3.0 added open core and releases.
@@ -171,12 +171,16 @@ an observability tool only when they control exactly what leaves the machine.
       page addresses.
   - **Security**: it binds to `127.0.0.1` only. It requires a per-launch token, checks the
     `Host` header, and accepts write actions only as POST.
-  - **Visual identity**: the Episode 1 reel brand, with **liquid glass** on chrome.
-    - Colors: night `#08110D`, lime `#CFFF3E`, green `#0F3D2E`, red `#E5341F`, paper `#ECEBE4`,
-      ink `#0D0E0B`.
+  - **Visual identity**: the Visual Vortex brand (visualvortexcreatives.dev), with **liquid
+    glass** on chrome.
+    - Colors: night `#0A0A0A`, surface `#111218`, paper `#EDEDED`, coral `#EA7252` (the main
+      accent), rose `#C7576C` and plum `#A6447F` (coral to rose to plum is the brand gradient),
+      green `#1D9E75` and blue `#378ADD` (secondary), and red `#E5341F` for the stopped state only.
     - Themes: a light theme and a dark theme from these colors. The page follows the system's
       setting, and Settings offers light, dark or system. Every text color pair in both themes MUST
-      meet WCAG AA. On light backgrounds lime is a fill only, never text.
+      meet WCAG AA. On light backgrounds coral is a fill only, never text; text accents there use a
+      deep plum.
+    - The LoopBrake name stands alone, with no logo mark next to it.
     - Fonts: Inter Tight for headings, JetBrains Mono for numbers, Instrument Serif italic for
       annotations.
   - **Glass placement**: glass goes on chrome and floating controls only: navigation, toolbars,
@@ -266,4 +270,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.5.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-02
+**Version**: 2.6.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-02
