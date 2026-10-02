@@ -436,7 +436,7 @@ least 95 with glass on and off, and phone-width ready.
     with `readme_renderer`.
 - [X] T028 [P] Mark Phase 4 done in `specs/roadmap.md` (at T033), and record any changes from the
   roadmap's Phase 4 text (the step-budget chart, plain words, account-free checks).
-- [ ] T029 Run the full suite:
+- [X] T029 Run the full suite:
   - `uv run python -m pytest`, and `uv run --with claude-agent-sdk python -m pytest
     tests/test_agent_sdk.py`;
   - push the branch, and confirm GitHub's tests pass on 3.11–3.13.
@@ -449,13 +449,13 @@ least 95 with glass on and off, and phone-width ready.
   - launcher speed against a local 0.3.0 wheel;
   - `loopbrake agreement --claude-code` on real use since 0.2.1, which must show live higher 0
     (constitution 2.4.0).
-- [ ] T032 Release, with the builder's go-ahead (a release is public):
+- [X] T032 Release, with the builder's go-ahead (a release is public):
   1. tag the branch head `v0.3.0` and push only the tag;
   2. confirm PyPI serves 0.3.0;
   3. merge into `main` and push;
   4. confirm `main`'s tests pass;
   5. update the builder's installed plugin (`claude plugin update loopbrake@loopbrake`, or reinstall).
-- [ ] T033 Wrap up:
+- [X] T033 Wrap up:
   - roadmap Phase 4 done, and README status;
   - stop the local Collector (`docker compose down`);
   - note the outcomes here.
@@ -717,3 +717,23 @@ the go-ahead, and T034 comes after the release.
   run with this checkout's plugin: the first printed the address and returned, the dashboard kept
   running after Claude exited, and the second stopped it and removed `dashboard.json`. A plain
   `loopbrake dashboard` would have hung the command, since it serves until Ctrl+C.
+
+**2026-10-02, the release**
+
+- **T029**: 215 passed, 1 skipped locally; GitHub's tests on 3.11, 3.12 and 3.13 and the build check
+  passed on the pushed branch.
+- **Release checks again** (the code changed after T031): the 0.3.0 wheel holds the 10 page files
+  and 52 icons and not `plugin/`; 100 hook calls through the launcher took a median of 63 ms, p95
+  65 ms; `loopbrake agreement --claude-code` on the builder's real use: 7 turns matched, 7 equal, live
+  higher 0; `claude plugin validate` passes for both.
+- **T032**: tag `v0.3.0` pushed; the publish workflow passed and PyPI serves the wheel and the sdist;
+  `main` was fast-forwarded and pushed, and its tests pass on all three Pythons; the builder's
+  installed plugin was updated from 0.2.1 to 0.3.0.
+  - **Found right after release**: uv had kept PyPI's package list from before 0.3.0 existed, so the
+    plugin's first download of 0.3.0 failed ("no version of loopbrake==0.3.0"). It heals by itself
+    when uv's copy expires, and `uvx --refresh-package loopbrake` fixed it at once. Until then the
+    hooks count nothing, safely. A candidate for the next plugin release: let the launcher's
+    background download refresh the package list.
+- **T033**: Phase 4 is marked done in the roadmap and the README (with the Codex CLI plugin as Phase
+  4b, next); the local Collector and Jaeger were already stopped.
+- **Still open**: T034, three people new to LoopBrake, after the release.
