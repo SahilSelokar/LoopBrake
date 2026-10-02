@@ -140,26 +140,56 @@ The dashboard:
 - looks like the LoopBrake reel brand (night background, lime accents, the liquid glass look on its
   controls);
 - uses one consistent icon set and no emoji;
-- stays readable for everyone. Glass can be turned off, motion respects the user's settings, high
-  contrast works, and color is never the only signal.
+- stays readable for everyone. It comes in a light and a dark theme that follow the system, glass
+  turns itself off when the system asks for less transparency or more contrast, motion respects the
+  user's settings, and color is never the only signal.
 
 It also works at phone width, so it can be recorded for reels.
 
 **Why this priority**: it carries the launch video and the builder's credibility, but every
 function above works without it.
 
-**Independent Test**: run an automated accessibility audit with glass on and with glass off. Both
+**Independent Test**: run an automated accessibility audit in the light and the dark theme. Both
 score at least 95 of 100. Turn on the system's "reduce motion" and "increase contrast" settings,
 and check that the dashboard follows them.
 
 **Acceptance Scenarios**:
 
-1. **Given** the dashboard, **When** the user turns glass off, **Then** every panel becomes solid and
-   stays that way the next time they open it.
+1. **Given** the dashboard, **When** the user picks light, dark or system in Settings, **Then** the
+   whole page switches and stays that way the next time they open it.
 2. **Given** a stopped task anywhere in the UI, **When** it's shown, **Then** it has a stop icon and
    the word "Stopped", never red text alone.
 3. **Given** a phone-width window, **When** any screen is shown, **Then** nothing needs sideways
    scrolling, and every action is reachable.
+
+---
+
+### User Story 5 - Anyone can understand it (Priority: P2)
+
+Someone who doesn't code opens the dashboard and, without help, can say what LoopBrake did and why.
+- The home screen says in one sentence how things are going, and shows the work happening now.
+- A stopped task explains itself as a picture: the project's normal tasks, the limit, and this task
+  past it. What the agent kept repeating is shown as a group ("Ran the same command 6 times").
+- Actions are named by what they did ("Ran a command", "Read a file"), and projects by their real
+  folder name, not a code.
+- Every idea (task, action, limit, mistake) has a one-line explanation one click away.
+
+**Why this priority**: the builder's audience includes people who don't code. If they can't read
+it, the dashboard doesn't do its job, however correct it is.
+
+**Independent Test**: open a stopped task and ask someone who doesn't code why it stopped. Measured
+after release (SC-008).
+
+**Acceptance Scenarios**:
+
+1. **Given** a task stopped today, **When** the home screen opens, **Then** its first sentence says
+   so, with a link to why.
+2. **Given** a stopped task that repeated one command, **When** its page opens, **Then** it shows
+   that command, how many times it ran, and the picture of normal tasks against the limit.
+3. **Given** a chart, **When** the user points at or taps any part of it, **Then** it shows what that
+   part means in words.
+4. **Given** the dashboard is open, **When** LoopBrake stops a task, **Then** a notice appears with a
+   link to why.
 
 ---
 
@@ -204,8 +234,9 @@ and check that the dashboard follows them.
 - **FR-006**: The dashboard MUST NOT show any live "tokens saved" figure. A stopped task's
   would-have-been cost is unknown, so savings are only claimed from the published evaluation
   (constitution, Principle IV).
-- **FR-007**: Every word the user reads MUST be plain language (tasks, tool calls, limit, "fewer
-  than 1 in 20"), with no α symbols, scores or run ids on screen (Phase 3, FR-013).
+- **FR-007**: Every word the user reads MUST be plain language (tasks, actions, limit, "fewer than 1
+  in 20"), with no α symbols, scores, steps, kills or run ids on screen (Phase 3, FR-013;
+  constitution 2.5.0, "Plain words"). An "action" is one tool call, and a "?" says so.
 
 **Look and accessibility**
 - **FR-008**: The dashboard MUST follow the constitution's visual identity:
@@ -214,9 +245,11 @@ and check that the dashboard follows them.
     lists sit on solid panels;
   - one icon set (Lucide), and no emoji anywhere;
   - red only as a fill, always paired with an icon and a word;
-  - a "Glass off" switch that is remembered;
+  - a light and a dark theme from the brand colors, following the system, with a remembered choice
+    in Settings;
   - respect for the system's reduce-motion, reduce-transparency, high-contrast and forced-colors
-    settings.
+    settings; under reduced transparency or more contrast, glass turns itself off. There is no
+    manual glass switch.
 - **FR-009**: The dashboard page MUST load nothing from the internet. Fonts, icons and code ship
   with LoopBrake (Principle VI).
 
@@ -247,6 +280,20 @@ and check that the dashboard follows them.
   would be normal (constitution, Dashboard: "kills and tokens spent over time, and the false-kill
   budget").
 
+**Understandable by anyone (User Story 5)**
+- **FR-018**: The home screen MUST open with one plain sentence on how things are going (a stop
+  today, all quiet, or only watching), and MUST show each task working now with its progress
+  toward the limit.
+- **FR-019**: A task's page MUST show: the stop as a picture of the project's past tasks against the
+  limit with this task marked; the actions it repeated, grouped, with how many times; its actions
+  over time, with each point explained on hover or tap; and every action named by what it did.
+- **FR-020**: Claude Code projects MUST be shown by their real folder name, read from Claude Code's
+  own history on this computer. It is never exported (FR-012).
+- **FR-021**: A Tasks screen MUST list every task, filterable by status and project, and searchable.
+- **FR-022**: Every idea MUST have a one-line explanation one click away, and Settings MUST explain
+  how LoopBrake works in three steps. When LoopBrake stops a task while the dashboard is open, a
+  notice MUST appear with a link to why.
+
 ### Key Entities
 
 - **Task**: one request's work by an agent. It has a project, a session, a start and end time, a
@@ -264,8 +311,8 @@ and check that the dashboard follows them.
 
 - **SC-001**: A running task's new tool call shows on the dashboard within 2 seconds, every time,
   during a 50-call test task.
-- **SC-002**: An automated accessibility audit scores at least 95 of 100 on every screen, with glass
-  on and with glass off.
+- **SC-002**: An automated accessibility audit scores at least 95 of 100 on every screen, in the
+  light and the dark theme.
 - **SC-003**: With export off, a network monitor sees zero connections leave the computer during a
   full dashboard session.
 - **SC-004**: With export on, a stopped task's trace and the counters arrive end to end:

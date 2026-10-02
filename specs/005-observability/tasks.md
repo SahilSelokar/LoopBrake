@@ -464,6 +464,45 @@ least 95 with glass on and off, and phone-width ready.
   Note their times here. If one of them can't, file the confusing wording as a fix for the next
   release.
 
+
+---
+
+## Phase 8: User Story 5: anyone can understand it (the redesign, before release)
+
+**Goal**: the builder's redesign decisions of 2026-10-02 (constitution 2.5.0): a dashboard that
+someone who doesn't code can read. LoopBrake colors in a light and a dark theme, "actions" for tool
+calls, no glass switch. The release (T032) waits for this phase.
+
+**Independent test**: User Story 5's scenarios, then T041.
+
+- [ ] T035 [US5] Data in `src/loopbrake/dashboard.py`, with tests in `tests/test_dashboard.py`:
+  - a readable `label` on tasks and projects: for Claude Code projects, the last part of the `cwd`
+    in its own history (cached, local only, never exported); `replay-x` shows as "Replay: x";
+  - per day, tasks as well as stops and tokens; per project, the normal task size (the median of
+    the past lengths) and tasks in the last 7 days;
+  - the greeting's first name from the computer account, only when it's a real name;
+  - the dashboard's stop text says "actions" (`claude_code.plain_stop` gains the word to use; the
+    Claude Code message keeps "tool calls", Claude Code's own term).
+- [ ] T036 [P] [US5] Vendor the extra Lucide icons the new screens use (`scripts/vendor_assets.py`,
+  same pinned version and checksums).
+- [ ] T037 [US5] Themes and layout in `src/loopbrake/static/app.css` and `index.html`: every color
+  token as one `light-dark()` pair; side bar on wide screens and bottom bar on phones (Home, Tasks,
+  Projects, Settings); glass only on chrome and turned off by the system settings; the Glass switch
+  removed. `tests/test_static.py` checks contrast in both themes.
+- [ ] T038 [US5] Home and Tasks in `src/loopbrake/static/app.js`: greeting and status sentence,
+  working-now cards, tiles with trend lines, stop cards with "See why" and "It wasn't stuck",
+  projects, stops per day; the Tasks list with status and project filters, search, and paging.
+- [ ] T039 [US5] The Task screen: the story line; the picture of past tasks against the limit with
+  this task marked; "What it kept doing"; actions over time with hover and tap explanations; plain
+  action names with tags, filters and expandable rows.
+- [ ] T040 [US5] Projects, the project page, and Settings (appearance; sending to your tools; how
+  LoopBrake works; the words), the "?" explanations, the new-stop notice, and the getting-started
+  guide.
+- [ ] T041 Manual: every screen in both themes, wide and at 390x844, looked at and fixed; Lighthouse
+  accessibility at least 95 on every screen in both themes; the emulated system settings; scenario 9
+  again. Note the results.
+- [ ] T042 [P] README's dashboard section and the roadmap's header (constitution 2.5.0) match the
+  new screens.
 ---
 
 ## Dependencies and order
