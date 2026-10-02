@@ -313,7 +313,7 @@ or `brake idle`.
   - re-run `claude plugin validate .` and `claude plugin validate ./plugin`;
   - check `git ls-files -s plugin/bin/loopbrake` shows mode `100755`;
   - run quickstart scenario 8 against a locally built wheel (`uv build`, `UV_FIND_LINKS=$PWD/dist`): p95 at most 200 ms through the launcher, working offline, and exit code 0 with nothing cached and no network. Note the timings under "Outcome".
-- [ ] T032 Manual, with the builder's go-ahead (a release is public):
+- [X] T032 Manual, with the builder's go-ahead (a release is public). Done for 0.2.0 (tag `v0.2.0`, on PyPI 2026-10-02); step 3, the merge to `main`, moved to T037 so `main` pins 0.2.1:
   1. tag the head of `004-claude-code-plugin` as `v0.2.0`, and push only the tag;
   2. watch the publish workflow, and confirm PyPI shows 0.2.0 with the new README;
   3. only then merge the branch into `main` and push, so `main` never pins a version that isn't on PyPI (contracts/plugin.md).
@@ -325,6 +325,48 @@ or `brake idle`.
   Note all results under "Outcome", and mark Phase 3 done in `specs/roadmap.md`.
 
 ---
+
+## Phase 7: Release 0.2.1 (plain-language messages; research R13)
+
+Added 2026-10-02 after `/speckit-analyze` and the plan revision. They run in this order, and each
+must pass before the next.
+
+- [X] T034 Replace the sample numbers in `README.md` with placeholders, per constitution "Public
+  claims" (research R13):
+  - the setup reply: `<limit>` tool calls, `<n>` past successful tasks;
+  - the stop message: `<limit + 1>`, `<n>`, `<limit>`;
+  - the status line: `LoopBrake: <calls> of <limit> tool calls`;
+  - the diagram's "for example 38 steps", replaced with words.
+
+  Keep "fewer than 1 in 20", which is the guarantee itself. Check with `readme_renderer`.
+- [X] T035 SC-008 (b), real use since 0.2.0: for every project with live turns recorded in
+  `~/.loopbrake/runs/` whose Claude Code history folder exists, run the agreement check
+  (`claude_code.agreement` with that folder). **Gate**: live higher 0 in every project. Note the
+  counts under "Outcome", with project labels only, never folder names.
+- [ ] T036 T031's checks for 0.2.1:
+  - the full suite, and GitHub's tests on 3.11–3.13;
+  - `claude plugin validate` for both;
+  - launcher mode `100755`;
+  - quickstart scenario 8 against a locally built 0.2.1 wheel (p95 ≤ 200 ms, offline works,
+    exit 0 with nothing cached).
+- [ ] T037 Release:
+  1. tag the branch head `v0.2.1` and push only the tag;
+  2. confirm the publish workflow succeeds and PyPI serves 0.2.1;
+  3. merge `004-claude-code-plugin` into `main` and push;
+  4. confirm `main`'s tests pass.
+- [ ] T038 Switch the builder to the public plugin (replaces T033):
+  - remove the local marketplace and uninstall the dev plugin;
+  - in `~/.claude/settings.json`, remove `env.LOOPBRAKE_CMD` and set the status line to
+    `uvx --offline loopbrake statusline`;
+  - `claude plugin marketplace add SahilSelokar/LoopBrake` and
+    `claude plugin install loopbrake@loopbrake`, timed until a headless session records its first
+    turn, which must be under 2 minutes (SC-003);
+  - FR-012: uninstall, and confirm nothing is left outside `~/.loopbrake` and uv's cache; then
+    reinstall.
+- [ ] T039 Wrap up:
+  - Phase 3 done in `specs/roadmap.md` (and README status);
+  - update the memory note about the temporary settings;
+  - outcomes noted here.
 
 ## Dependencies and order
 
@@ -515,5 +557,16 @@ builder's go-ahead.
   covers the stop message, the four commands' replies, and the status line. The run records keep the
   technical reason. Version 0.2.1 in the package, `plugin.json` and the launcher. 0.2.0 stays on PyPI;
   the plugin on `main` will pin 0.2.1.
-- **Left for the builder**:
-  - T032 and T033 (release, with your go-ahead).
+- **T034**: the README's sample replies, the status line example and the diagram now use
+  placeholders (`<limit>`, `<n>`, `<calls>`) instead of numbers from the builder's history.
+  "Fewer than 1 in 20" stays. `readme_renderer` passes.
+- **T035, SC-008 (b)**: one project has the builder's own turns since 0.2.0 (project-1 = Project
+  Building): turns matched 5, equal 5, live lower 0, live higher 0. A small sample: the plugin only
+  runs in sessions started after it was installed, and the builder has worked mostly in this
+  long-running session since.
+- **T036**:
+  - 151 passed, 1 skipped; `test_agent_sdk.py` 4 of 4; both validations pass; launcher mode
+    100755;
+  - local 0.2.1 wheel through the launcher: median 72 ms, p95 77 ms (46 ms earlier the same day,
+    likely a busier machine; budget 200 ms);
+  - network blocked and cached: exit 0, 72 ms; nothing cached: exit 0, empty stdout, 59 ms.

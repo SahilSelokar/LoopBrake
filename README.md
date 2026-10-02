@@ -38,7 +38,7 @@ smarter scores, and neither beat it on agents they were not tuned on. The stuck 
 nothing new, same error again) still run, but only to explain why a stopped run looked stuck.
 
 ```text
-  your past successful runs ──▶ stop line (for example 38 steps), with a guaranteed
+  your past successful runs ──▶ stop line (a number of steps), with a guaranteed
                                     │      limit on stopping good runs
                                     ▼
   agent takes a step ──▶ how many steps so far? ──▶ past the stop line?
@@ -124,18 +124,18 @@ tasks in this project needed, and picks a limit:
 
 ```text
 LoopBrake is set up for this project.
-It will stop a task that goes past 58 tool calls. That limit comes from your 61 past successful
-tasks here: fewer than 1 in 20 good tasks should go past it.
+It will stop a task that goes past <limit> tool calls. That limit comes from your <n> past
+successful tasks here: fewer than 1 in 20 good tasks should go past it.
 ```
 
 A **task** is everything Claude does for one message you send. Tool calls made by subagents don't
 count. From then on, when a task goes past the limit, Claude stops and tells you why:
 
 ```text
-LoopBrake stopped this task after 59 tool calls. Based on your 61 past successful tasks in this
-project, good tasks almost never need more than 58 (fewer than 1 in 20 do). This one also looks
-stuck: its last few tool calls repeat each other. If it wasn't stuck, run /loopbrake:mistake, then
-tell Claude to continue.
+LoopBrake stopped this task after <limit + 1> tool calls. Based on your <n> past successful tasks
+in this project, good tasks almost never need more than <limit> (fewer than 1 in 20 do). This one
+also looks stuck: its last few tool calls repeat each other. If it wasn't stuck, run
+/loopbrake:mistake, then tell Claude to continue.
 ```
 
 | Command | What it does |
@@ -146,7 +146,7 @@ tell Claude to continue.
 | `/loopbrake:exclude` | Leaves your last finished task out of future calibration (for example, a task that went badly) |
 
 **See the count while you work** (optional; plugins can't add a status line themselves). Add this to
-`~/.claude/settings.json` to see `LoopBrake: 12 of 58 tool calls` at the bottom of Claude Code:
+`~/.claude/settings.json` to see `LoopBrake: <calls> of <limit> tool calls` at the bottom of Claude Code:
 
 ```json
 "statusLine": {"type": "command", "command": "uvx --offline loopbrake statusline"}
