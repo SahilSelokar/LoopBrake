@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.4.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 (the Claude Code plugin) is in progress: `specs/004-claude-code-plugin`, branch `004-claude-code-plugin`.
+**Date**: 2026-10-01 | **Constitution**: v2.4.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 (observability) is next.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -130,7 +130,7 @@ package for explanations and future experiments, but they never decide a stop.
 - **Reel**: "3 lines that put brakes on any agent."
 - **Size**: M.
 
-### Phase 3: Claude Code plugin (`004-claude-code-plugin`, status: in progress)
+### Phase 3: Claude Code plugin (`004-claude-code-plugin`, status: done, v0.2.1 on 2026-10-02)
 
 - **Goal**: zero-friction install for Claude Code users.
 - **Deliverables**:

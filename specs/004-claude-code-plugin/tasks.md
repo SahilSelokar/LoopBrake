@@ -317,7 +317,7 @@ or `brake idle`.
   1. tag the head of `004-claude-code-plugin` as `v0.2.0`, and push only the tag;
   2. watch the publish workflow, and confirm PyPI shows 0.2.0 with the new README;
   3. only then merge the branch into `main` and push, so `main` never pins a version that isn't on PyPI (contracts/plugin.md).
-- [ ] T033 Manual, after T032:
+- [X] T033 Manual, after T032 (replaced by T038, which did it for 0.2.1):
   - **Clean install (SC-003)**: unset `LOOPBRAKE_CMD`, uninstall the dev plugin, then run `/plugin marketplace add SahilSelokar/LoopBrake` and `/plugin install loopbrake@loopbrake`. Time it from the first command to the first watched turn: under 2 minutes.
   - **Speed and offline**: repeat quickstart scenario 8 against PyPI's 0.2.0, without `UV_FIND_LINKS`.
   - **Uninstall (FR-012)**: uninstall, and confirm nothing was left outside `~/.loopbrake` (and uv's cache).
@@ -349,12 +349,12 @@ must pass before the next.
   - launcher mode `100755`;
   - quickstart scenario 8 against a locally built 0.2.1 wheel (p95 ≤ 200 ms, offline works,
     exit 0 with nothing cached).
-- [ ] T037 Release:
+- [X] T037 Release:
   1. tag the branch head `v0.2.1` and push only the tag;
   2. confirm the publish workflow succeeds and PyPI serves 0.2.1;
   3. merge `004-claude-code-plugin` into `main` and push;
   4. confirm `main`'s tests pass.
-- [ ] T038 Switch the builder to the public plugin (replaces T033):
+- [X] T038 Switch the builder to the public plugin (replaces T033):
   - remove the local marketplace and uninstall the dev plugin;
   - in `~/.claude/settings.json`, remove `env.LOOPBRAKE_CMD` and set the status line to
     `uvx --offline loopbrake statusline`;
@@ -363,7 +363,7 @@ must pass before the next.
     turn, which must be under 2 minutes (SC-003);
   - FR-012: uninstall, and confirm nothing is left outside `~/.loopbrake` and uv's cache; then
     reinstall.
-- [ ] T039 Wrap up:
+- [X] T039 Wrap up:
   - Phase 3 done in `specs/roadmap.md` (and README status);
   - update the memory note about the temporary settings;
   - outcomes noted here.
@@ -571,3 +571,23 @@ builder's go-ahead.
     likely a busier machine; budget 200 ms);
   - network blocked and cached: exit 0, 72 ms; nothing cached: exit 0, empty stdout, 59 ms;
   - GitHub's tests on 3.11, 3.12 and 3.13 and the build check: all pass.
+- **T037**:
+  - tag `v0.2.1` pushed; the publish workflow passed (build, publish), and PyPI serves
+    `loopbrake-0.2.1-py3-none-any.whl`;
+  - `main` was fast-forwarded to the branch and pushed;
+  - `main`'s first test run caught a flaky launcher test: the background download can log before
+    the test reads the log. The test was fixed, `main` re-pushed, and 3.11, 3.12, 3.13 and the build
+    all pass.
+- **T038**:
+  - the dev plugin and the local marketplace were removed;
+  - `~/.claude/settings.json` no longer has `env.LOOPBRAKE_CMD`, and the status line is
+    `uvx --offline loopbrake statusline` (it answers "LoopBrake: ready", version 0.2.1);
+  - **FR-012**: after uninstalling, nothing of LoopBrake's was left outside `~/.loopbrake` and uv's
+    cache. Claude Code itself keeps a cached copy of the plugin marked `.orphaned_at`, plus an empty
+    data folder it made for the `--plugin-dir` session;
+  - **SC-003**: `claude plugin marketplace add SahilSelokar/LoopBrake`, then
+    `claude plugin install loopbrake@loopbrake`, then `/loopbrake:calibrate` (limit 6 from 42
+    tasks, in a scratch copy), then a first watched task: 17 seconds in all. `loopbrake@loopbrake`
+    0.2.1 is installed at user scope.
+- **T039**: Phase 3 is marked done in the roadmap; README status says v0.2.1; the memory note is
+  updated.
