@@ -75,6 +75,7 @@ const TEXT = {
   protobufOnly: "Phoenix and other tools that only take protobuf: send to an OpenTelemetry Collector, which forwards to them.",
   glassOn: "Glass on",
   glassOff: "Glass off",
+  glassForced: "Your system's Reduce transparency or Increase contrast setting keeps glass off.",
   notFound: "Not found.",
   offline: "Can't reach the dashboard. Is loopbrake dashboard still running?",
   justNow: "just now",
@@ -178,7 +179,8 @@ function taskChart(summary, calls, total) {
     kids.push(h("line", { class: "limit", x1: x(0), x2: x(top), y1: y(limit), y2: y(limit) }));
     kids.push(h("text", { class: "label lime", x: x(0), y: y(limit) - 4 }, `${TEXT.limitLine} ${limit}`));
   }
-  kids.push(h("text", { class: "label", x: x(total), y: Math.min(hgt - 2, y(total) - 6), "text-anchor": "end" }, String(total)));
+  const above = y(total) - 6;  // no room above the line's end near the top: put the count under it
+  kids.push(h("text", { class: "label", x: x(total), y: Math.min(hgt - 2, above < 10 ? y(total) + 15 : above), "text-anchor": "end" }, String(total)));
   for (const c of calls) {
     if (c.failed || c.repeats) kids.push(h("circle", { class: c.failed ? "dot failed" : "dot repeat", cx: x(c.n), cy: y(c.n), r: 2.6 }));
   }
@@ -418,7 +420,7 @@ async function poll() {
   } catch (e) { /* the next poll tries again */ }
 }
 
-// ---- glass on/off (a per-viewer choice; the system's accessibility settings force it off in CSS) ----
+// ---- glass on/off (a per-viewer choice; the system's transparency and contrast settings force it off) ----
 
 function setGlass(on, save) {
   document.documentElement.dataset.glass = on ? "on" : "off";
@@ -428,12 +430,36 @@ function setGlass(on, save) {
   if (save) { try { localStorage.setItem("lb-glass", on ? "on" : "off"); } catch (e) { /* storage blocked: still works */ } }
 }
 
-function initGlass() {
+const FORCED_OFF = matchMedia("(prefers-reduced-transparency: reduce), (prefers-contrast: more)");
+
+function applyGlass() {
+  const b = document.getElementById("glass");
+  b.disabled = FORCED_OFF.matches;
+  b.title = FORCED_OFF.matches ? TEXT.glassForced : "";
+  if (FORCED_OFF.matches) return setGlass(false, false);
   let saved = null;
   try { saved = localStorage.getItem("lb-glass"); } catch (e) { /* blocked */ }
   const param = new URLSearchParams(location.search).get("glass");
   setGlass((param || saved || "on") !== "off", false);
+}
+
+function initGlass() {
+  applyGlass();
+  FORCED_OFF.addEventListener("change", applyGlass);
   document.getElementById("glass").addEventListener("click", () => setGlass(document.documentElement.dataset.glass !== "on", true));
+  // Refraction only where it renders right: Chromium, with SVG filters in backdrop-filter.
+  const chromium = navigator.userAgentData?.brands?.some((x) => x.brand === "Chromium");
+  if (chromium && CSS.supports("backdrop-filter", "url(#refract) blur(1px)")) document.documentElement.dataset.refract = "on";
+  // The sheen follows the pointer over glass, only when motion is welcome.
+  if (matchMedia("(prefers-reduced-motion: no-preference)").matches) {
+    document.addEventListener("pointermove", (e) => {
+      const g = e.target.closest && e.target.closest(".glass");
+      if (!g) return;
+      const r = g.getBoundingClientRect();
+      g.style.setProperty("--sx", `${e.clientX - r.left}px`);
+      g.style.setProperty("--sy", `${e.clientY - r.top}px`);
+    }, { passive: true });
+  }
 }
 
 window.LB = { TEXT, h, icon, api, toast, confirmDialog, render, shortName, state };

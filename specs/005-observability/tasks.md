@@ -396,7 +396,7 @@ least 95 with glass on and off, and phone-width ready.
 
 **Independent test**: quickstart scenario 8.
 
-- [ ] T025 [US4] Finish the glass system in `src/loopbrake/static/app.css` and `app.js` (research
+- [X] T025 [US4] Finish the glass system in `src/loopbrake/static/app.css` and `app.js` (research
   R6, constitution "Glass behavior"):
   - **Layers**: one fixed background layer of lime and deep-green glows at 35% alpha or less.
   - **Glass controls**: a tint of night at about 0.6; blur ≤ 20 px with 170% saturation; a 1 px rim
@@ -411,7 +411,7 @@ least 95 with glass on and off, and phone-width ready.
       2 px borders);
     - `forced-colors: active` uses system colors.
   - **Stopped state**: always the red fill, plus `octagon-x`, plus the word "Stopped".
-- [ ] T026 [US4] Manual: quickstart scenario 8.
+- [X] T026 [US4] Manual: quickstart scenario 8.
   - **Lighthouse**: run accessibility on every screen, glass on and `?glass=off`; every score must
     be ≥ 95.
   - **macOS settings**: check "Reduce motion", "Reduce transparency" and "Increase contrast".
@@ -592,3 +592,20 @@ the go-ahead, and T034 comes after the release.
     because export had been on earlier. Now `run_start` is marked `export: true` when a task starts
     with export on, and only marked tasks are sent (research R7). Checked again: only the task run
     with export on was sent.
+- **T025**: added the refraction filter (SVG displacement, Chromium only, desktop only: on phones the
+  top bar stays unfiltered so the bottom nav stays fixed), the pointer sheen (only when motion is
+  welcome), and the system settings. "Reduce transparency" and "Increase contrast" turn glass off
+  and disable the switch (with a note why), add 2 px borders and drop the glow; "Increase
+  contrast" also lightens the grey text. Forced colors use system colors, with borders where fills
+  disappear. Found missing: an old code comment said the CSS forced glass off, but nothing did.
+- **T026**, in headless Chrome against a copy of real local data:
+  - **Lighthouse accessibility**: 100 on all five screens, with glass on and with `?glass=off`.
+  - **System settings, emulated**: reduced transparency and more contrast each gave glass off, the
+    switch disabled, 2 px borders and no blur; reduced motion removed the sheen and transitions;
+    forced colors removed the glow. Fixed after looking: under forced colors the chart's stop bar
+    stayed brand red and the row progress bar looked empty.
+  - **390x844** (device emulation, which allows widths under the 500 px window minimum): no screen
+    scrolls sideways. Fixed after looking: on a task that ran close to the top of its chart, the
+    tool-call count above the line's end was cut off; it now sits under the point.
+  - Not checked: the real macOS settings switches by hand, since the emulated media features are
+    what the CSS reads.

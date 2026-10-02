@@ -30,7 +30,7 @@ def test_nothing_loads_from_the_internet():
         urls = [u for u in re.findall(r"https?://[^\s\"')]+", text) if u != SVG_NS]
         assert not urls, (p.name, urls)
     for url in re.findall(r"url\(\s*\"?([^\")]+)", read("app.css")):
-        assert url.startswith("/static/"), url
+        assert url.startswith(("/static/", "#")), url  # "#refract" is the page's own SVG filter
 
 
 def test_every_icon_used_exists():

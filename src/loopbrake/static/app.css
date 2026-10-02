@@ -49,6 +49,18 @@ code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   [data-glass="on"] .glass { background: var(--tint); -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%); }
 }
+/* Refraction: the SVG displacement filter bends what's behind the glass. Chromium only (app.js sets
+   data-refract), and not on phones, where the top bar must stay unfiltered for the fixed bottom nav. */
+@media (min-width: 641px) {
+  [data-glass="on"][data-refract="on"] .glass { backdrop-filter: url(#refract) blur(18px) saturate(170%); }
+}
+/* The sheen: a soft light that follows the pointer (app.js sets --sx/--sy), only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-glass="on"] .glass::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(220px circle at var(--sx, -999px) var(--sy, -999px), rgba(236, 235, 228, 0.07), transparent 70%); }
+  .button, .nav a, .row, .toggle { transition: background-color 0.15s, color 0.15s; }
+}
+.defs { position: absolute; width: 0; height: 0; }
 
 .skip { position: absolute; left: -999px; top: 8px; background: var(--lime); color: var(--ink); padding: 8px 12px; border-radius: 8px; z-index: 10; }
 .skip:focus { left: 8px; }
@@ -60,6 +72,7 @@ code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .nav a { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 600; }
 .nav a:hover { color: var(--paper); background: rgba(236, 235, 228, 0.06); }
 .nav a[aria-current="page"] { color: var(--ink); background: var(--lime); }
+.toggle:disabled { opacity: 0.6; cursor: default; }
 .toggle { display: flex; align-items: center; gap: 6px; background: transparent; color: var(--paper); border: 1px solid var(--rim); border-radius: 10px; padding: 7px 10px; font: 600 13px var(--sans); cursor: pointer; }
 
 main { max-width: 960px; margin: 0 auto; padding: 0 20px 96px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
@@ -146,6 +159,27 @@ select { background: var(--panel); color: var(--paper); border: 1px solid var(--
 
 /* Focus: a 2px lime ring with a night halo, on keyboard focus only. */
 :focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; box-shadow: 0 0 0 5px var(--night); border-radius: 8px; }
+
+/* The system's accessibility settings: app.js turns glass off for these; here, flat background and
+   2px borders. With more contrast, the quiet greys get lighter too. */
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .glow { display: none; }
+  .glass, .panel, .tile, .toggle, .button.quiet, select { border-width: 2px; }
+  .bar { border-width: 0 0 2px; }
+}
+@media (prefers-contrast: more) {
+  :root { --muted: #CDD5CA; --line: #5B7666; --rim: rgba(236, 235, 228, 0.55); }
+}
+/* Forced colors (Windows High Contrast and similar): system colors, and borders where fills disappear. */
+@media (forced-colors: active) {
+  .glow, .glass::after { display: none; }
+  .chip, .flag, .row, .button, .tile, .progress { border: 1px solid CanvasText; }
+  .nav a[aria-current="page"] { outline: 2px solid Highlight; }
+  .progress .fill, .progress.stopped .fill { forced-color-adjust: none; background: Highlight; }
+  .chart .bar, .chart .bar.stop, .chart .dot.past, .chart .dot.failed, .chart .stopmark, .chart .label { fill: CanvasText; }
+  .chart .count, .chart .limit, .chart .dot.repeat { stroke: CanvasText; }
+  :focus-visible { outline-color: Highlight; }
+}
 
 /* Phone first for 9:16 recordings: the nav becomes a bottom bar, nothing scrolls sideways. */
 @media (max-width: 640px) {
