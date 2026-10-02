@@ -25,6 +25,7 @@ def test_manifests_agree():
     assert manifest["author"]["name"] and manifest["description"]
     pin = re.search(r"^V=(\S+)$", LAUNCHER.read_text(), re.M).group(1)
     assert manifest["version"] == pin == loopbrake.__version__
+    assert set(re.findall(r"loopbrake==(\S+?)`", (ROOT / "README.md").read_text())) == {pin}  # the README's pip fallback
 
 
 def test_hooks():

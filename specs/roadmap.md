@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.5.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 is done: the dashboard and OpenTelemetry export ship with v0.3.0 (2026-10-02). Next: Phase 4b, a Codex CLI plugin (the builder's decision, 2026-10-02), then Launch.
+**Date**: 2026-10-01 | **Constitution**: v2.5.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 is done: the dashboard and OpenTelemetry export ship with v0.3.0 (2026-10-02). Phase 4b is done: the Codex CLI plugin ships with v0.4.0 (2026-10-02). Next: Launch.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -286,7 +286,7 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
   in the tests enforce each tool's published intake rules, and a real OpenTelemetry Collector and
   Jaeger ran end to end, with LoopBrake's task nested inside Claude Code's own trace.
 
-### Phase 4b: Codex CLI plugin (`006-codex-cli-plugin`, status: in progress; the builder's decision, 2026-10-02)
+### Phase 4b: Codex CLI plugin (`006-codex-cli-plugin`, status: done, v0.4.0 on 2026-10-02; the builder's decision)
 
 - **Goal**: the same live stops for OpenAI's Codex CLI that the Claude Code plugin gives: a Codex
   plugin with hooks, the slash commands and the dashboard, calibrated on the user's own Codex history.
@@ -298,6 +298,22 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
   apart (they never count), and calibration needs a reader for Codex's session files.
 - **Not possible**: ChatGPT itself. Its old plugins closed in 2024, and today's apps are tools ChatGPT
   calls, with no way to watch or stop its own work.
+
+**What changed in Phase 4b** (details in `specs/006-codex-cli-plugin/`):
+
+- **Checked on a real Codex with a local model**: the builder has no Codex account, so Codex CLI ran
+  a local model through a custom provider. That exercises Codex's own hooks, history and sandbox;
+  what a GPT model does after a refused call is left to the first users, and the README says so.
+- **A stop has two parts**: the tool call past the limit gets its result replaced by the reason, and
+  every later call of that task is refused. Codex approves parallel calls in a batch before any runs,
+  so calls that would only run after the stop are refused too. With a limit of 3, 10 of 10 tasks ran
+  exactly 4 calls.
+- **Commands are typed messages** (`loopbrake: calibrate` and so on), handled by the prompt hook,
+  because Codex's sandbox blocks them as skills. Codex runs a plugin's hooks only once the user trusts
+  them with `/hooks`.
+- **Limits per agent**: the same folder gives separate Claude Code and Codex projects, each learned
+  from its own history; Codex's history is read in one place, `codex_turns()`.
+- **Not checked**: helper agents (the local model never started one).
 
 ### Phase 5: Launch (`005-launch`)
 

@@ -151,7 +151,7 @@ also looks stuck: its last few tool calls repeat each other. If it wasn't stuck,
 your good tasks will be stopped (5%), as long as your future tasks are like your past ones: the same
 kind of work, done the same way. When your work changes, run `/loopbrake:calibrate` again.
 
-**No uv?** Install `loopbrake==0.3.0` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
+**No uv?** Install `loopbrake==0.4.0` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
 in the environment Claude Code starts from: `export LOOPBRAKE_CMD="'$(which loopbrake)'"`.
 
 **Troubleshooting.** If `/loopbrake:status` says "No tasks recorded here yet" after you have worked in the
@@ -396,17 +396,17 @@ liveness.py      the original naive rule, kept as the baseline
 | 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Done: v0.1.0 on PyPI |
 | 3 | **Claude Code plugin**: stop stuck turns live, calibrated on your own history | Done: v0.2.1 |
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Done: v0.3.0 |
-| 4b | **Codex CLI plugin**: the same live stops for OpenAI's Codex | In progress |
+| 4b | **Codex CLI plugin**: the same live stops for OpenAI's Codex | Done: v0.4.0 |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
 
 The full plan is in [specs/roadmap.md](https://github.com/SahilSelokar/LoopBrake/blob/main/specs/roadmap.md).
 
 ## Status
 
-v0.3.0 is on PyPI (`pip install loopbrake`), with the Claude Code plugin in this repository. The stop
-rule is a stop line on run length, set from your own past successful runs, with a guaranteed limit on
-stopping good runs. v0.3.0 adds the local dashboard (`/loopbrake:dashboard`) and export to your
-observability tools. Next: a LoopBrake plugin for OpenAI's Codex CLI.
+v0.4.0 is on PyPI (`pip install loopbrake`), with plugins for Claude Code and Codex CLI in this
+repository. The stop rule is a stop line on run length, set from your own past successful runs, with
+a guaranteed limit on stopping good runs. v0.4.0 adds the Codex CLI plugin; v0.3.0 added the local
+dashboard and export to your observability tools. Next: the launch.
 
 ## License
 
