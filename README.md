@@ -37,17 +37,11 @@ guarantee (split-conformal calibration), not a tuned target.
 smarter scores, and neither beat it on agents they were not tuned on. The stuck signals (repeats,
 nothing new, same error again) still run, but only to explain why a stopped run looked stuck.
 
-```text
-  your past successful runs ──▶ stop line (a number of steps), with a guaranteed
-                                    │      limit on stopping good runs
-                                    ▼
-  agent takes a step ──▶ how many steps so far? ──▶ past the stop line?
-                                                      │             │
-                                                      no            yes
-                                                      │             │
-                                                      ▼             ▼
-                                                 keep going    stop the run and say why
-```
+![LoopBrake in use: install, set the limit, watch a task, stop it and say why](https://raw.githubusercontent.com/SahilSelokar/LoopBrake/main/docs/loopbrake-demo.gif)
+
+*Every command and number here is real: a public SWE-bench run (GPT-5-mini) replayed through
+LoopBrake. Its limit was learned with `loopbrake calibrate` from every finished public run of that
+agent, so it is higher than in the example below, which learned from 20.*
 
 ## What a stop looks like
 
