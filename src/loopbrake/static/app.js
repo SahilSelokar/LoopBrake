@@ -54,7 +54,25 @@ const TEXT = {
   setAgainText: "LoopBrake will look at this project's past tasks and set a new limit.",
   setAgainOk: "Set the limit",
   exportTitle: "Send to your observability tools",
-  exportSoon: "Export status appears here.",
+  exportOff: "Export is off.",
+  exportOffText: "LoopBrake sends nothing anywhere until you turn it on with the lines below.",
+  exportOn: (where) => `Export is on. Sending to ${where}.`,
+  exportWhat: "What's sent: counts and timings only. Commands, project names and stop reasons stay on this computer.",
+  exportWhatContent: "What's sent: counts and timings, plus commands, project names and stop reasons (LOOPBRAKE_EXPORT_CONTENT=1).",
+  exportNoCounters: "Counters are off (traces only).",
+  exportFromShell: "These settings come from the shell that started this dashboard. Your agent reads its own, so set them there too.",
+  lastSend: "Last send",
+  neverSent: "Nothing sent yet. LoopBrake sends each task when it ends.",
+  sentTasks: (n, when) => `${TEXT.tasks(n)} sent ${when}.`,
+  sendFailed: (when) => `Sending failed ${when}.`,
+  sendNow: "Send now",
+  testConnection: "Test connection",
+  setup: "How to turn it on",
+  setupHint: "Pick your tool, copy the lines, and run them in the shell you start your agent from.",
+  copy: "Copy",
+  copied: "Copied.",
+  copyFailed: "Couldn't copy. Select the text instead.",
+  protobufOnly: "Phoenix and other tools that only take protobuf: send to an OpenTelemetry Collector, which forwards to them.",
   glassOn: "Glass on",
   glassOff: "Glass off",
   notFound: "Not found.",
@@ -216,7 +234,7 @@ function taskActions(s) {
 
 // ---- views ----
 
-const state = { version: -1, project: "", pages: {} };
+const state = { version: -1, project: "", pages: {}, openTool: null };
 
 function taskRow(t) {
   const pct = t.limit ? Math.min(100, (t.calls / t.limit) * 100) : 0;
@@ -309,8 +327,62 @@ async function project(name) {
   ];
 }
 
+// Copyable setup lines (contracts/otlp.md, "Settings per tool"). Shown as text only, never loaded.
+const SETUP = [
+  ["OpenTelemetry Collector", ["OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318"]],
+  ["Datadog", ["OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.datadoghq.com", "OTEL_EXPORTER_OTLP_HEADERS=dd-api-key=YOUR_API_KEY"]],
+  ["Grafana Cloud", ["OTEL_EXPORTER_OTLP_ENDPOINT=YOUR_STACK_OTLP_ENDPOINT",
+    "OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic%20BASE64_OF_INSTANCE_ID:TOKEN",
+    "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative"]],
+  ["Honeycomb", ["OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io", "OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=YOUR_API_KEY"]],
+  ["Langfuse", ["OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel",
+    "OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic%20BASE64_OF_PUBLIC_KEY:SECRET_KEY", "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=none"]],
+  ["Jaeger", ["OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318", "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=none"]],
+];
+
+async function exportAction(path) {
+  try {
+    toast((await api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).message);
+  } catch (e) {
+    toast(e.message);
+  }
+  render();
+  if (path.endsWith("/send")) setTimeout(render, 4000);  // the background send records its result
+}
+
+function setupBlock([tool, lines]) {
+  const text = ["export LOOPBRAKE_EXPORT=otlp", ...lines.map((l) => `export ${l}`)].join("\n");
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(text); toast(TEXT.copied); } catch (e) { toast(TEXT.copyFailed); }
+  };
+  return h("details", { class: "setup", open: state.openTool === tool, ontoggle: (e) => {
+    if (e.target.open) state.openTool = tool; else if (state.openTool === tool) state.openTool = null;
+  } }, h("summary", {}, tool), h("pre", {}, h("code", {}, text)),
+  h("button", { class: "button quiet", type: "button", onclick: copy }, icon("copy"), TEXT.copy));
+}
+
 async function exportView() {
-  return [h("h1", {}, TEXT.exportTitle), h("section", { class: "panel", id: "export" }, h("p", { class: "muted" }, TEXT.exportSoon))];
+  const x = await api("/api/export");
+  const last = x.last;
+  const status = x.on
+    ? [h("p", { class: "big" }, TEXT.exportOn(x.endpoint)), h("p", { class: "muted" }, x.content ? TEXT.exportWhatContent : TEXT.exportWhat),
+      x.metrics ? null : h("p", { class: "muted" }, TEXT.exportNoCounters),
+      x.warning ? h("p", { class: "muted" }, icon("triangle-alert"), " ", x.warning) : null]
+    : [h("p", { class: "big" }, TEXT.exportOff), h("p", { class: "muted" }, TEXT.exportOffText)];
+  return [
+    h("h1", {}, TEXT.exportTitle),
+    h("section", { class: "panel" }, status, h("p", { class: "muted small" }, TEXT.exportFromShell)),
+    x.on ? h("section", { class: "panel" }, h("h2", {}, icon("send"), TEXT.lastSend),
+      !last ? h("p", { class: "muted" }, TEXT.neverSent)
+        : last.ok ? h("p", {}, icon("check"), " ", TEXT.sentTasks(last.tasks, ago(last.at)))
+          : [h("p", {}, h("span", { class: "flag failed" }, icon("circle-alert"), TEXT.failed), " ", TEXT.sendFailed(ago(last.at))),
+            h("p", { class: "muted problem" }, x.problem)],
+      h("div", { class: "actions" },
+        h("button", { class: "button", type: "button", onclick: () => exportAction("/api/export/send") }, icon("send"), TEXT.sendNow),
+        h("button", { class: "button quiet", type: "button", onclick: () => exportAction("/api/export/test") }, icon("activity"), TEXT.testConnection))) : null,
+    h("section", { class: "panel" }, h("h2", {}, icon("square-terminal"), TEXT.setup), h("p", { class: "muted" }, TEXT.setupHint),
+      SETUP.map(setupBlock), h("p", { class: "muted small" }, TEXT.protobufOnly)),
+  ];
 }
 
 // ---- routing and live updates ----

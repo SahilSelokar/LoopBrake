@@ -1,12 +1,14 @@
 """The dashboard: its record index, its server and access rules, and its actions (specs/005-observability)."""
 import json
+import os
 import time
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from loopbrake import calibration, claude_code, dashboard, records
+from loopbrake import calibration, claude_code, dashboard, otlp, records
 from loopbrake.brake import start
+from mimic_backends import Backend
 
 
 @pytest.fixture
@@ -331,3 +333,41 @@ def test_set_the_limit_again(server, home):
     code, _, body = post(port, key, "/api/recalibrate", {"project": "demo"})
     assert code == 400 and "loopbrake calibrate" in json.loads(body)["error"]
     assert post(port, key, "/api/recalibrate", {"project": "../x"})[0] == 400
+
+
+# ---- export (T023) ----
+
+def test_export_screen_endpoints(server, home, monkeypatch):
+    _, key, port = server
+    for k in list(os.environ):
+        if k.startswith(("OTEL_", "LOOPBRAKE_EXPORT")):
+            monkeypatch.delenv(k)
+    get = lambda: json.loads(call(port, "/api/export", key=key)[2])
+    assert get()["on"] is False
+    assert post(port, key, "/api/export/send", {})[0] == 409 and post(port, key, "/api/export/test", {})[0] == 409
+    backend = Backend()
+    try:
+        monkeypatch.setenv("LOOPBRAKE_EXPORT", "otlp")
+        monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", backend.url + "/some/path")
+        monkeypatch.setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", backend.url + "/v1/traces")
+        monkeypatch.setenv("OTEL_EXPORTER_OTLP_HEADERS", "x-api-key=supersecret123")
+        s = get()
+        assert s["on"] and s["endpoint"] == backend.url.removeprefix("http://") and s["last"] is None
+        assert "supersecret123" not in json.dumps(s) and "/v1/traces" not in json.dumps(s)
+        code, _, body = post(port, key, "/api/export/test", {})
+        assert code == 200 and json.loads(body)["message"].startswith("It works:")
+        backend.replies.append((401, "bad key", {}))
+        code, _, body = post(port, key, "/api/export/test", {})
+        assert code == 502 and json.loads(body)["error"].endswith("refused the data (HTTP 401): bad key")
+        started = []
+        monkeypatch.setattr(otlp, "spawn_pending", lambda h=None: started.append(h) or True)
+        assert post(port, key, "/api/export/send", {})[0] == 200 and started == [home]
+        otlp.begin(home)
+        first, *rest = task_events("x", end="finished")
+        write(home, "s9", [first | {"export": True}, *rest])  # started with export on
+        backend.replies.append((400, "bad request", {}))
+        otlp.export_pending(home)
+        s = get()
+        assert s["last"]["ok"] is False and s["problem"].endswith("refused the data (HTTP 400): bad request")
+    finally:
+        backend.close()

@@ -13,6 +13,7 @@ Everything lives under `$LOOPBRAKE_HOME` (default `~/.loopbrake`).
 | every run event | `ts` | now with milliseconds, e.g. `2026-10-02T04:38:19.123+00:00` (was seconds) | R4.1 |
 | `step` | `duration_ms` (optional) | how long the tool itself ran, when the agent reports it (Claude Code's `PostToolUse` does) | R4.2 |
 | `run_start` | `traceparent` (optional) | the W3C trace context the agent passed (Claude Code sets `TRACEPARENT` when its tracing is on) | R4.3 |
+| `run_start` | `export` (optional) | `true` when the task started with `LOOPBRAKE_EXPORT=otlp`. Only these tasks are ever sent, so tasks run with export off stay local even if it's turned on later. | R7 |
 | calibration record | `lengths` (optional) | the sorted step counts the limit came from; `null` for a mistaken stop counted as unbounded | R4.4 |
 
 **Readers**: they treat every new field as optional. Old records keep working.
@@ -56,14 +57,18 @@ nothing is written to the records.
 ## Export state (new file: `export/state.json`)
 
 ```json
-{"v": 1, "started": "2026-10-02T05:00:00.000+00:00",
- "offsets": {"<session>.jsonl": 18234},
- "last": {"at": "…", "ok": true, "tasks": 3, "spans": 41, "status": 200, "message": ""}}
+{"v": 1, "started": "2026-10-02T05:00:00.000+00:00", "sent_at": "2026-10-02T05:10:00.000+00:00",
+ "offsets": {"<session>.jsonl": {"at": 18234, "open": [17950]}},
+ "totals": {"<project>": {"tasks": 3, "stops": 1, "mistaken_stops": 0, "tokens": 0}},
+ "last": {"at": "…", "ok": true, "tasks": 3, "spans": 41, "status": 200, "message": "", "rejected": 0, "warning": null}}
 ```
 
-- **`offsets`**: per session file, the byte offset up to which every finished task has been sent.
-  When export is first turned on, each existing file's current end becomes its starting point, and
-  only tasks whose `run_start` lies after it are sent (R7).
+- **`offsets`**: per session file, `at` is how far it has been read, and `open` holds the `run_start`
+  offsets of tasks that were still running there, so they're picked up when they end. When export is
+  first turned on, each existing file's current end becomes its starting point, and only tasks whose
+  `run_start` lies after it, and is marked `export: true`, are sent (R7).
+- **`sent_at`**: the last successful send; the start of the next delta window.
+- **`totals`**: counts per project since `started`, for cumulative counters.
 - **Finished**: a task is final at its `run_end` or its `stop`, whichever comes first (R7).
 - **Writing it**: under an exclusive lock (`export/lock`), and replaced atomically.
 - **Content**: no record content, only offsets and counts. `message` holds the backend's error text

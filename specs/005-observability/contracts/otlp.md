@@ -9,7 +9,8 @@ exact mapping.
 - **Trigger**: at the end of each task, through a detached `loopbrake export --pending --quiet`.
   Also by hand, or from the dashboard.
 - **Each run sends**: every *finished* task (final at its `run_end` or its `stop`, whichever comes
-  first) whose `run_start` lies beyond the saved offsets, in batches of up to 50 tasks per request.
+  first) whose `run_start` lies beyond the saved offsets and is marked `export: true` (the task started
+  with export on), in batches of up to 50 tasks per request.
   Tool calls recorded after a stop aren't sent (research R7).
 
 ## Traces: `POST <traces endpoint>`, `Content-Type: application/json`

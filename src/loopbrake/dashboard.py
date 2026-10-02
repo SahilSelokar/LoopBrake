@@ -7,7 +7,6 @@ page loads nothing from anywhere else (constitution, Principle VI and Dashboard 
 import http.cookies
 import http.server
 import json
-import os
 import re
 import secrets
 import threading
@@ -19,7 +18,7 @@ from importlib import resources
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
-from loopbrake import calibration, claude_code, records
+from loopbrake import calibration, claude_code, otlp, records
 from loopbrake.signals import Step, method
 from loopbrake.traces import claude_code_turns
 
@@ -388,7 +387,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
             p = idx.project(parts[1]) if records.valid_project(parts[1]) else None
             return self._json(200, p) if p else self._json(404, {"error": "No such project."})
         if parts == ["export"]:
-            return self._json(200, export_status())
+            return self._json(200, export_status(idx.home))
         self._send(404)
 
     def do_POST(self):
@@ -408,9 +407,33 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self._json(code, obj)
 
 
-def export_status():
-    """Placeholder until export exists (US3)."""
-    return {"on": os.environ.get("LOOPBRAKE_EXPORT") == "otlp"}
+def export_status(home):
+    """The Export screen: settings come from the shell that started the dashboard; no paths or headers."""
+    s = otlp.settings()
+    where, last = otlp.host(s["traces"]), (otlp.load_state(home) or {}).get("last")
+    return {"on": s["on"], "endpoint": where, "content": s["content"], "metrics": s["metrics"] is not None,
+            "cumulative": s["cumulative"], "warning": s["warning"], "last": last,
+            "problem": otlp.problem(last, where) if last and not last["ok"] else None}
+
+
+OFF = (409, {"error": "Export is off. Set LOOPBRAKE_EXPORT=otlp, then start loopbrake dashboard again."})
+
+
+def _export_send(index, body):
+    if not otlp.settings()["on"]:
+        return OFF
+    otlp.spawn_pending(index.home)
+    return 200, {"message": "Sending in the background. The result shows here in a few seconds."}
+
+
+def _export_test(index, body):
+    s = otlp.settings()
+    if not s["on"]:
+        return OFF
+    r, where = otlp.test_connection(), otlp.host(s["traces"])
+    if r["ok"]:
+        return 200, {"message": f"It works: {where} accepted a test span."}
+    return 502, {"error": f"Test failed: {otlp.problem(r, where)}"}
 
 
 _TASK_ID = re.compile(r"[A-Za-z0-9._-]{1,128}/[A-Za-z0-9._-]{1,128}")
@@ -462,6 +485,8 @@ ACTIONS = {  # POST path -> handler(index, body) -> (status, json)
     "/api/mistake": lambda index, body: _mark(index, body, "mistaken_stop"),
     "/api/exclude": lambda index, body: _mark(index, body, "exclude"),
     "/api/recalibrate": _recalibrate,
+    "/api/export/send": _export_send,
+    "/api/export/test": _export_test,
 }
 
 

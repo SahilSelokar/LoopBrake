@@ -6,7 +6,7 @@ import sys
 import re
 from pathlib import Path
 
-from loopbrake import __version__, calibration, claude_code, dashboard, records
+from loopbrake import __version__, calibration, claude_code, dashboard, otlp, records
 from loopbrake.brake import Brake, replay
 from loopbrake.traces import read_runs
 
@@ -166,6 +166,27 @@ def _dashboard(args):
     return 0
 
 
+def _export(args):
+    s = otlp.settings()
+    if not s["on"]:
+        if not args.quiet:
+            print("export is off; set LOOPBRAKE_EXPORT=otlp to turn it on")
+        return 0
+    where = otlp.host(s["traces"])
+    if s["warning"] and not args.quiet:
+        print(f"loopbrake: {s['warning']}", file=sys.stderr)
+    r = otlp.test_connection() if args.test else otlp.export_pending()
+    if r["ok"]:
+        if not args.quiet:
+            n = claude_code._n
+            print(f"test span accepted by {where}" if args.test else
+                  f"sent {n(r['tasks'], 'task')} ({n(r['spans'], 'span')}) to {where}" if r["tasks"] else "nothing new to send")
+        return 0
+    if not args.quiet:
+        print(f"loopbrake: {otlp.problem(r, where)}", file=sys.stderr)
+    return 1
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == ["hook"]:  # before argparse, which exits 2 on bad arguments: a hook must never do that
@@ -193,6 +214,11 @@ def main(argv=None):
     d.add_argument("--port", type=int, default=0, help="a fixed port (default: any free one)")
     d.add_argument("--no-open", action="store_true", help="don't open a browser")
     d.add_argument("--days", type=int, help="read only the last D days of records")
+    e = sub.add_parser("export", help="send finished tasks to your OpenTelemetry tools (needs LOOPBRAKE_EXPORT=otlp)")
+    g3 = e.add_mutually_exclusive_group(required=True)
+    g3.add_argument("--pending", action="store_true", help="send every finished task not sent yet")
+    g3.add_argument("--test", action="store_true", help="send one test span")
+    e.add_argument("--quiet", action="store_true", help="print nothing (used when it runs in the background)")
     sub.add_parser("statusline", help="one line for Claude Code's status line (reads its input from stdin)")
     r = sub.add_parser("replay", help="show where recorded runs would stop (writes nothing, unless --record)")
     r.add_argument("runs_file")
@@ -208,7 +234,7 @@ def main(argv=None):
         ap.print_help()
         return 0
     try:
-        return {"calibrate": _calibrate, "status": _status, "feedback": _feedback, "replay": _replay, "statusline": _statusline, "agreement": _agreement, "dashboard": _dashboard}[args.command](args)
+        return {"calibrate": _calibrate, "status": _status, "feedback": _feedback, "replay": _replay, "statusline": _statusline, "agreement": _agreement, "dashboard": _dashboard, "export": _export}[args.command](args)
     except (OSError, ValueError, KeyError) as e:
         if os.environ.get("LOOPBRAKE_DEBUG") == "1":
             raise

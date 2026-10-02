@@ -1,10 +1,13 @@
 import json
+import os
 import re
 from pathlib import Path
 
 import pytest
 
-from loopbrake import __version__, cli, records
+from loopbrake import __version__, cli, otlp, records
+from mimic_backends import Backend
+from test_otlp import closed_port, task, write
 
 FIX = Path(__file__).parent / "fixtures" / "calibration_runs.jsonl"
 EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
@@ -206,3 +209,30 @@ def test_replay_record_writes_tasks_for_the_dashboard(capsys, home):
     starts = [e for e in ev if e["event"] == "run_start"]
     assert len(starts) == 30 and {e["project"] for e in starts} == {"replay-calibration_runs"}
     assert sum(e["event"] == "stop" for e in ev) == 22 and sum(e["event"] == "run_end" for e in ev) == 30
+
+
+def test_export_command(capsys, home, monkeypatch):
+    for k in list(os.environ):
+        if k.startswith(("OTEL_", "LOOPBRAKE_EXPORT")):
+            monkeypatch.delenv(k)
+    assert run_cli(capsys, "export", "--pending") == (0, "export is off; set LOOPBRAKE_EXPORT=otlp to turn it on\n", "")
+    backend = Backend()
+    try:
+        monkeypatch.setenv("LOOPBRAKE_EXPORT", "otlp")
+        monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", backend.url)
+        otlp.begin(home)
+        write(home, "s1", task("a"))
+        where = backend.url.removeprefix("http://")
+        assert run_cli(capsys, "export", "--pending") == (0, f"sent 1 task (3 spans) to {where}\n", "")
+        assert run_cli(capsys, "export", "--pending") == (0, "nothing new to send\n", "")
+        assert run_cli(capsys, "export", "--test") == (0, f"test span accepted by {where}\n", "")
+        write(home, "s1", task("b"))
+        backend.replies.append((400, "bad request", {}))
+        assert run_cli(capsys, "export", "--pending") == (1, "", f"loopbrake: {where} refused the data (HTTP 400): bad request\n")
+        monkeypatch.setenv("OTEL_EXPORTER_OTLP_ENDPOINT", f"http://127.0.0.1:{closed_port()}")
+        monkeypatch.setenv("OTEL_EXPORTER_OTLP_PROTOCOL", "grpc")
+        code, out, err = run_cli(capsys, "export", "--pending")
+        assert code == 1 and err.startswith(f"loopbrake: {otlp.WARNING}\nloopbrake: couldn't reach 127.0.0.1:")
+        assert run_cli(capsys, "export", "--pending", "--quiet") == (1, "", "")
+    finally:
+        backend.close()

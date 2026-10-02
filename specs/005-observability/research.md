@@ -184,6 +184,10 @@ each file as its starting point, and only tasks whose `run_start` lies after tha
 sent. A task already running when export was turned on is skipped whole; its start isn't half-sent
 (spec edge case: "only tasks that start afterwards are sent").
 
+**Tasks run with export off stay local** (found in T024): a task's `run_start` is marked
+`export: true` when it starts with export on, and only marked tasks are sent. Without the mark, turning
+export off for a while and back on would send the tasks from the off period.
+
 **A stopped task is final at its stop**: Claude Code sends no `Stop` event after LoopBrake stops a
 task (Phase 3 finding), so a task counts as finished at its `run_end` *or* its `stop`, whichever
 comes first. The background export started right after the stop decision sends it at once. Tool

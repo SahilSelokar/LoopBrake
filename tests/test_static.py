@@ -24,7 +24,10 @@ def test_nothing_loads_from_the_internet():
     for p in TEXT_FILES:
         if p.name in LICENSE_FILES:
             continue
-        urls = [u for u in re.findall(r"https?://[^\s\"')]+", p.read_text(encoding="utf-8")) if u != SVG_NS]
+        text = p.read_text(encoding="utf-8")
+        if p.name == "app.js":  # the copyable setup lines are text people copy; nothing loads them
+            text = text[:text.index("const SETUP = [")] + text[text.index("];", text.index("const SETUP = [")):]
+        urls = [u for u in re.findall(r"https?://[^\s\"')]+", text) if u != SVG_NS]
         assert not urls, (p.name, urls)
     for url in re.findall(r"url\(\s*\"?([^\")]+)", read("app.css")):
         assert url.startswith("/static/"), url

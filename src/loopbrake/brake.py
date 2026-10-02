@@ -8,7 +8,7 @@ import uuid
 import warnings
 from typing import NamedTuple
 
-from loopbrake import calibration, records
+from loopbrake import calibration, otlp, records
 from loopbrake.signals import Step, method
 
 EXCERPT = 200
@@ -48,9 +48,10 @@ class Brake:
         self._writer.on = record
         cal = calibration or {}
         trace = {"traceparent": t} if (t := _traceparent(traceparent)) else {}
+        export = {"export": True} if record and otlp.begin(home) else {}  # only marked tasks are ever sent
         self._record("run_start", project=project, calibration={
             "method": "steps", "alpha": cal.get("alpha"), "n": cal.get("n"), "k": cal.get("k"),
-            "stop_line": self.stop_line, "watch_only": self.watch_only}, **trace)
+            "stop_line": self.stop_line, "watch_only": self.watch_only}, **trace, **export)
 
     @classmethod
     def from_events(cls, project, session, home, events, unit="runs"):
@@ -88,6 +89,8 @@ class Brake:
             self.ended = True
             status = status or ("stopped" if self.stopped else "finished")
             self._record("run_end", status=status, steps=len(self.steps), tokens=self.tokens)
+            if not self.stopped and self._writer.on:  # a stopped run was sent at its stop
+                otlp.spawn_pending(self.home)
         except Exception as e:
             self._fail(e)
 
@@ -115,6 +118,8 @@ class Brake:
             self.stopped, self.stop_step = True, t
             self.reason = self._explain(t)
             self._record("stop", step=t, stop_line=self.stop_line, reason=self.reason, **ref)
+            if self._writer.on:  # final at its stop: the agent may never end it (research R7)
+                otlp.spawn_pending(self.home)
             return Decision(True, t, self.reason, False)
         return Decision(False, t, "", self.watch_only)
 

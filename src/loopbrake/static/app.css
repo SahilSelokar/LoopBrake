@@ -126,6 +126,10 @@ select { background: var(--panel); color: var(--paper); border: 1px solid var(--
 .call .tool { font-weight: 700; font-size: 13px; }
 .call .action { font-size: 13px; overflow-wrap: anywhere; color: var(--paper); }
 .flags { display: flex; gap: 6px; flex-wrap: wrap; }
+.setup { border-top: 1px solid var(--line); padding: 10px 0; }
+.setup summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
+.setup pre { margin: 10px 0; padding: 10px 12px; background: var(--night); border-radius: 8px; overflow-x: auto; font-size: 13px; }
+.problem { overflow-wrap: anywhere; }
 .flag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
 .flag .icon { width: 13px; height: 13px; }
 .flag.failed { background: var(--redtint); color: var(--paper); }

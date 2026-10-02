@@ -280,7 +280,7 @@ unless content is opted in. The agent never waits.
 
 **Independent test**: quickstart scenarios 6 and 7.
 
-- [ ] T019 [P] [US3] Write `tests/test_otlp.py`, per contracts/otlp.md and research R8, with a tiny
+- [X] T019 [P] [US3] Write `tests/test_otlp.py`, per contracts/otlp.md and research R8, with a tiny
   in-process receiver recording every request:
   - **Settings**:
     - off unless `LOOPBRAKE_EXPORT=otlp`; with only `OTEL_EXPORTER_OTLP_ENDPOINT` set, nothing is
@@ -332,7 +332,7 @@ unless content is opted in. The agent never waits.
     and stdio set to `DEVNULL`, and only when export is on (monkeypatched).
   - **Hook timing (SC-006)**: with export on and the receiver stopped, 50 `hook("tool")` calls plus
     a `stop` stay within 10 ms of work at p95.
-- [ ] T020 [P] [US3] Write `tests/mimic_backends.py` and `tests/test_export_backends.py` (research
+- [X] T020 [P] [US3] Write `tests/mimic_backends.py` and `tests/test_export_backends.py` (research
   R9):
   - one stand-in per tool, as a stdlib `http.server` on `127.0.0.1:0`:
     - it validates the generic OTLP JSON rules: hex ids, string 64-bit integers, integer enums,
@@ -345,7 +345,7 @@ unless content is opted in. The agent never waits.
     are accepted;
   - **Wrong settings**: cumulative to Datadog, delta to Grafana, metrics to Langfuse or Jaeger, or
     JSON to Phoenix are rejected, recorded in `export/state.json` `last`, and not retried.
-- [ ] T021 [US3] Implement `src/loopbrake/otlp.py`:
+- [X] T021 [US3] Implement `src/loopbrake/otlp.py`:
   - `settings()` from the environment;
   - `State` (the `export/state.json` file, under `export/lock` with `fcntl`, replaced atomically);
   - `finished_tasks(home, state)`: a task is final at its `run_end` or its `stop`, whichever comes
@@ -358,7 +358,7 @@ unless content is opted in. The agent never waits.
     convention changes).
 
   Makes T019 and T020 pass.
-- [ ] T022 [US3] Wire export in:
+- [X] T022 [US3] Wire export in:
   - **`src/loopbrake/brake.py`**: `Brake.end()` calls `otlp.spawn_pending()` when export is on.
   - **`src/loopbrake/claude_code.py`**: it calls `spawn_pending()` after closing a task in `prompt`
     and `stop`, and after a stop decision, since a stopped task may never get `Stop`.
@@ -366,7 +366,7 @@ unless content is opted in. The agent never waits.
     cli.md.
 
   Add CLI tests to `tests/test_cli.py`.
-- [ ] T023 [US3] Wire the dashboard's export screen:
+- [X] T023 [US3] Wire the dashboard's export screen:
   - **`src/loopbrake/dashboard.py`**: `GET /api/export` (on or off, the endpoint host only, content
     yes or no, `last`); `POST /api/export/send` (runs `spawn_pending`; 409 when off);
     `POST /api/export/test` (409 when off).
@@ -374,7 +374,7 @@ unless content is opted in. The agent never waits.
     setup lines for each tool from contracts/otlp.md.
 
   Add tests to `tests/test_dashboard.py`.
-- [ ] T024 [US3] Manual: run quickstart scenarios 6 and 7 with the real Collector and Jaeger
+- [X] T024 [US3] Manual: run quickstart scenarios 6 and 7 with the real Collector and Jaeger
   (`docker compose up -d` in `specs/005-observability/collector/`). Run a Claude Code task that
   gets stopped, with export on.
   - **Confirm**:
@@ -564,3 +564,31 @@ the go-ahead, and T034 comes after the release.
     marked as a mistake as a long good task.
   - No sideways scroll at phone width. Fixed after looking: "1 successful past tasks" (now singular)
     and "up to about 0.0" (now "0").
+- **T019–T023**: 212 tests pass, including 14 export tests, 11 stand-in tests (six tools' README
+  settings accepted; five wrong settings refused, recorded and not retried), the `export` command and
+  the Export screen's endpoints. Changes from the plan, found while building:
+  - **The first task after turning export on was never sent**: the starting point was only fixed
+    when the first background export ran, at that task's end. Now the first task *started* with
+    export on fixes it (`otlp.begin`, no network), before its own `run_start` is written.
+  - **No pile-up of background exporters**: a task end starts one only if none is running or just
+    starting; a running one goes round again if a task ended meanwhile (`export/again`).
+  - **Claude Code needs no export code of its own**: every task end and stop goes through `Brake`,
+    which starts the background export. A stopped task starts it at the stop, not again at its end.
+  - Network errors read in plain words ("Connection refused", "that address couldn't be found").
+- **T024, with the real Collector and Jaeger** (Docker):
+  - A headless Claude Code task, stopped by LoopBrake at 4 tool calls (limit 3), with Claude Code's
+    tracing on. The background export sent it right after the stop (1 task, 5 spans; reply 200).
+  - **Jaeger**: LoopBrake's `invoke_agent claude-code` span sits inside Claude Code's own
+    `claude_code.interaction` trace (FR-014). It's marked as an error, with the `loopbrake.stop`
+    event, and each `execute_tool Bash` span sits under it.
+  - **Collector output**: `loopbrake.tasks` 1 and `loopbrake.stops` 1, delta. No command text,
+    folder name or stop sentence left the computer; only `loopbrake.project_id` (SC-005).
+  - **Collector stopped, 50 real `loopbrake hook tool` processes per run**: median 44 ms and p95
+    49 ms per tool call with export off, 44 ms and 47 ms with it on (budget 200 ms). Ending a task
+    took 43 ms off and 48 ms on (starting the background export). The failure was recorded and the
+    Export screen showed it; "Test connection" said why; after restarting the Collector, "Send now"
+    sent the waiting task (SC-006).
+  - **Fixed after this check**: the first run sent a task that had been run with export **off**,
+    because export had been on earlier. Now `run_start` is marked `export: true` when a task starts
+    with export on, and only marked tasks are sent (research R7). Checked again: only the task run
+    with export on was sent.
