@@ -165,9 +165,56 @@ project, the hooks are not running. Start Claude Code with `claude --debug` and 
 hook errors, and check that `uv` is on the PATH Claude Code sees. The plugin never blocks Claude
 because of its own problem; it just stops recording.
 
+## Use it with Codex
+
+**Install the plugin** for OpenAI's Codex CLI. It needs a recent Codex CLI and
+[uv](https://docs.astral.sh/uv/).
+
+```text
+codex plugin marketplace add SahilSelokar/LoopBrake
+codex plugin add loopbrake@loopbrake
+```
+
+Then open Codex and type `/hooks` to **trust LoopBrake's hooks**. Codex runs a plugin's hooks only
+after you trust them, and until then it skips them without a word.
+
+**Set it up** for the project you are in by sending this as your whole message:
+
+```text
+loopbrake: calibrate
+```
+
+Codex has no slash commands for plugins, and its sandbox keeps commands from writing LoopBrake's
+files, so LoopBrake's commands are messages that its hook answers:
+
+| Message | What it does |
+|---|---|
+| `loopbrake: calibrate` | Sets the limit from this project's past Codex tasks (send it again any time) |
+| `loopbrake: status` | Shows the limit, how many tasks it saw and stopped, and the stops you marked as mistakes |
+| `loopbrake: mistake` | Tells LoopBrake its last stop was wrong; the limit can only go up |
+| `loopbrake: exclude` | Leaves your last finished task out of future limits |
+| `loopbrake: dashboard` | Opens the dashboard (below); `loopbrake: dashboard stop` stops it |
+| `loopbrake: help` | Lists these |
+
+**What a stop looks like.** When a task goes past the limit, the tool call that crossed it gets
+LoopBrake's reason instead of its result, and every later tool call in that task is refused, even
+ones Codex had already lined up in parallel. Codex then ends the task and relays the reason, in the
+same words as in Claude Code.
+
+**How it differs from Claude Code**: Codex and Claude Code tasks in the same folder get separate
+limits; Codex reports no tool-call durations, so the dashboard shows none for Codex; and Codex tasks
+don't nest inside a Codex trace when exported.
+
+**How this was checked.** On Codex CLI 0.160.0 running a local model, without an OpenAI account:
+installing, the stop, the refused calls, the commands, and learning the limit from Codex's own
+history. Two things weren't: how a GPT model behaves after a refused call (it may try a few more
+before it ends the task; refused calls never run), and Codex's helper agents, whose calls LoopBrake
+is built never to count. If either surprises you, please
+[open an issue](https://github.com/SahilSelokar/LoopBrake/issues).
+
 ## See what it did: the dashboard
 
-In Claude Code, run `/loopbrake:dashboard`. In a terminal:
+In Claude Code, run `/loopbrake:dashboard`; in Codex, send `loopbrake: dashboard`. In a terminal:
 
 ```text
 loopbrake dashboard
@@ -338,6 +385,7 @@ uv run python eval/judge_eval.py --final                 # reads stored answers 
 src/loopbrake/   the package: brake, stop-line rule, run readers, Claude Code hooks, dashboard and export
                  (standard library only)
 plugin/          the Claude Code plugin: hooks, slash commands and the launcher; .claude-plugin/ is the marketplace
+codex-plugin/    the Codex plugin: hooks and the same launcher; .agents/plugins/ is its marketplace
 eval/            the experiments: fetch.py downloads the data, run.py replays runs, judge.py asks the
                  progress judge, judge_eval.py scores its answers; results/ holds the published numbers
 specs/           design: constitution, roadmap, and the spec, plan, research and tasks of each experiment

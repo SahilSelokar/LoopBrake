@@ -88,6 +88,7 @@ def test_a_hook_always_exits_0_and_never_waits_on_the_network(launch, tmp_path):
                 break
             time.sleep(0.05)
         assert len(lines) == 2 and "--offline" not in lines[1] and lines[1].endswith("loopbrake --version")
+        assert "--refresh-package loopbrake" in lines[1]  # a just-released version is found (v0.3.0's release)
 
 
 def test_a_hook_uses_the_cache_without_retrying(launch):

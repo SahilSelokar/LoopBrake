@@ -221,14 +221,14 @@ user's tools when export is on.
 
 ## Phase 6: Polish, docs and release
 
-- [ ] T021 Amend the constitution (PATCH, through `/speckit-constitution`): word "Failing safely" and
+- [X] T021 Amend the constitution (PATCH, through `/speckit-constitution`): word "Failing safely" and
   "Same turns live and in calibration" for every agent plugin, not only Claude Code (plan,
   Constitution Check follow-up).
-- [ ] T022 [P] The launcher fix found at v0.3.0's release, in `plugin/bin/loopbrake` and
+- [X] T022 [P] The launcher fix found at v0.3.0's release, in `plugin/bin/loopbrake` and
   `codex-plugin/bin/loopbrake`: the background download on a cache miss refreshes uv's copy of
   the package list (`--refresh-package loopbrake`), so a just-released version is found; the hook
   path stays offline. Add a test to `tests/test_plugin_files.py`.
-- [ ] T023 [P] README: a "Use it with Codex" section (install, the five skills, the sandbox approval
+- [X] T023 [P] README: a "Use it with Codex" section (install, the five skills, the sandbox approval
   if any, and what differs from Claude Code: no action durations, no nesting in a Codex trace); the
   roadmap table. Absolute links only; check with `readme_renderer[md]`.
 - [ ] T024 Run the full suite and the release checks: pytest on 3.11–3.13; the launcher speed against
@@ -320,3 +320,10 @@ user's tools when export is on.
   "Codex · work", "Stopped after 4 actions", "Ran the same command 4 times", and Lighthouse
   accessibility 100 in both themes. Export to a real Collector wasn't rerun: the stand-in test covers
   the only change (the agent's name). 244 tests pass.
+- **T021**: constitution 2.6.1 (PATCH): "Failing safely" and "Same turns live and in calibration" for
+  every agent plugin, and a Codex CLI note.
+- **T022**: on a cache miss, the launcher's download (background for hooks, foreground for commands)
+  passes `--refresh-package loopbrake`, so a version released minutes earlier is found; the hook path
+  stays offline. Both launchers identical.
+- **T023**: README "Use it with Codex" (install, `/hooks`, the typed commands, what a stop looks like,
+  what differs from Claude Code, and how it was checked, plainly), and the layout.

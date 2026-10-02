@@ -16,8 +16,9 @@ if [ "$1" = hook ]; then
   if [ -n "$LOOPBRAKE_CMD" ]; then
     eval "$LOOPBRAKE_CMD \"\$@\""  # eval, so a path with spaces can be quoted inside LOOPBRAKE_CMD
   elif ! uvx --offline --from "loopbrake==$V" loopbrake "$@"; then  # cached copy only: no network
-    # Not cached yet: fetch it in the background, so no tool call ever waits on the network.
-    (uvx --from "loopbrake==$V" loopbrake --version >/dev/null 2>&1 </dev/null &)
+    # Not cached yet: fetch it in the background, so no tool call ever waits on the network. Refresh
+    # uv's copy of the package list first: right after a release it may not know this version yet.
+    (uvx --refresh-package loopbrake --from "loopbrake==$V" loopbrake --version >/dev/null 2>&1 </dev/null &)
   fi
   exit 0
 fi
@@ -26,4 +27,4 @@ fi
 if uvx --offline --from "loopbrake==$V" loopbrake --version >/dev/null 2>&1; then
   exec uvx --offline --from "loopbrake==$V" loopbrake "$@"
 fi
-exec uvx --from "loopbrake==$V" loopbrake "$@"
+exec uvx --refresh-package loopbrake --from "loopbrake==$V" loopbrake "$@"
