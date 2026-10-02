@@ -114,9 +114,32 @@ def test_plain_reason_on_stopped_tasks(home):
     write(home, "s1", task_events("stp", calls=4, stop_at=4, end="stopped"))
     idx = dashboard.Index(home)
     idx.refresh()
-    text = idx.task("s1", "stp")["reason_text"]
-    assert text.startswith("LoopBrake stopped this task after 4 tool calls.") and "repeat each other" in text
-    assert "Mark as mistake" in text and "α" not in text and "step" not in text
+    t = idx.task("s1", "stp")
+    text = t["reason_text"]
+    assert text.startswith("LoopBrake stopped this task after 4 actions.") and "last few actions repeat each other" in text
+    assert "tool call" not in text and "α" not in text and "step" not in text
+    assert t["summary"]["symptoms"] == ["repeating"]
+    # Claude Code's own message keeps its own word for them
+    assert "4 tool calls" in claude_code.plain_stop(4, 3, 19, 0.05, "repeating", "")
+
+
+def test_readable_names_week_and_normal_size(home):
+    folder = claude_code.history_folder("/Users/someone/My Project")
+    folder.mkdir(parents=True)
+    (folder / "s.jsonl").write_text(json.dumps({"type": "summary"}) + "\n" + json.dumps({"cwd": "/Users/someone/My Project"}) + "\n")
+    cc = claude_code.project_name(folder.name)
+    calibrate(home, cc, 5, lengths=[2, 3, 4, None])
+    write(home, "s1", task_events("a", project=cc, end="finished"))
+    write(home, "s2", task_events("b", project="replay-swe", end="finished"))
+    write(home, "s3", task_events("c", project="cc-nohistory-here-abc123", end="finished", when=10))
+    idx = dashboard.Index(home)
+    idx.refresh()
+    labels = {t["run"]: t["label"] for t in idx.tasks()["tasks"]}
+    assert labels == {"a": "My Project", "b": "Replay: swe", "c": "nohistory-here"}
+    p = idx.project(cc)
+    assert p["label"] == "My Project" and p["median"] == 3 and p["week"] == 1
+    o = idx.overview()
+    assert o["week"] == 2 and sum(d["tasks"] for d in o["days"]) == 3 and o["labels"][cc] == "My Project"
 
 
 def test_overview_counts_and_days(home):
@@ -246,7 +269,7 @@ def test_headers_and_bind_address(server):
 def test_read_endpoints(server):
     _, key, port = server
     get = lambda p: json.loads(call(port, p, key=key)[2])
-    assert set(get("/api/changes?since=0")) == {"version"}
+    assert get("/api/changes?since=0")["last_stop"] == "s1/stp"  # the newest stop, for the "just stopped" notice
     o = get("/api/overview")
     assert {"seen", "stopped", "mistaken", "normal_mistakes", "running", "recent_stops", "days", "skipped_lines"} <= set(o)
     assert get("/api/tasks?limit=5")["tasks"][0]["id"] == "s1/stp"

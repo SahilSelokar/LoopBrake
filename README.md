@@ -170,17 +170,21 @@ because of its own problem; it just stops recording.
 loopbrake dashboard
 ```
 
-This opens a page in your browser. It updates while your agent works.
+This opens a page in your browser, written so that anyone can follow it, coder or not. It updates
+while your agent works, and it comes in a light and a dark theme that follow your computer's setting.
+Each thing your agent does (a tool call) is called an **action**.
 
-- **Overview**: what's running now, recent stops, stops per day, and tokens per day when the agent
-  reports them.
-- **A task**: its tool calls climbing toward the limit, why it stopped in plain words, and every call,
-  with failed calls and repeats marked. On a stopped task, "Mark as mistake"; on a finished one,
-  "Leave out of future limits". Each asks before it changes anything.
-- **A project**: its limit and what that promises, the past tasks the limit came from, and, for Claude
-  Code projects, "Set the limit again".
-- **Export**: whether export (next section) is on, where it sends, the last result, and the setup
-  lines for each tool.
+- **Home**: one sentence on how things are going, each task working now with its progress toward
+  the limit, recent stops with the reason in a few words, your projects, and stops per day.
+- **Tasks**: every task, filterable by status and project, and searchable.
+- **A task**: why it stopped, as a picture of your past tasks next to the limit; what it kept doing
+  ("Ran the same command 6 times"); its actions over time (point at the chart to read each one); and
+  every action in plain words ("Ran a command", "Read a file"). On a stopped task, "It wasn't stuck";
+  on a finished one, "Leave out of future limits". Each asks before it changes anything.
+- **A project**, shown by its folder name: its limit and what that promises, the past tasks it came
+  from, and, for Claude Code projects, "Set the limit again".
+- **Settings**: the theme, sending to your tools (next section), how LoopBrake works, and what each
+  word means. A "?" next to each idea explains it in one line.
 
 Options: `--port N` for a fixed port, `--no-open` to skip opening the browser, `--days D` to read
 only the last D days.

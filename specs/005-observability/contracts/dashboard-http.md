@@ -18,7 +18,7 @@ Served by `loopbrake dashboard` on `127.0.0.1` only (research R1).
 | Path | Returns |
 |---|---|
 | `/` and `/static/*` | the page, styles, script, fonts and icon sprite, from the package |
-| `/api/changes?since=N` | `{"version": M}`, where M is the bytes of records read so far. The page refetches only when M changed. |
+| `/api/changes?since=N` | `{"version": M, "last_stop": "<session>/<run>" or null}`. M is the bytes of records read so far; the page refetches only when M changed. When `last_stop` changes, the page shows a "just stopped" notice (FR-022). |
 | `/api/overview` | totals (`seen`, `stopped`, `mistaken`, `normal_mistakes`), `running` tasks, `recent_stops` (up to 20), per-day `stops` and `tokens` for the last 30 days, `skipped_lines` |
 | `/api/tasks?project=&status=&before=&limit=50` | task summaries, newest first, paged by `before` (an end-time cursor) |
 | `/api/task/<session>/<run>?page=0` | the task summary, its plain-language reason, and tool calls 200 per page, with `repeats` and `failed` flags |

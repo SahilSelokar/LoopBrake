@@ -31,7 +31,11 @@ LUCIDE_SHA256 = "c8c9d5dcbc50f388afea623ce2bcbef5788eb0b2d084081aa52d6adaae4ebba
 ICONS = ["play", "loader-circle", "octagon-x", "check", "triangle-alert", "repeat", "gauge", "shield-check",
          "activity", "layers", "coins", "clock", "funnel", "search", "settings", "external-link", "download",
          "square-terminal", "sparkles", "send", "x", "chevron-left", "circle-alert", "house", "folder", "copy",
-         "blend", "chart-column", "wrench"]
+         "blend", "chart-column", "wrench",
+         # the redesign (User Story 5): action kinds, themes, help and navigation
+         "file-text", "pencil", "file-plus", "globe", "list-checks", "plug", "users", "folder-search", "sun",
+         "moon", "monitor", "circle-help", "list", "chevron-right", "arrow-right", "timer", "circle-check",
+         "circle-x", "eye", "bell", "book-open", "user", "refresh-cw"]
 # Basic Latin, Latin-1, and the punctuation the UI uses: dashes, quotes, bullet, ellipsis, arrow, minus.
 UNICODES = list(range(0x20, 0x7F)) + list(range(0xA0, 0x100)) + [0x2013, 0x2014, 0x2018, 0x2019, 0x201C, 0x201D,
                                                                   0x2022, 0x2026, 0x2192, 0x2212, 0x00B7]

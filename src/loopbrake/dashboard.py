@@ -7,8 +7,10 @@ page loads nothing from anywhere else (constitution, Principle VI and Dashboard 
 import http.cookies
 import http.server
 import json
+import os
 import re
 import secrets
+import statistics
 import threading
 import time
 import warnings
@@ -26,10 +28,42 @@ PAGE = 200
 STALE = timedelta(hours=24)
 LABELS = {"running": "Running", "idle": "Running (no activity)", "finished": "Finished", "stopped": "Stopped",
           "interrupted": "Interrupted"}
-NEXT_STEP = ' Use "Mark as mistake" if it wasn\'t stuck.'
+NEXT_STEP = ""  # the page puts its "It wasn't stuck" button right under the text
 _RUN = re.compile(r'"run": "([^"]*)"')
 _TS = re.compile(r'"ts": "([^"]*)"')
 _CALL = re.compile(r'"call_id": "([^"]*)"')
+
+
+def _first_name():
+    """The greeting's name: the first word of the account's full name, only when it's a real name and
+    not just the login name. Shown on this computer only."""
+    try:
+        import pwd
+        p = pwd.getpwuid(os.getuid())
+        first = (p.pw_gecos.split(",")[0].split() or [""])[0]
+    except (ImportError, KeyError):
+        return None
+    return first if first.isalpha() and first.lower() != p.pw_name.lower() else None
+
+
+def _label(project, folder):
+    """A readable project name (spec FR-020): a Claude Code project's real folder name, from the `cwd`
+    in its own history. Local only: export never sends it (FR-012)."""
+    if project.startswith("replay-"):
+        return f"Replay: {project[len('replay-'):]}"
+    for f in sorted(folder.glob("*.jsonl"), key=lambda x: x.stat().st_mtime, reverse=True)[:3] if folder else []:
+        with open(f, encoding="utf-8", errors="replace") as lines:
+            for _, line in zip(range(50), lines):
+                if '"cwd"' in line:
+                    try:
+                        name = Path(json.loads(line).get("cwd") or "").name
+                    except (ValueError, AttributeError):
+                        continue
+                    if name:
+                        return name
+    if project.startswith("cc-"):  # no history here: the name's readable part
+        return re.sub(r"-[0-9a-f]{6}$", "", project[3:])
+    return project
 
 
 def _when(ts):
@@ -50,7 +84,9 @@ class Index:
         self.home, self.days = records.home(home), days
         self.offsets, self.tasks_by_id, self.by_run = {}, {}, {}
         self.bytes_read = self.skipped = self.version = 0
+        self.last_stop = None  # the newest stop read, so the page can say "just stopped" (FR-022)
         self._cc = {}  # transcript path -> ((size, mtime), {call_id: turn tokens})
+        self._labels = {}  # project -> readable name
         self._lock = threading.RLock()
 
     # ---- reading ----
@@ -123,6 +159,7 @@ class Index:
             return
         if kind == "stop":
             t["stop_at"], t["stop_ts"], t["reason"], t["last_ts"] = e.get("step"), e.get("ts"), e.get("reason"), e.get("ts")
+            self.last_stop = t["id"]
         elif kind == "run_end":
             t["end_status"], t["ended"], t["tokens"], t["last_ts"] = e.get("status"), e.get("ts"), e.get("tokens"), e.get("ts")
         elif kind == "feedback":
@@ -155,6 +192,11 @@ class Index:
             tokens.update(self._cc[f][1])
         return tokens
 
+    def label(self, project):
+        if project not in self._labels:
+            self._labels[project] = _label(project, self._history(project))
+        return self._labels[project]
+
     # ---- answers ----
 
     def _state(self, t, now):
@@ -171,6 +213,8 @@ class Index:
         if tokens is None and cc is not None and t["first_call"]:
             tokens = cc.get(t["first_call"])
         return {"id": t["id"], "session": t["session"], "run": t["run"], "project": t["project"], "agent": t["agent"],
+                "label": self.label(t["project"]),
+                "symptoms": claude_code.reason_codes(t["reason"])[1:] if t["stop_at"] is not None else [],
                 "state": state, "status": LABELS[state], "started": t["started"], "ended": t["ended"],
                 "calls": t["calls"], "limit": t["limit"], "stop_at": t["stop_at"], "marks": sorted(t["marks"]),
                 "tokens": tokens}
@@ -190,8 +234,11 @@ class Index:
             tasks = [t for t in tasks if t["project"] == project]
         newest = lambda t: t["started"] or ""
         days = [(now - timedelta(days=i)).date().isoformat() for i in range(29, -1, -1)]
-        per = {d: {"day": d, "stops": 0, "tokens": 0} for d in days}
+        per = {d: {"day": d, "tasks": 0, "stops": 0, "tokens": 0} for d in days}
         for t in tasks:
+            start_day = (_when(t["started"]) or now).date().isoformat()
+            if start_day in per:
+                per[start_day]["tasks"] += 1
             stop_day = (_when(raw[t["id"]]["stop_ts"]) or now).date().isoformat() if t["stop_at"] is not None else None
             if stop_day in per:
                 per[stop_day]["stops"] += 1
@@ -209,6 +256,10 @@ class Index:
             "days": [per[d] for d in days],
             "skipped_lines": self.skipped,
             "projects": sorted({t["project"] for t in tasks}),
+            "labels": {p: self.label(p) for p in {t["project"] for t in tasks}},
+            "week": sum(per[d]["tasks"] for d in days[-7:]),
+            "watching_only": not any(raw[t["id"]]["watched"] for t in tasks),
+            "name": _first_name(),
         }
 
     def tasks(self, project=None, state=None, before=None, limit=50):
@@ -244,14 +295,14 @@ class Index:
             c["repeats"] = score == 1.0  # explanation only: same as one of the previous 10 calls
         reason = None
         if t["stop_at"] is not None:
-            reason = claude_code.plain_stop(t["stop_at"], t["limit"], t["n"], t["alpha"], t["reason"], NEXT_STEP)
+            reason = claude_code.plain_stop(t["stop_at"], t["limit"], t["n"], t["alpha"], t["reason"], NEXT_STEP, unit="actions")
         lo = page * PAGE
         return {"summary": summary, "reason_text": reason, "calls": calls[lo:lo + PAGE], "page": page,
                 "more": len(calls) > lo + PAGE, "total": len(calls)}
 
     def projects(self):
         with self._lock:
-            _, tasks = self._all()
+            now, tasks = self._all()
             raw = dict(self.tasks_by_id)
         cal_dir = self.home / "calibration"
         names = {p.stem for p in cal_dir.glob("*.json")} if cal_dir.exists() else set()
@@ -265,13 +316,18 @@ class Index:
             watched = [t for t in mine if raw[t["id"]]["watched"]]
             alpha = (rec or {}).get("alpha") or 0.05
             mistakes = ((rec or {}).get("source") or {}).get("mistakes_counted", 0)
+            lengths = (rec or {}).get("lengths")
+            finite = [x for x in lengths or [] if x is not None]
+            recent = (now - timedelta(days=7)).isoformat()
             out.append({
-                "name": name, "agent": "claude-code" if name.startswith("cc-") else "python",
+                "name": name, "label": self.label(name), "agent": "claude-code" if name.startswith("cc-") else "python",
+                "median": statistics.median(finite) if finite else None,
+                "week": sum((t["started"] or "") >= recent for t in mine),
                 "limit": None if not rec or rec["watch_only"] else rec["stop_line"], "n": (rec or {}).get("n"),
                 "alpha": alpha, "created": (rec or {}).get("created"), "calibrated": rec is not None,
                 "watch_only": rec is None or rec["watch_only"],
                 "needed": calibration.runs_needed(alpha, mistakes) if rec is None or rec["watch_only"] else None,
-                "lengths": (rec or {}).get("lengths"),
+                "lengths": lengths,
                 "can_recalibrate": self._history(name) is not None,
                 "seen": len(mine), "watched": len(watched), "stopped": sum(t["state"] == "stopped" for t in mine),
                 "mistaken": sum("mistaken" in t["marks"] for t in mine),
@@ -369,7 +425,7 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         idx.refresh()
         parts = [unquote(p) for p in path.split("/")[2:]]
         if parts == ["changes"]:
-            return self._json(200, {"version": idx.version})
+            return self._json(200, {"version": idx.version, "last_stop": idx.last_stop})
         if parts == ["overview"]:
             return self._json(200, idx.overview(q("project")))
         if parts == ["tasks"]:

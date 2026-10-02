@@ -120,19 +120,20 @@ def one_in(alpha):
 
 
 _SYMPTOMS = (("same error", "same_error", "it keeps hitting the same error"),
-             ("repeating", "repeating", "its last few tool calls repeat each other"),
-             ("nothing new", "nothing_new", "its last few tool calls turned up nothing new"))
+             ("repeating", "repeating", "its last few {unit} repeat each other"),
+             ("nothing new", "nothing_new", "its last few {unit} turned up nothing new"))
 
 
-def plain_stop(step, limit, n, alpha, reason, next_step):
+def plain_stop(step, limit, n, alpha, reason, next_step, unit="tool calls"):
     """A stop in plain words (Phase 3 FR-013), from plain values, so the hook, the dashboard and export
-    share it. `next_step` is the closing sentence, which differs per surface."""
+    share it. `next_step` is the closing sentence, which differs per surface; so does `unit`: Claude
+    Code says "tool calls", the dashboard "actions" (constitution 2.5.0)."""
     based = f"Based on your {n} past successful tasks in this project, good" if n else "Good"
-    text = (f"LoopBrake stopped this task after {step} tool calls. {based} tasks almost never need more "
+    text = (f"LoopBrake stopped this task after {step} {unit}. {based} tasks almost never need more "
             f"than {limit} ({one_in(alpha or 0.05)} do).")
     symptom = next((plain for key, _, plain in _SYMPTOMS if key in (reason or "")), None)
     if symptom:
-        text += f" This one also looks stuck: {symptom}."
+        text += f" This one also looks stuck: {symptom.format(unit=unit)}."
     return text + next_step
 
 

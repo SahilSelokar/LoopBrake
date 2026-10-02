@@ -475,7 +475,7 @@ calls, no glass switch. The release (T032) waits for this phase.
 
 **Independent test**: User Story 5's scenarios, then T041.
 
-- [ ] T035 [US5] Data in `src/loopbrake/dashboard.py`, with tests in `tests/test_dashboard.py`:
+- [X] T035 [US5] Data in `src/loopbrake/dashboard.py`, with tests in `tests/test_dashboard.py`:
   - a readable `label` on tasks and projects: for Claude Code projects, the last part of the `cwd`
     in its own history (cached, local only, never exported); `replay-x` shows as "Replay: x";
   - per day, tasks as well as stops and tokens; per project, the normal task size (the median of
@@ -483,25 +483,25 @@ calls, no glass switch. The release (T032) waits for this phase.
   - the greeting's first name from the computer account, only when it's a real name;
   - the dashboard's stop text says "actions" (`claude_code.plain_stop` gains the word to use; the
     Claude Code message keeps "tool calls", Claude Code's own term).
-- [ ] T036 [P] [US5] Vendor the extra Lucide icons the new screens use (`scripts/vendor_assets.py`,
+- [X] T036 [P] [US5] Vendor the extra Lucide icons the new screens use (`scripts/vendor_assets.py`,
   same pinned version and checksums).
-- [ ] T037 [US5] Themes and layout in `src/loopbrake/static/app.css` and `index.html`: every color
+- [X] T037 [US5] Themes and layout in `src/loopbrake/static/app.css` and `index.html`: every color
   token as one `light-dark()` pair; side bar on wide screens and bottom bar on phones (Home, Tasks,
   Projects, Settings); glass only on chrome and turned off by the system settings; the Glass switch
   removed. `tests/test_static.py` checks contrast in both themes.
-- [ ] T038 [US5] Home and Tasks in `src/loopbrake/static/app.js`: greeting and status sentence,
+- [X] T038 [US5] Home and Tasks in `src/loopbrake/static/app.js`: greeting and status sentence,
   working-now cards, tiles with trend lines, stop cards with "See why" and "It wasn't stuck",
   projects, stops per day; the Tasks list with status and project filters, search, and paging.
-- [ ] T039 [US5] The Task screen: the story line; the picture of past tasks against the limit with
+- [X] T039 [US5] The Task screen: the story line; the picture of past tasks against the limit with
   this task marked; "What it kept doing"; actions over time with hover and tap explanations; plain
   action names with tags, filters and expandable rows.
-- [ ] T040 [US5] Projects, the project page, and Settings (appearance; sending to your tools; how
+- [X] T040 [US5] Projects, the project page, and Settings (appearance; sending to your tools; how
   LoopBrake works; the words), the "?" explanations, the new-stop notice, and the getting-started
   guide.
-- [ ] T041 Manual: every screen in both themes, wide and at 390x844, looked at and fixed; Lighthouse
+- [X] T041 Manual: every screen in both themes, wide and at 390x844, looked at and fixed; Lighthouse
   accessibility at least 95 on every screen in both themes; the emulated system settings; scenario 9
   again. Note the results.
-- [ ] T042 [P] README's dashboard section and the roadmap's header (constitution 2.5.0) match the
+- [X] T042 [P] README's dashboard section and the roadmap's header (constitution 2.5.0) match the
   new screens.
 ---
 
@@ -669,3 +669,38 @@ the go-ahead, and T034 comes after the release.
     71 ms, step recorded. No network and nothing cached: exit 0, empty output, 43 ms.
   - `loopbrake agreement --claude-code` on the builder's real use: 5 turns matched, 5 equal, live
     higher 0.
+
+**2026-10-02, the redesign (Phase 8, User Story 5)**
+
+- **T035**: tasks and projects carry a readable `label` (a Claude Code project's folder name from the
+  `cwd` in its own history; "Replay: x"); per-day task counts; each project's normal task size and
+  tasks this week; the stop's symptom codes; the greeting's name only when the account has a real
+  one (on the builder's computer it's only the login name, so the page asks in Settings instead,
+  saved in the browser). The dashboard's stop text says "actions"; Claude Code's own message keeps "tool calls".
+  `/api/changes` also returns the newest stop, for the "just stopped" notice.
+- **T036**: 23 more Lucide icons (52 in all), same pinned version and checksums. Re-running the script
+  rewrote the fonts with different bytes but the same glyphs, so the committed fonts were kept.
+- **T037**: every theme color is one `light-dark()` pair; light and dark both pass AA (the lowest text
+  pair is 6.28:1). Found while checking: the CSP silently dropped every `style=""` attribute the new
+  code set, so spacing moved into CSS classes and a test now forbids them.
+- **T038–T040**: Home, Tasks, Task, Projects, Project and Settings as in contracts/ui.md. Fixed after
+  looking at the screens:
+  - "What it kept doing" grouped by the full action text, which includes the agent's own notes, so
+    60 runs of the same command didn't group. It now groups by what a person sees (same tool, same
+    command or file): "Ran the same command 60 times".
+  - A 60-action list buried the page; it shows 15 with "Show all".
+  - Chart labels collided with the stop mark; the "?" sat inside headings (screen readers would
+    read it as part of the title); on phones, tags squeezed the action names.
+- **T041**, in headless Chrome on a copy of real local data:
+  - **Lighthouse accessibility**: 100 on all 7 screens, light and dark.
+  - **System settings, emulated**: reduced transparency and more contrast turn glass off (2 px
+    borders, no blur); reduced motion removes the sheen; forced colors remove the glow. No glass
+    switch anywhere.
+  - **390x844 and 1280 wide, both themes**: no screen scrolls sideways.
+  - **Interactions**: pointing at the chart names the action; "?" opens and Esc closes; rows expand;
+    "Show all" goes from 15 to 60; the chosen theme survives a reload; the name shows in the
+    greeting; a stop written while the page was open raised the notice, and its page showed "Ran
+    the same command 4 times"; "It wasn't stuck" asked first, then marked it.
+  - **Scenario 9 again**: all 62 requests went to `127.0.0.1`.
+- **T042**: README's dashboard section describes the new screens and words; the roadmap's header
+  cites constitution 2.5.0.
