@@ -11,7 +11,7 @@ from pathlib import Path
 
 from loopbrake import __version__, records
 from loopbrake.conformal import rank, threshold
-from loopbrake.traces import claude_code_turns, read_runs
+from loopbrake.traces import codex_turns, claude_code_turns, read_runs
 
 
 def path(project, home):
@@ -120,6 +120,41 @@ def _from_claude_code(folder, exclude, home=None, project=None):
     return lengths, source
 
 
+def _from_codex(files, exclude, home=None, project=None):
+    """Codex tasks, read by traces.codex_turns (specs/006-codex-cli-plugin, research R4): the same rules as
+    for Claude Code, with tasks LoopBrake stopped or the user marked found by their call ids."""
+    if not files:
+        raise FileNotFoundError("no Codex session files for this folder")
+    live = _live_verdicts(home, project) if home is not None and project else {}
+    lengths, seen, excluded, left_out, mistakes = [], 0, 0, 0, 0
+    for f in files:
+        ids = {}
+        for r in codex_turns(f, exclude, call_ids=ids)[0]:
+            seen += 1
+            excluded += r.run in exclude
+            marks = {live.get(c) for c in ids.get(r.run, ())}
+            if "mistaken" in marks:
+                lengths.append(math.inf)
+                mistakes += 1
+            elif "out" in marks:
+                left_out += 1
+            elif r.success:
+                lengths.append(len(r.steps))
+    listing = "\n".join(f"{Path(f).name}\t{Path(f).stat().st_size}" for f in files)  # names and sizes only
+    source = {"kind": "codex", "sha256": hashlib.sha256(listing.encode()).hexdigest(), "runs_seen": seen,
+              "excluded": excluded, "stops_left_out": left_out, "mistakes_counted": mistakes}
+    return lengths, source
+
+
+def calibrate_codex(files, *, project, alpha=0.05, home=None):
+    """Set a Codex project's stop line from its own Codex session files and save it."""
+    if not records.valid_project(project):
+        raise ValueError(f"project names may use letters, digits, '.', '_' and '-' (got {project!r})")
+    h = records.home(home)
+    lengths, src_info = _from_codex([Path(f) for f in files], records.read_exclude(h), h, project)
+    return _save(lengths, src_info, project, alpha, h)
+
+
 def calibrate(source, *, project="default", alpha=0.05, home=None):
     """Set a project's stop line from past runs and save it. Returns the calibration record.
 
@@ -134,6 +169,10 @@ def calibrate(source, *, project="default", alpha=0.05, home=None):
         raise FileNotFoundError(f"no such file or folder: {src}")
     exclude = records.read_exclude(h)
     lengths, src_info = _from_claude_code(src, exclude, h, project) if src.is_dir() else _from_runs_file(src, exclude)
+    return _save(lengths, src_info, project, alpha, h)
+
+
+def _save(lengths, src_info, project, alpha, h):
     line = threshold(lengths, alpha)
     rec = {
         "v": 1, "project": project, "method": "steps", "alpha": alpha,

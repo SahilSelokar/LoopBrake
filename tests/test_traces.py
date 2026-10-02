@@ -95,3 +95,28 @@ def test_call_ids_per_turn():
     ids = {}
     claude_code_turns(MIDTURN, call_ids=ids)
     assert ids == {"p1": ("t1", "t2", "t3"), "n1": ("t4",), "p2": ("t5",), "p3": ("t6", "t7"), "p4": ("t8",), "p5": ("t9",)}
+
+
+# ---- Codex session files (specs/006-codex-cli-plugin, research R4 and R10) ----
+
+from loopbrake.traces import codex_turns  # noqa: E402
+
+CODEX = Path(__file__).parent / "fixtures" / "codex_rollout.jsonl"
+
+
+def test_codex_turns_cut_at_codex_task_markers():
+    ids = {}
+    runs, skipped = codex_turns(CODEX, call_ids=ids)
+    by = {r.run: r for r in runs}
+    assert list(by) == ["turn-a", "turn-b", "turn-c", "turn-d", "turn-e"]
+    assert {r: len(by[r].steps) for r in by} == {"turn-a": 3, "turn-b": 2, "turn-c": 1, "turn-d": 4, "turn-e": 2}
+    assert by["turn-b"].success and by["turn-a"].success  # a hosted web search is not a step, as live
+    assert not by["turn-c"].success and by["turn-c"].exit == "interrupted"
+    assert by["turn-e"].steps[0].action.startswith("apply_patch")  # a custom tool call is a step
+    assert ids["turn-a"] == ("call_a1", "call_a2", "call_a3") and ids["turn-d"][-1] == "call_d4"
+    assert by["turn-a"].dataset == "codex-local" and not skipped
+
+
+def test_codex_excluded_turn_is_not_a_success():
+    runs, _ = codex_turns(CODEX, exclude={"turn-a"})
+    assert not next(r for r in runs if r.run == "turn-a").success

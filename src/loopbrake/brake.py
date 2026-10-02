@@ -82,6 +82,13 @@ class Brake:
             self._fail(e)
             return Decision(self.stopped, len(self.steps), self.reason, self.watch_only)
 
+    def would_stop(self, more):
+        """Whether `more` further steps would take this run past its stop line, by the same certified
+        rule. Lets an adapter refuse calls that would only run after the stop (parallel calls already
+        on their way), without a rule of its own (constitution Principle V)."""
+        steps = self.steps + [Step("", "", None, 0)] * more
+        return self.stopped or (bool(steps) and _decide(steps, self.stop_line))
+
     def end(self, status=None):
         try:
             if self.ended:

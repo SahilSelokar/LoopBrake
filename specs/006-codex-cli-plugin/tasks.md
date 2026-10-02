@@ -134,7 +134,7 @@ reason; failures inside LoopBrake never affect Codex.
     `hooks/hooks.json` holds no version (so updates need no new trust);
     the two launchers are byte for byte identical; every version agrees with `__version__`; the
     plugin isn't packaged in the wheel.
-- [ ] T011 [US1] Manual, on a real Codex with `LOOPBRAKE_CMD` pointing at this checkout and a scratch
+- [X] T011 [US1] Manual, on a real Codex with `LOOPBRAKE_CMD` pointing at this checkout and a scratch
   `LOOPBRAKE_HOME`: quickstart scenarios 1 (install from the local marketplace), 3 (the live stop,
   10 of 10), 4 (failing safely, 10 of 10), 5 (helpers don't count) and 6 (speed: p95 added at most
   200 ms for the hook pair). Note the results in "Outcome".
@@ -152,7 +152,7 @@ the skills.
 
 ### Tests for User Story 2
 
-- [ ] T012 [P] [US2] Add tests, against `tests/fixtures/codex_rollout.jsonl`:
+- [X] T012 [P] [US2] Add tests, against `tests/fixtures/codex_rollout.jsonl`:
   - `tests/test_traces.py`: `codex_turns()` cuts tasks at a user message and its `task_complete` or
     `turn_aborted`; steps are `function_call`, `custom_tool_call` and `local_shell_call` only; a
     hosted `web_search_call` is skipped; a message sent while Codex worked stays in the running task;
@@ -163,25 +163,25 @@ the skills.
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Write `codex_turns(path, exclude=(), call_ids=None)` in `src/loopbrake/traces.py`,
+- [X] T013 [US2] Write `codex_turns(path, exclude=(), call_ids=None)` in `src/loopbrake/traces.py`,
   the one reader of Codex session files (constitution Principle V), shaped like
   `claude_code_turns()`. Makes the traces tests pass.
-- [ ] T014 [US2] Add `_from_codex(files, exclude, home, project)` in `src/loopbrake/calibration.py`
+- [X] T014 [US2] Add `_from_codex(files, exclude, home, project)` in `src/loopbrake/calibration.py`
   beside `_from_claude_code` (source kind `codex`, names and sizes only in the fingerprint), and
   `codex.calibrate_codex(cwd=None, alpha=0.05, home=None)` and `codex.history_files(cwd)`
   (`$CODEX_HOME/sessions` or `~/.codex/sessions`, filtered by `session_meta.cwd`) in
   `src/loopbrake/codex.py`. Makes the calibration tests pass.
-- [ ] T015 [US2] In `src/loopbrake/cli.py`, add `--codex` to `calibrate`, `status` and `agreement`
+- [X] T015 [US2] In `src/loopbrake/cli.py`, add `--codex` to `calibrate`, `status` and `agreement`
   (contracts/cli.md), with the Claude Code wording; `agreement --codex` in `src/loopbrake/codex.py`
   matches each live task to the history task holding its first call id and exits 1 if any live
   count is higher. Add tests to `tests/test_cli.py`.
-- [ ] T016 [US2] The typed commands (contracts/plugin.md, research R10; they replace the skills,
+- [X] T016 [US2] The typed commands (contracts/plugin.md, research R10; they replace the skills,
   which Codex's sandbox blocks): in `src/loopbrake/codex.py`, `codex-prompt` recognizes `loopbrake:
   calibrate|status|mistake|exclude|dashboard|dashboard stop|help` (the whole message, trimmed,
   case-insensitive, colon optional), runs it in-process, opens no task, and replies with the output as
   `additionalContext` to repeat exactly. Add tests to `tests/test_codex.py`: each command's reply, a
   near-miss message ("loopbrake: status please") treated as ordinary, and no task opened.
-- [ ] T017 [US2] Manual: quickstart scenario 2 on a folder with real Codex history, each skill once,
+- [X] T017 [US2] Manual: quickstart scenario 2 on a folder with real Codex history, each skill once,
   and scenario 7 (`loopbrake agreement --codex`: live higher 0). Note the results.
 
 **Checkpoint**: Codex users set and manage the limit without leaving Codex.
@@ -292,3 +292,25 @@ user's tools when export is on.
 - **T005–T010**: the synthetic session samples (five tasks in one folder, one in another), the adapter
   `src/loopbrake/codex.py`, `loopbrake hook codex-<event>`, the plugin (`codex-plugin/`, hooks for
   seven events with no version in them) and `.agents/plugins/marketplace.json`. 230 tests pass.
+- **T011, on Codex 0.160.0 with the local model** (research R10), with this plugin installed from the
+  repository's marketplace:
+  - **Live stop, first try: 7 of 10.** In 3 runs the model asked for 9 calls in one reply; Codex ran all
+    9 `PreToolUse` hooks before any call, so all were approved, and 9 ran. **Fixed**: the pre-tool hook
+    now counts calls approved since the last finished call, and refuses those that would run after the
+    stop, asking the brake through a new `Brake.would_stop(n)` (the same certified rule, constitution
+    Principle V). Found with it: `would_stop` crashed on a task with no steps yet, and the hook's
+    failing-safe turned the crash into "approve", hiding it. **After the fix: 10 of 10, exactly 4 ran**,
+    with batches refused (up to 10 refusals in a run).
+  - **Failing safely**: with the program missing, the calibration damaged, and the LoopBrake folder
+    read-only, Codex finished each task normally (6 of 6 commands ran, nothing refused, no hook error
+    shown). One run each.
+  - **Speed**, through the launcher against a local 0.4.0 wheel: both hooks of a tool call together
+    took a median of 133 ms, p95 140 ms (budget 200 ms); 100 steps recorded.
+  - **Helpers: not checked**: the local model never started one.
+- **T012–T016**: `codex_turns()`, Codex calibration, `--codex` for `calibrate`, `status` and
+  `agreement`, and the typed commands; the shared messages take the agent's wording (Claude Code's is
+  unchanged). 242 tests pass.
+- **T017, live**: `loopbrake: status` and `loopbrake: help` came back word for word with no tool call;
+  `loopbrake: calibrate` set a limit of 7 from 19 past tasks in the probe folder's real Codex history,
+  leaving out the 20 LoopBrake had stopped; `loopbrake agreement --codex`: 20 tasks matched, live higher
+  0 (16 lower: Codex's history lists the refused calls, which never ran).

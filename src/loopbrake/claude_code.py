@@ -194,6 +194,12 @@ def agreement(cwd=None, home=None):
         ids = {}
         for r in claude_code_turns(f, call_ids=ids)[0]:
             length.update({c: len(r.steps) for c in ids.get(r.run, ())})
+    return compare_live(project, length, h)
+
+
+def compare_live(project, length, h):
+    """Each live task of `project` against the history task holding its first call id (`length`: call id ->
+    that task's step count). Shared by every agent's agreement check."""
     runs, calls = [], {}
     for e in records.read_events(h):
         if e.get("event") == "run_start" and e.get("project") == project:
@@ -222,13 +228,19 @@ def _n(n, word):
     return f"{n} {word}" if n == 1 else f"{n} {word}s"
 
 
-def calibrate_message(rec):
+AGAIN = "Run /loopbrake:calibrate again after more work here."
+HOW = "Run /loopbrake:calibrate to set it."
+NOTHING = ("No tasks recorded here yet. If you've used Claude Code in this folder since installing LoopBrake, "
+           "its hooks may not be running (see Troubleshooting in the README).")
+
+
+def calibrate_message(rec, again=AGAIN):
     src, alpha = rec["source"], rec["alpha"]
     left, mistakes = src.get("stops_left_out", 0), src.get("mistakes_counted", 0)
     if rec["watch_only"]:
         needed = calibration.runs_needed(alpha, mistakes)
         lines = [f"Not enough history yet: LoopBrake found {_n(rec['n'], 'successful past task')} in this project and needs {needed}.",
-                 "Until then it only watches and never stops anything. Run /loopbrake:calibrate again after more work here."]
+                 f"Until then it only watches and never stops anything. {again}"]
         if mistakes:
             lines.append(f"(It needs more than the usual {calibration.runs_needed(alpha)} because each stop you marked as a "
                          "mistake counts as a very long good task.)")
@@ -243,10 +255,10 @@ def calibrate_message(rec):
     return "\n".join(lines)
 
 
-def status_message(rec, st):
+def status_message(rec, st, how=HOW, nothing=NOTHING):
     lines = ["LoopBrake in this project:"]
     if rec is None:
-        lines.append("  Stop line: not set yet, so LoopBrake only watches. Run /loopbrake:calibrate to set it.")
+        lines.append(f"  Stop line: not set yet, so LoopBrake only watches. {how}")
     elif rec["watch_only"]:
         needed = calibration.runs_needed(rec["alpha"], rec["source"].get("mistakes_counted", 0))
         lines.append(f"  Stop line: not set yet, only watching ({_n(rec['n'], 'successful past task')} found, {needed} needed).")
@@ -256,6 +268,5 @@ def status_message(rec, st):
               f"  Tasks stopped: {st['stopped']}",
               f"  Stops you marked as mistakes: {st['mistaken']} (up to about {st['allowance']:.1f} would be normal by now)"]
     if rec is not None and st["runs"] == 0:
-        lines.append("  No tasks recorded here yet. If you've used Claude Code in this folder since installing LoopBrake, "
-                     "its hooks may not be running (see Troubleshooting in the README).")
+        lines.append(f"  {nothing}")
     return "\n".join(lines)

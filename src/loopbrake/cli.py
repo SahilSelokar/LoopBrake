@@ -17,10 +17,15 @@ def _fail(message, code=2):
 
 
 def _calibrate(args):
+    if args.codex:
+        if args.source or args.project or args.claude_code:
+            return _fail("--codex takes no source and no --project: both come from the current folder")
+        print(codex.calibrate_text(alpha=args.alpha))
+        return 0
     if args.claude_code and (args.source or args.project):
         return _fail("--claude-code takes no source and no --project: both come from the current folder")
     if not args.claude_code and not args.source:
-        return _fail("give a runs file or a Claude Code project folder, or use --claude-code")
+        return _fail("give a runs file or a Claude Code project folder, or use --claude-code or --codex")
     if args.claude_code:  # what Claude Code users read: plain words (contracts/cli.md)
         print(claude_code.calibrate_message(claude_code.calibrate_claude_code(alpha=args.alpha)))
         return 0
@@ -36,6 +41,9 @@ def _calibrate(args):
 
 def _status(args):
     h = records.home()
+    if args.codex:
+        print(codex.status_text(home=h))
+        return 0
     if args.claude_code and args.project:
         return _fail("--claude-code and --project can't be used together")
     if args.claude_code:
@@ -74,7 +82,7 @@ def _feedback(args):
     return 0
 
 
-def _feedback_last(h, mistaken, verdict):
+def _feedback_last(h, mistaken, verdict, cal="/loopbrake:calibrate", verb="run"):
     found = records.last_run(h, "stop") if mistaken else records.last_run(h, "run_end", min_steps=1)
     if found is None:
         return _fail("there's no stop to mark yet: LoopBrake hasn't stopped anything." if mistaken
@@ -85,11 +93,11 @@ def _feedback_last(h, mistaken, verdict):
     except ValueError:
         return _fail("that one is already marked.", 1)
     if mistaken:
-        print(f"Done: the stop after {e.get('step')} tool calls is marked as a mistake. The next /loopbrake:calibrate "
+        print(f"Done: the stop after {e.get('step')} tool calls is marked as a mistake. The next {cal} "
               "will count that task as a long good one, so the stop line can only go up.")
     else:
         print(f"Done: your last finished task ({claude_code._n(e.get('steps'), 'tool call')}) will be left out "
-              "the next time you run /loopbrake:calibrate.")
+              f"the next time you {verb} {cal}.")
     return 0
 
 
@@ -139,9 +147,9 @@ def _statusline(args):
 
 
 def _agreement(args):
-    if not args.claude_code:
-        return _fail("agreement needs --claude-code")
-    lines, higher = claude_code.agreement()
+    if not (args.claude_code or args.codex):
+        return _fail("agreement needs --claude-code or --codex")
+    lines, higher = codex.agreement() if args.codex else claude_code.agreement()
     print("\n".join(lines))
     return 1 if higher else 0
 
@@ -211,18 +219,21 @@ def main(argv=None):
     c.add_argument("source", nargs="?", help="a runs file, or a Claude Code project folder")
     c.add_argument("--project", help="project name (default: default)")
     c.add_argument("--claude-code", action="store_true", help="the Claude Code project of the current folder, from its own history")
+    c.add_argument("--codex", action="store_true", help="the Codex project of the current folder, from its own Codex history")
     c.add_argument("--alpha", type=float, default=0.05, help="highest share of good runs you accept stopping (default 0.05)")
     s = sub.add_parser("status", help="stop line, runs watched and stopped, mistaken stops")
     s.add_argument("--project")
     s.add_argument("--claude-code", action="store_true", help="the Claude Code project of the current folder")
+    s.add_argument("--codex", action="store_true", help="the Codex project of the current folder")
     f = sub.add_parser("feedback", help="mark a stop as a mistake, or leave a run out of calibration")
     f.add_argument("run", help="a run id, or 'last': the latest stop (--mistaken) or finished turn (--exclude)")
     g = f.add_mutually_exclusive_group(required=True)
     g.add_argument("--mistaken", action="store_true")
     g.add_argument("--exclude", action="store_true")
     sub.add_parser("hook", help="Claude Code hook entry point (reads the event from stdin)").add_argument("event", choices=claude_code.EVENTS)
-    sub.add_parser("agreement", help="check live step counts against calibration's, turn by turn (writes nothing)").add_argument(
-        "--claude-code", action="store_true", help="the Claude Code project of the current folder")
+    ag = sub.add_parser("agreement", help="check live step counts against calibration's, turn by turn (writes nothing)")
+    ag.add_argument("--claude-code", action="store_true", help="the Claude Code project of the current folder")
+    ag.add_argument("--codex", action="store_true", help="the Codex project of the current folder")
     d = sub.add_parser("dashboard", help="open the local dashboard (only this computer can reach it)")
     d.add_argument("--port", type=int, default=0, help="a fixed port (default: any free one)")
     d.add_argument("--no-open", action="store_true", help="don't open a browser")

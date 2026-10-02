@@ -163,3 +163,37 @@ def test_record_keeps_the_lengths(tmp_path, home, monkeypatch):
     rec = claude_code.calibrate_claude_code(CWD)
     assert rec["lengths"] == list(range(2, 41)) + [None]  # sorted; the mistaken stop counts as unbounded
     assert "secret" not in json.dumps(rec)
+
+
+# ---- Codex history (specs/006-codex-cli-plugin, T012) ----
+
+def _codex_home(tmp_path, monkeypatch):
+    day = tmp_path / "codex" / "sessions" / "2026" / "10" / "02"
+    day.mkdir(parents=True)
+    shutil.copy(FIX / "codex_rollout.jsonl", day / "rollout-2026-10-02T09-00-00-sess-codex-demo.jsonl")
+    shutil.copy(FIX / "codex_rollout_other.jsonl", day / "rollout-2026-10-02T09-30-00-sess-codex-other.jsonl")
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex"))
+
+
+def test_codex_calibration_reads_only_this_folder_and_leaves_stops_out(tmp_path, home, monkeypatch):
+    from loopbrake import codex, records
+    _codex_home(tmp_path, monkeypatch)
+    project = codex.project_name("/home/someone/demo")
+    w = records.RunWriter(home / "runs" / "live.jsonl")  # LoopBrake stopped turn-d live
+    w.write({"event": "run_start", "session": "live", "run": "r1", "project": project, "calibration": {}})
+    for i in range(1, 5):
+        w.write({"event": "step", "session": "live", "run": "r1", "step": i, "call_id": f"call_d{i}"})
+    w.write({"event": "stop", "session": "live", "run": "r1", "step": 4})
+    rec = codex.calibrate_codex("/home/someone/demo", home=home)
+    assert rec["project"] == project and rec["source"]["kind"] == "codex"
+    assert rec["n"] == 3 and rec["lengths"] == [2, 2, 3]  # turn-c interrupted, turn-d stopped, the other folder ignored
+    assert rec["source"]["stops_left_out"] == 1 and rec["watch_only"]
+    saved = (home / "calibration" / f"{project}.json").read_text()
+    assert "echo" not in saved and "call_" not in saved and "Run the tests" not in saved  # counts and a fingerprint only
+
+
+def test_codex_calibration_without_history(tmp_path, home, monkeypatch):
+    from loopbrake import codex
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "nothing"))
+    with pytest.raises(FileNotFoundError, match="no Codex history"):
+        codex.calibrate_codex("/home/someone/demo", home=home)

@@ -231,3 +231,15 @@ def test_adapter_fields_on_run_start(tmp_path):
     b.end()
     first = json.loads((tmp_path / "runs" / "s1.jsonl").read_text().splitlines()[0])
     assert (first["event"], first["turn_id"], first["folder"]) == ("run_start", "t-1", "demo")
+
+
+def test_would_stop_uses_the_same_rule(tmp_path):
+    b = brake_mod.Brake("demo", "s1", "r1", tmp_path, {"stop_line": 3, "watch_only": False}, record=False)
+    b.step("a")
+    assert [b.would_stop(k) for k in range(5)] == [False, False, False, True, True]  # 1 + k > 3
+    assert brake_mod.Brake("demo", "s1", "r2", tmp_path, None, record=False).would_stop(100) is False  # watch only
+
+
+def test_would_stop_before_any_step(tmp_path):
+    b = brake_mod.Brake("demo", "s1", "r1", tmp_path, {"stop_line": 3, "watch_only": False}, record=False)
+    assert [b.would_stop(k) for k in range(6)] == [False, False, False, False, True, True]  # k > 3

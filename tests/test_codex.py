@@ -168,3 +168,78 @@ def test_hooks_are_fast(home):
             hook(home, name, data)
             times.append(time.perf_counter() - began)
     assert statistics.quantiles(times, n=20)[18] < 0.010, sorted(times)[-5:]
+
+
+def test_a_parallel_batch_never_runs_past_the_stop(home):
+    """Codex approves a batch of parallel calls before running any (seen live, research R10)."""
+    calibrate(home, 3)
+    hook(home, "codex-prompt", prompt())
+    approved = [hook(home, "codex-pre-tool", pre(n)) is None for n in range(1, 10)]
+    assert approved == [True] * 4 + [False] * 5  # calls 5 to 9 would only run after the stop
+    replies = [hook(home, "codex-tool", call(n)) for n in range(1, 5)]
+    assert replies[:3] == [None] * 3 and replies[3]["continue"] is False
+    assert [e["event"] for e in log(home)].count("step") == 4
+    hook(home, "codex-prompt", prompt("turn-2"))  # a fresh task approves again
+    assert hook(home, "codex-pre-tool", pre(1, "turn-2")) is None
+
+
+def test_watch_only_records_no_approvals(home):
+    hook(home, "codex-prompt", prompt())
+    assert all(hook(home, "codex-pre-tool", pre(n)) is None for n in range(1, 30))
+    assert not any(e["event"] == "approve" for e in log(home))
+
+
+# ---- typed commands (contracts/plugin.md, research R10) and the --codex options ----
+
+def test_which_messages_are_commands():
+    assert codex.command("loopbrake: status") == "status" and codex.command("LoopBrake status") == "status"
+    assert codex.command("  loopbrake:  dashboard   stop ") == "dashboard stop"
+    for text in ("loopbrake: status please", "please loopbrake: status", "loopbrake", "loopbrake: nope", None):
+        assert codex.command(text) is None
+
+
+def test_a_command_is_answered_and_opens_no_task(home):
+    reply = hook(home, "codex-prompt", prompt(text="loopbrake: status"))
+    context = reply["hookSpecificOutput"]["additionalContext"]
+    assert reply["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
+    assert context.startswith(codex.PREAMBLE) and "LoopBrake in this project:" in context
+    assert 'Send "loopbrake: calibrate" to set it.' in context  # Codex's wording, not /loopbrake:calibrate
+    calibrate(home, 3)  # a limit, but nothing recorded: most likely untrusted hooks
+    context = hook(home, "codex-prompt", prompt(text="loopbrake: status"))["hookSpecificOutput"]["additionalContext"]
+    assert "open /hooks in Codex" in context
+    assert not (home / "runs").exists() or not list((home / "runs").glob("*.jsonl"))
+    help_text = hook(home, "codex-prompt", prompt(text="loopbrake: help"))["hookSpecificOutput"]["additionalContext"]
+    assert all(f"loopbrake: {c}" in help_text for c in codex.COMMANDS if c != "help")
+
+
+def test_mistake_and_dashboard_commands(home, monkeypatch):
+    calibrate(home, 3)
+    hook(home, "codex-prompt", prompt())
+    for n in range(1, 5):
+        hook(home, "codex-tool", call(n))
+    text = codex.run_command("mistake", CWD, home)
+    assert text.startswith("Done: the stop after 4 tool calls is marked as a mistake.") and '"loopbrake: calibrate"' in text
+    assert codex.run_command("mistake", CWD, home) == "That one is already marked."
+    from loopbrake import dashboard
+    monkeypatch.setattr(dashboard, "start_background", lambda **k: {"pid": 1, "url": "http://127.0.0.1:1/?k=x"})
+    assert "http://127.0.0.1:1/?k=x" in codex.run_command("dashboard", CWD, home)
+    assert codex.run_command("dashboard stop", CWD, home) == "No LoopBrake dashboard is running."
+
+
+def test_codex_cli_options(home, tmp_path, monkeypatch, capsys):
+    import shutil
+    from pathlib import Path
+
+    from loopbrake import cli
+    day = tmp_path / "codex" / "sessions" / "2026" / "10" / "02"
+    day.mkdir(parents=True)
+    fixtures = Path(__file__).parent / "fixtures"
+    shutil.copy(fixtures / "codex_rollout.jsonl", day / "rollout-a.jsonl")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(codex.Path, "cwd", classmethod(lambda cls: Path("/home/someone/demo")))
+    assert cli.main(["calibrate", "--codex"]) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("Not enough history yet: LoopBrake found 4 successful past tasks") and '"loopbrake: calibrate"' in out
+    assert cli.main(["status", "--codex"]) == 0 and "LoopBrake in this project:" in capsys.readouterr().out
+    assert cli.main(["agreement", "--codex"]) == 0
+    assert "live higher 0" in capsys.readouterr().out

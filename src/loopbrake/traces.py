@@ -3,6 +3,7 @@
 File format: specs/001-offline-eval/contracts/normalized-runs.md (JSON Lines, one run per line).
 """
 import json
+import re
 from collections import Counter
 from pathlib import Path
 from typing import NamedTuple
@@ -203,4 +204,86 @@ def claude_code_turns(transcript, exclude=(), call_ids=None):
                     turn.by_call[b.get("id")] = step
     if turn:
         close(turn)
+    return runs, skipped
+
+
+# ---- Codex session files (specs/006-codex-cli-plugin, research R4 and R10) ----
+
+_EXIT = re.compile(r"exited with code (\d+)")
+_CODEX_CALLS = ("function_call", "custom_tool_call", "local_shell_call")
+
+
+def codex_session_cwd(path):
+    """The working folder a Codex session file belongs to (its `session_meta`), or None."""
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if rec.get("type") == "session_meta":
+                return (rec.get("payload") or {}).get("cwd")
+    return None
+
+
+def codex_turns(path, exclude=(), call_ids=None):
+    """Split one Codex session file into tasks: the one place that reads Codex's own format
+    (constitution Principle V; checked against tests/fixtures/codex_rollout.jsonl).
+
+    A task runs from `task_started` to its `task_complete` (finished) or `turn_aborted` (interrupted),
+    both tagged with Codex's turn id, the same id the live hooks see, so tasks match live and here by
+    construction. A turn continued under the same root id stays one task. Steps are local tool calls in
+    order; hosted tools such as web search never reach a hook live, so they aren't steps here either.
+
+    Returns (runs, skipped). A task succeeds when it finished and its turn id isn't in `exclude`. When
+    `call_ids` is a dict, it is filled with each task's call ids in step order (the hooks' tool_use_id).
+    """
+    group = Path(path).name
+    runs, skipped = [], Counter()
+    task = None  # [turn id, root id, steps, call ids, by call id]
+
+    def close(exit):
+        nonlocal task
+        tid, _, steps, ids, _ = task
+        if steps:
+            ok = exit is None and tid not in exclude
+            runs.append(Run(group, "codex-local", tid, tid, ok, exit, False,
+                            tuple(Step(s["action"], s["observation"], s["error"], 0) for s in steps)))
+            if call_ids is not None:
+                call_ids[tid] = tuple(ids)
+        task = None
+
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            try:
+                rec = json.loads(line)
+            except json.JSONDecodeError:
+                skipped["bad json"] += 1
+                continue
+            p = rec.get("payload") if isinstance(rec.get("payload"), dict) else {}
+            kind = p.get("type")
+            if rec.get("type") == "event_msg" and kind == "task_started":
+                root = p.get("root_turn_id") or p.get("turn_id")
+                if task and task[1] == root:
+                    continue  # the same task, continued
+                if task:
+                    close("interrupted")  # a new task began before this one ended
+                task = [p.get("turn_id"), root, [], [], {}]
+            elif task and rec.get("type") == "event_msg" and kind in ("task_complete", "turn_aborted"):
+                close(None if kind == "task_complete" else "interrupted")
+            elif task and rec.get("type") == "response_item" and kind in _CODEX_CALLS:
+                args = p.get("arguments", p.get("input", p.get("action", "")))
+                step = {"action": f"{p.get('name') or kind} {args if isinstance(args, str) else json.dumps(args)}",
+                        "observation": "", "error": None}
+                task[2].append(step)
+                if p.get("call_id"):
+                    task[3].append(p["call_id"])
+                    task[4][p["call_id"]] = step
+            elif task and rec.get("type") == "response_item" and kind in ("function_call_output", "custom_tool_call_output"):
+                step = task[4].get(p.get("call_id"))
+                if step is not None:
+                    out = p.get("output")
+                    step["observation"] = out if isinstance(out, str) else json.dumps(out)
+                    m = _EXIT.search(step["observation"])
+                    step["error"] = None if m is None else m.group(1) != "0"
     return runs, skipped
