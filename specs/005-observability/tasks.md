@@ -704,3 +704,9 @@ the go-ahead, and T034 comes after the release.
   - **Scenario 9 again**: all 62 requests went to `127.0.0.1`.
 - **T042**: README's dashboard section describes the new screens and words; the roadmap's header
   cites constitution 2.5.0.
+- **Colors and logo** (constitution 2.6.0, the builder's decision): the dashboard takes the Visual
+  Vortex colors from visualvortexcreatives.dev (read from its stylesheet: near-black `#0A0A0A`, cards
+  `#111218`, text `#EDEDED`, coral `#EA7252` and the coral, rose, plum gradient). Coral fails AA as text
+  on white (2.99:1), so light-theme text accents are a deep plum and coral is a fill there. Red stays
+  for stops only. The logo mark next to the name is gone. Lighthouse accessibility: still 100 on all 7
+  screens in both themes.

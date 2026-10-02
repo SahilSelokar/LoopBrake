@@ -279,6 +279,9 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
   stop, since Claude Code may never end it. Only tasks that *started* with export on are sent.
 - **Counters**: `loopbrake.tasks`, `loopbrake.stops`, `loopbrake.mistaken_stops` and
   `loopbrake.tokens.spent`; delta by default, cumulative on request (Grafana).
+- **The redesign** (constitution 2.5.0 and 2.6.0): written for people who don't code, with "actions"
+  for tool calls, a light and a dark theme in the Visual Vortex colors (coral, rose and plum on
+  near-black), no glass switch and no logo mark.
 - **The exit gate's vendor check**: no vendor accounts (the builder's decision). Instead, stand-ins
   in the tests enforce each tool's published intake rules, and a real OpenTelemetry Collector and
   Jaeger ran end to end, with LoopBrake's task nested inside Claude Code's own trace.

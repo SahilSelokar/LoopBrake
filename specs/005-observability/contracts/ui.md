@@ -35,9 +35,10 @@ Navigation: Home, Tasks, Projects, Settings. A side bar on wide screens, a botto
 
 | Rule | Check |
 |---|---|
-| **Colors**: night `#08110D`, lime `#CFFF3E`, green `#0F3D2E`, red `#E5341F`, paper `#ECEBE4`, ink `#0D0E0B`; each theme token is one `light-dark()` pair | a test reads both themes and checks every text/background pair for WCAG AA (4.5:1) |
+| **Colors** (the Visual Vortex brand, constitution 2.6.0): night `#0A0A0A`, surface `#111218`, paper `#EDEDED`, coral `#EA7252` (accent), the coral, rose `#C7576C`, plum `#A6447F` gradient, green `#1D9E75`, blue `#378ADD`, and red `#E5341F` for a stop only; each theme token is one `light-dark()` pair | a test reads both themes and checks every text/background pair for WCAG AA (4.5:1) |
 | **Themes**: light and dark follow the system; Settings stores system, light or dark | manual |
-| **Lime** on light backgrounds is a fill only, with ink text | the contrast test |
+| **Coral** on light backgrounds is a fill only, with ink text; light-theme text accents are plum | the contrast test |
+| **No logo mark**: the LoopBrake name stands alone | review |
 | **Glass** only on the side bar, bottom bar, dialogs, notices and pop-ups; content on near-opaque panels | review against this table |
 | **Glass turns itself off** under reduced transparency or more contrast; forced colors use system colors; no manual switch | emulated checks |
 | **Red** is a fill only, never text; a stop always shows the `octagon-x` icon plus the word "Stopped" | a test finds no `color: var(--red)` in the CSS |

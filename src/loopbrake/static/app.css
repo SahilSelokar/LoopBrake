@@ -1,40 +1,46 @@
-/* LoopBrake dashboard: the reel brand, light and dark, for people who don't code (constitution 2.5.0).
+/* LoopBrake dashboard: the Visual Vortex colors, light and dark, for people who don't code (constitution 2.6.0).
    Glass only on chrome (side bar, bottom bar, dialogs, notices); content sits on near-opaque panels.
-   Red is a fill only, never text; lime is a fill only on light backgrounds. Fonts are local files. */
+   Red is a fill only, never text, and only for a stop. Fonts are local files. */
 
 @font-face { font-family: "Inter Tight"; src: url("/static/fonts/inter-tight.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
 @font-face { font-family: "JetBrains Mono"; src: url("/static/fonts/jetbrains-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
 @font-face { font-family: "Instrument Serif"; src: url("/static/fonts/instrument-serif-italic.woff2") format("woff2"); font-style: italic; font-display: swap; }
 
-/* Brand colors, then every theme token as one light-dark() pair: light first, dark second.
-   The page follows the system; Settings can pin light or dark (data-theme on <html>). */
+/* The Visual Vortex brand (visualvortexcreatives.dev; constitution 2.6.0), then every theme token as one
+   light-dark() pair: light first, dark second. The page follows the system; Settings can pin light or
+   dark (data-theme on <html>). Coral is a fill only on light backgrounds: text accents there are plum. */
 :root {
-  --night: #08110D;
-  --lime: #CFFF3E;
-  --green: #0F3D2E;
+  --night: #0A0A0A;
+  --surface: #111218;
+  --paper: #EDEDED;
+  --ink: #111218;
+  --coral: #EA7252;
+  --rose: #C7576C;
+  --plum: #A6447F;
+  --green: #1D9E75;
+  --blue: #378ADD;
   --red: #E5341F;
-  --paper: #ECEBE4;
-  --ink: #0D0E0B;
 
-  --bg: light-dark(#ECEBE4, #08110D);
-  --panel: light-dark(#F8F7F2, #0E1A14);
-  --panel2: light-dark(#FFFFFF, #13231B);
-  --text: light-dark(#0D0E0B, #ECEBE4);
-  --muted: light-dark(#4A584F, #A9B4A7);
-  --accent: light-dark(#0F3D2E, #CFFF3E);
-  --line: light-dark(#C9C7BB, #2B4236);
-  --navbg: light-dark(#0F3D2E, #CFFF3E);
-  --navtext: light-dark(#ECEBE4, #0D0E0B);
-  --redtint: light-dark(#F6D8D0, #3A1A12);
-  --greentint: light-dark(#D9E8DC, #0F3D2E);
-  --limetint: light-dark(#E6F5AE, #2A3810);
-  --area: light-dark(rgba(15, 61, 46, 0.10), rgba(207, 255, 62, 0.10));
-  --glowa: light-dark(rgba(207, 255, 62, 0.30), rgba(207, 255, 62, 0.14));
-  --glowb: light-dark(rgba(15, 61, 46, 0.10), rgba(15, 61, 46, 0.35));
-  --tint: light-dark(rgba(248, 247, 242, 0.66), rgba(8, 17, 13, 0.62));
-  --rim: light-dark(rgba(13, 14, 11, 0.10), rgba(236, 235, 228, 0.16));
-  --hover: light-dark(rgba(13, 14, 11, 0.05), rgba(236, 235, 228, 0.06));
-  --shade: light-dark(rgba(13, 14, 11, 0.07), rgba(0, 0, 0, 0.35));
+  --bg: light-dark(#F6F6F8, #0A0A0A);
+  --panel: light-dark(#FFFFFF, #111218);
+  --panel2: light-dark(#F7F7FA, #16171E);
+  --text: light-dark(#111218, #EDEDED);
+  --muted: light-dark(#555A69, #A3A6B4);
+  --accent: light-dark(#9A3A72, #EA7252);
+  --ok: light-dark(#13704F, #3FC497);
+  --line: light-dark(#E2E3EA, #272935);
+  --navbg: light-dark(#EA7252, #EA7252);
+  --navtext: light-dark(#111218, #0A0A0A);
+  --redtint: light-dark(#FBE0DB, #3A1519);
+  --greentint: light-dark(#DCF1E9, #0F2A22);
+  --softtint: light-dark(#F5E2EE, #2A1626);
+  --area: light-dark(rgba(166, 68, 127, 0.10), rgba(234, 114, 82, 0.12));
+  --glowa: light-dark(rgba(234, 114, 82, 0.16), rgba(234, 114, 82, 0.12));
+  --glowb: light-dark(rgba(166, 68, 127, 0.12), rgba(166, 68, 127, 0.20));
+  --tint: light-dark(rgba(255, 255, 255, 0.70), rgba(17, 18, 24, 0.66));
+  --rim: light-dark(rgba(17, 18, 24, 0.08), rgba(237, 237, 237, 0.10));
+  --hover: light-dark(rgba(17, 18, 24, 0.05), rgba(237, 237, 237, 0.06));
+  --shade: light-dark(rgba(17, 18, 24, 0.08), rgba(0, 0, 0, 0.45));
 
   --radius: 18px;
   --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -80,14 +86,13 @@ code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
   .card.link:hover { transform: translateY(-1px); }
 }
 
-.skip { position: absolute; left: -999px; top: 8px; background: var(--lime); color: var(--ink); padding: 8px 12px; border-radius: 8px; z-index: 10; }
+.skip { position: absolute; left: -999px; top: 8px; background: var(--coral); color: var(--ink); padding: 8px 12px; border-radius: 8px; z-index: 10; }
 .skip:focus { left: 8px; }
 
 /* ---- the shell: side bar on wide screens, bottom bar on phones ---- */
 .shell { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
 .side { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; gap: 4px; padding: 22px 14px; border-width: 0 1px 0 0; z-index: 5; }
 .brand { display: flex; align-items: center; gap: 9px; font-weight: 900; font-size: 19px; text-decoration: none; color: var(--text); padding: 0 10px 18px; }
-.brand .icon { color: var(--accent); width: 24px; height: 24px; }
 .nav { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 12px; text-decoration: none; color: var(--muted); font-weight: 650; }
 .nav:hover { color: var(--text); background: var(--hover); }
 .nav[aria-current="page"] { color: var(--navtext); background: var(--navbg); }
@@ -123,10 +128,10 @@ main > * { min-width: 0; }
 /* the status sentence at the top of Home */
 .banner { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
 .banner .dot { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; flex: none; }
-.banner.ok .dot { background: var(--greentint); color: var(--accent); }
+.banner.ok .dot { background: var(--greentint); color: var(--ok); }
 .banner.stop { background: var(--redtint); }
 .banner.stop .dot { background: var(--red); color: var(--ink); }
-.banner.watch .dot { background: var(--limetint); color: var(--text); }
+.banner.watch .dot { background: var(--softtint); color: var(--accent); }
 .banner p { font-size: 16.5px; font-weight: 600; flex: 1 1 220px; }
 .banner a { white-space: nowrap; }
 
@@ -154,7 +159,7 @@ main > * { min-width: 0; }
 .live { display: grid; gap: 10px; }
 .live .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .live .count { font: 750 22px var(--mono); }
-.pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; }
+.pulse { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); flex: none; }
 @media (prefers-reduced-motion: no-preference) { .pulse { animation: pulse 1.6s ease-in-out infinite; } }
 @keyframes pulse { 50% { opacity: 0.35; } }
 
@@ -179,12 +184,12 @@ main > * { min-width: 0; }
 .tag .icon { width: 13px; height: 13px; }
 .tag.failed { background: var(--redtint); }
 .tag.failed .icon { background: var(--red); color: var(--ink); border-radius: 50%; padding: 1px; width: 15px; height: 15px; }
-.tag.repeat { background: var(--limetint); }
+.tag.repeat { background: var(--softtint); }
 .tag.ok { background: var(--greentint); }
 
 /* buttons, filters, the theme switch */
 .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.button { display: inline-flex; align-items: center; gap: 7px; background: var(--lime); color: var(--ink); border: 1px solid transparent; border-radius: 12px; padding: 9px 15px; font: 750 14px var(--sans); cursor: pointer; text-decoration: none; }
+.button { display: inline-flex; align-items: center; gap: 7px; background: var(--coral); color: var(--ink); border: 1px solid transparent; border-radius: 12px; padding: 9px 15px; font: 750 14px var(--sans); cursor: pointer; text-decoration: none; }
 .button:hover { filter: brightness(0.96); }
 .button.quiet { background: transparent; color: var(--text); border-color: var(--line); }
 .button.quiet:hover { background: var(--hover); }

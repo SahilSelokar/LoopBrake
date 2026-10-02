@@ -81,7 +81,7 @@ def contrast(a, b):
 def test_text_colors_pass_wcag_aa_in_both_themes():
     css = read("app.css")
     themes = _themes(css)
-    pairs = [("text", bg) for bg in ("bg", "panel", "panel2", "redtint", "greentint", "limetint")]
+    pairs = [("text", bg) for bg in ("bg", "panel", "panel2", "redtint", "greentint", "softtint")]
     pairs += [("muted", bg) for bg in ("bg", "panel", "panel2")] + [("accent", bg) for bg in ("bg", "panel", "panel2")]
     pairs += [("navtext", "navbg")]
     for i, theme in enumerate(("light", "dark")):
@@ -89,11 +89,12 @@ def test_text_colors_pass_wcag_aa_in_both_themes():
             ratio = contrast(themes[fg][i], themes[bg][i])
             assert ratio >= 4.5, (theme, fg, bg, round(ratio, 2))
         assert contrast(_hex(css, "red"), themes["panel"][i]) >= 3  # red as a fill (non-text) is visible
-    brand = {n: _hex(css, n) for n in ("night", "lime", "red", "ink", "paper")}
-    assert contrast(brand["ink"], brand["lime"]) >= 4.5  # buttons: ink on lime, in both themes
-    assert contrast(brand["red"], brand["night"]) < 4.5  # why red is never text (constitution)
+    brand = {n: _hex(css, n) for n in ("night", "coral", "red", "ink", "paper")}
+    assert contrast(brand["ink"], brand["coral"]) >= 4.5  # buttons: ink on coral, in both themes
+    assert contrast(brand["red"], themes["panel"][0]) < 4.5  # why red is never text (constitution)
     assert contrast(brand["ink"], brand["red"]) >= 3  # the icon on its red circle: non-text, 3:1 is enough
-    assert themes["accent"][0] != brand["lime"]  # on light backgrounds lime is a fill only, never text
+    assert contrast(brand["coral"], themes["panel"][0]) < 4.5  # why coral is a fill only on light backgrounds...
+    assert themes["accent"][0] != brand["coral"]  # ...and light-theme text accents are plum instead
 
 
 def test_size_budget():
