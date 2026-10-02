@@ -327,3 +327,9 @@ user's tools when export is on.
   stays offline. Both launchers identical.
 - **T023**: README "Use it with Codex" (install, `/hooks`, the typed commands, what a stop looks like,
   what differs from Claude Code, and how it was checked, plainly), and the layout.
+- **T024, local part**: 244 passed, 1 skipped on Python 3.11, 3.12 and 3.13; `test_agent_sdk.py` 4 of 4;
+  `claude plugin validate` passes for both; the 0.4.0 wheel holds `codex.py` and the 10 page files and
+  none of the plugin folders; Claude Code hooks through the launcher: median 65 ms, p95 68 ms;
+  `loopbrake agreement --claude-code` on the builder's real use: 8 matched, 8 equal, live higher 0. The
+  Codex numbers are under T011 and T017. Codex has no plugin check command; installing from the local
+  marketplace is the check. Pushing the branch waits for the builder's go-ahead.
