@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.5.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 (observability) is in progress: `specs/005-observability`, branch `005-observability`.
+**Date**: 2026-10-01 | **Constitution**: v2.5.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 is done: the dashboard and OpenTelemetry export ship with v0.3.0 (2026-10-02). Next: Phase 4b, a Codex CLI plugin (the builder's decision, 2026-10-02), then Launch.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -151,7 +151,7 @@ package for explanations and future experiments, but they never decide a stop.
 - **Reel**: LoopBrake kills a stuck Claude Code session live. This is the strongest reel.
 - **Size**: M.
 
-### Phase 4: Observability (`005-observability`, status: in progress)
+### Phase 4: Observability (`005-observability`, status: done, v0.3.0 on 2026-10-02)
 
 - **Goal**: a working observability tool, local first, that also plugs into company tools.
 
@@ -285,6 +285,19 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
 - **The exit gate's vendor check**: no vendor accounts (the builder's decision). Instead, stand-ins
   in the tests enforce each tool's published intake rules, and a real OpenTelemetry Collector and
   Jaeger ran end to end, with LoopBrake's task nested inside Claude Code's own trace.
+
+### Phase 4b: Codex CLI plugin (next; the builder's decision, 2026-10-02)
+
+- **Goal**: the same live stops for OpenAI's Codex CLI that the Claude Code plugin gives: a Codex
+  plugin with hooks, the slash commands and the dashboard, calibrated on the user's own Codex history.
+- **Known so far** (Codex docs, checked 2026-10-02): hooks run by default and plugins can ship them;
+  `PostToolUse` gets `session_id`, `transcript_path`, `turn_id`, `tool_name`, `tool_use_id` and
+  `tool_input`. Unlike Claude Code, `continue: false` there replaces the tool result and Codex carries
+  on, so a stop likely means refusing every further tool call in `PreToolUse`. That must be proven
+  first, in a probe, as Phase 3's hook probe did. Subagent calls fire the same hooks and must be told
+  apart (they never count), and calibration needs a reader for Codex's session files.
+- **Not possible**: ChatGPT itself. Its old plugins closed in 2024, and today's apps are tools ChatGPT
+  calls, with no way to watch or stop its own work.
 
 ### Phase 5: Launch (`005-launch`)
 

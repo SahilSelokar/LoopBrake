@@ -353,16 +353,18 @@ liveness.py      the original naive rule, kept as the baseline
 | 1b | **Progress judge**: a hosted decision model judges whether each step moved the run forward | Done: NO-GO |
 | 2 | **Python package**: `pip install loopbrake`; a stop line on run length, with a guarantee and a readable reason | Done: v0.1.0 on PyPI |
 | 3 | **Claude Code plugin**: stop stuck turns live, calibrated on your own history | Done: v0.2.1 |
-| 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Planned |
+| 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Done: v0.3.0 |
+| 4b | **Codex CLI plugin**: the same live stops for OpenAI's Codex | Next |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
 
 The full plan is in [specs/roadmap.md](https://github.com/SahilSelokar/LoopBrake/blob/main/specs/roadmap.md).
 
 ## Status
 
-v0.2.1 is on PyPI (`pip install loopbrake`), with the Claude Code plugin in this repository. The stop
+v0.3.0 is on PyPI (`pip install loopbrake`), with the Claude Code plugin in this repository. The stop
 rule is a stop line on run length, set from your own past successful runs, with a guaranteed limit on
-stopping good runs. Next: the observability dashboard and OpenTelemetry export.
+stopping good runs. v0.3.0 adds the local dashboard (`/loopbrake:dashboard`) and export to your
+observability tools. Next: a LoopBrake plugin for OpenAI's Codex CLI.
 
 ## License
 
