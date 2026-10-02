@@ -440,8 +440,8 @@ least 95 with glass on and off, and phone-width ready.
   - `uv run python -m pytest`, and `uv run --with claude-agent-sdk python -m pytest
     tests/test_agent_sdk.py`;
   - push the branch, and confirm GitHub's tests pass on 3.11–3.13.
-- [ ] T030 Manual: quickstart scenario 9 (nothing leaves the computer, SC-003). Note the result.
-- [ ] T031 Raise the Claude Code plugin to 0.3.0: set `plugin/.claude-plugin/plugin.json` `version`
+- [X] T030 Manual: quickstart scenario 9 (nothing leaves the computer, SC-003). Note the result.
+- [X] T031 Raise the Claude Code plugin to 0.3.0: set `plugin/.claude-plugin/plugin.json` `version`
   and `plugin/bin/loopbrake` `V=` to `0.3.0`, because its hooks now record `duration_ms` and
   `traceparent`, and start export. `tests/test_plugin_files.py` checks they agree with
   `__version__`. Re-run Phase 3's release checks:
@@ -615,3 +615,18 @@ the go-ahead, and T034 comes after the release.
   `readme_renderer[md]`. The new sections use plain "see below" text instead of in-page links,
   which don't work on PyPI.
 - **T028**: the roadmap's Phase 4 now records what changed while building. It's marked done at T033.
+- **T029, local part**: 212 passed, 1 skipped on Python 3.11, 3.12 and 3.13; with the extra,
+  `tests/test_agent_sdk.py` passes 4 of 4. Pushing the branch for GitHub's run waits for the
+  builder's go-ahead (a push is public).
+- **T030, scenario 9**, export off, every screen clicked through with live updates running: all 44
+  requests the page made went to `127.0.0.1`, and the dashboard process held only its local
+  listening socket. Nothing left the computer.
+- **T031**:
+  - `claude plugin validate` passes for the marketplace and the plugin; the launcher's git mode is
+    100755; the plugin and launcher say 0.3.0, matching the package.
+  - The 0.3.0 wheel holds the dashboard's page files, fonts and license texts, and not `plugin/`.
+  - Through the launcher against the local 0.3.0 wheel (a separate uv cache): 100 `hook tool`
+    calls, median 64 ms, p95 74 ms, max 81 ms (budget 200 ms). No network but cached: exit 0 in
+    71 ms, step recorded. No network and nothing cached: exit 0, empty output, 43 ms.
+  - `loopbrake agreement --claude-code` on the builder's real use: 5 turns matched, 5 equal, live
+    higher 0.
