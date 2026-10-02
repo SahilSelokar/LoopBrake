@@ -343,7 +343,7 @@ must pass before the next.
   `~/.loopbrake/runs/` whose Claude Code history folder exists, run the agreement check
   (`claude_code.agreement` with that folder). **Gate**: live higher 0 in every project. Note the
   counts under "Outcome", with project labels only, never folder names.
-- [ ] T036 T031's checks for 0.2.1:
+- [X] T036 T031's checks for 0.2.1:
   - the full suite, and GitHub's tests on 3.11–3.13;
   - `claude plugin validate` for both;
   - launcher mode `100755`;
@@ -569,4 +569,5 @@ builder's go-ahead.
     100755;
   - local 0.2.1 wheel through the launcher: median 72 ms, p95 77 ms (46 ms earlier the same day,
     likely a busier machine; budget 200 ms);
-  - network blocked and cached: exit 0, 72 ms; nothing cached: exit 0, empty stdout, 59 ms.
+  - network blocked and cached: exit 0, 72 ms; nothing cached: exit 0, empty stdout, 59 ms;
+  - GitHub's tests on 3.11, 3.12 and 3.13 and the build check: all pass.
