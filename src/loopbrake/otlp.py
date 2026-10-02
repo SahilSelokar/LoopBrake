@@ -238,7 +238,7 @@ def _task_spans(t, content):
         _, trace, parent, _ = start["traceparent"].split("-")
     task_id = _hex(key + "/task", 16)
     stopped = final.get("event") == "stop"
-    agent = "claude-code" if project.startswith("cc-") else project
+    agent = "claude-code" if project.startswith("cc-") else "codex" if project.startswith("codex-") else project
     out, prev = [], _ns(start["ts"])
     for s in steps:
         end, took = _ns(s["ts"]), s.get("duration_ms")

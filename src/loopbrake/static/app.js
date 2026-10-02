@@ -80,6 +80,7 @@ const TEXT = {
   projectsSub: "Each project has its own limit, learned from its own past tasks.",
   noProjects: "No projects yet.",
   claudeProject: "Claude Code project",
+  codexProject: "Codex project",
   agentProject: "Agent project",
   limitTitle: "The limit",
   promise: (oneIn) => `Good tasks almost never need more: ${oneIn} go past it.`,
@@ -168,6 +169,12 @@ const TOOLS = {
   Task: ["Asked a helper", "users", "description", "Asked a helper the same thing"],
   Agent: ["Asked a helper", "users", "description", "Asked a helper the same thing"],
   TodoWrite: ["Updated its to-do list", "list-checks", null, "Updated its to-do list"],
+  // Codex's tools (specs/006-codex-cli-plugin, research R10): its hooks call shell commands "Bash"
+  apply_patch: ["Edited files", "pencil", null, "Made the same edit"],
+  update_plan: ["Updated its plan", "list-checks", null, "Updated its plan"],
+  view_image: ["Looked at an image", "eye", "path", "Looked at the same image"],
+  exec_command: ["Ran a command", "square-terminal", "cmd", "Ran the same command"],
+  shell: ["Ran a command", "square-terminal", "command", "Ran the same command"],
 };
 const DETAIL_KEYS = ["command", "file_path", "notebook_path", "path", "pattern", "url", "query", "description", "prompt"];
 
@@ -594,7 +601,7 @@ async function task(session, run) {
   const took = span(s.started, end);
   const head = [h("a", { class: "back", href: "#/tasks" }, icon("chevron-left"), TEXT.back),
     h("div", { class: "head" }, h("div", { class: "grow story" },
-      h("a", { class: "more", href: `#/project/${encodeURIComponent(s.project)}` }, icon("folder"), s.label),
+      h("a", { class: "more", href: `#/project/${encodeURIComponent(s.project)}` }, icon("folder"), s.agent === "codex" ? `Codex · ${s.label}` : s.label),
       h("div", { class: "titleline" }, h("h1", {}, titleFor(s)), help("action")),
       h("p", { class: "sub" }, [dayTime(s.started), took ? TEXT.took(took) : null].filter(Boolean).join(" · "))), chip(s))];
 
@@ -679,7 +686,7 @@ async function project(name) {
     h("p", { class: "muted" }, TEXT.mistakes(p.mistaken, about(p.normal_mistakes)), help("mistake")));
   return [h("a", { class: "back", href: "#/projects" }, icon("chevron-left"), TEXT.back),
     h("div", { class: "head" }, h("div", { class: "grow" }, h("h1", {}, p.label),
-      h("p", { class: "sub" }, p.agent === "claude-code" ? TEXT.claudeProject : TEXT.agentProject))),
+      h("p", { class: "sub" }, p.agent === "claude-code" ? TEXT.claudeProject : p.agent === "codex" ? TEXT.codexProject : TEXT.agentProject))),
     h("div", { class: "grid2" }, limit, h("div", { class: "stack" }, so,
       recent.tasks.length ? h("section", { class: "card" }, h("h2", {}, icon("list"), TEXT.recentTasks), h("div", { class: "rows" }, recent.tasks.map(taskRow))) : null))];
 }

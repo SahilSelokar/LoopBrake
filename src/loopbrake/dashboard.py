@@ -68,6 +68,10 @@ def _label(project, folder):
     return project
 
 
+def _agent(project):
+    return "claude-code" if project.startswith("cc-") else "codex" if project.startswith("codex-") else "python"
+
+
 def _when(ts):
     try:
         return datetime.fromisoformat(ts)
@@ -89,6 +93,7 @@ class Index:
         self.last_stop = None  # the newest stop read, so the page can say "just stopped" (FR-022)
         self._cc = {}  # transcript path -> ((size, mtime), {call_id: turn tokens})
         self._labels = {}  # project -> readable name
+        self._folders = {}  # Codex project -> its folder's name, from its tasks' run_start
         self._lock = threading.RLock()
 
     # ---- reading ----
@@ -149,12 +154,14 @@ class Index:
             tid, project = f"{session}/{run}", e.get("project") or ""
             self.tasks_by_id[tid] = {
                 "id": tid, "session": session, "run": run, "project": project,
-                "agent": "claude-code" if project.startswith("cc-") else "python", "file": path,
+                "agent": _agent(project), "file": path,
                 "started": e.get("ts"), "ended": None, "last_ts": e.get("ts"), "end_status": None, "calls": 0,
                 "limit": cal.get("stop_line") if watched else None, "watched": watched, "alpha": cal.get("alpha"),
                 "n": cal.get("n"), "stop_at": None, "stop_ts": None, "reason": None, "marks": set(), "tokens": None,
                 "first_call": None}
             self.by_run[run] = tid
+            if e.get("folder"):  # a Codex task names its folder (specs/006, data-model.md)
+                self._folders[project] = e["folder"]
             return
         t = self.tasks_by_id.get(self.by_run.get(run, ""))
         if t is None:
@@ -195,6 +202,8 @@ class Index:
         return tokens
 
     def label(self, project):
+        if project in self._folders:
+            return self._folders[project]
         if project not in self._labels:
             self._labels[project] = _label(project, self._history(project))
         return self._labels[project]
@@ -322,7 +331,7 @@ class Index:
             finite = [x for x in lengths or [] if x is not None]
             recent = (now - timedelta(days=7)).isoformat()
             out.append({
-                "name": name, "label": self.label(name), "agent": "claude-code" if name.startswith("cc-") else "python",
+                "name": name, "label": self.label(name), "agent": _agent(name),
                 "median": statistics.median(finite) if finite else None,
                 "week": sum((t["started"] or "") >= recent for t in mine),
                 "limit": None if not rec or rec["watch_only"] else rec["stop_line"], "n": (rec or {}).get("n"),

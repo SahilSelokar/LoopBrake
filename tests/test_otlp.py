@@ -366,3 +366,17 @@ def test_hooks_stay_fast_with_export_on_and_the_backend_down(lb, monkeypatch, tm
         time.sleep(0.1)
     last = otlp.load_state(home)["last"]
     assert last["ok"] is False and last["status"] is None and last["tasks"] == 1 and last["spans"] == 51
+
+
+def test_codex_tasks_are_sent_as_codex_without_local_paths(lb):
+    home, backend = lb
+    otlp.begin(home)
+    first, *rest = task("cx")
+    first = first | {"project": "codex-home-someone-demo-abc123", "folder": "secret-folder-name",
+                     "transcript": "/home/someone/.codex/sessions/rollout-secret.jsonl", "turn_id": "t1"}
+    write(home, "s9", [first, *rest])
+    assert otlp.export_pending()["ok"]
+    task_span = next(s for s in spans(backend) if s["name"].startswith("invoke_agent"))
+    assert task_span["name"] == "invoke_agent codex" and attrs(task_span)["gen_ai.agent.name"] == "codex"
+    sent = json.dumps([b for _, _, b, _ in backend.requests])
+    assert "secret-folder-name" not in sent and "rollout-secret" not in sent

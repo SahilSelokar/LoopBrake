@@ -394,3 +394,16 @@ def test_export_screen_endpoints(server, home, monkeypatch):
         assert s["last"]["ok"] is False and s["problem"].endswith("refused the data (HTTP 400): bad request")
     finally:
         backend.close()
+
+
+# ---- Codex tasks (specs/006-codex-cli-plugin, T018) ----
+
+def test_codex_tasks_are_marked_and_named_by_their_folder(home):
+    first, *rest = task_events("cx", project="codex-home-someone-demo-abc123", end="finished")
+    write(home, "s1", [first | {"turn_id": "t1", "folder": "demo", "transcript": "/x/rollout.jsonl"}, *rest])
+    idx = dashboard.Index(home)
+    idx.refresh()
+    t = idx.tasks()["tasks"][0]
+    assert t["agent"] == "codex" and t["label"] == "demo"
+    p = idx.project("codex-home-someone-demo-abc123")
+    assert p["agent"] == "codex" and p["label"] == "demo"

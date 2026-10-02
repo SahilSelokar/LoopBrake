@@ -197,7 +197,7 @@ user's tools when export is on.
 
 ### Tests for User Story 3
 
-- [ ] T018 [P] [US3] Add tests:
+- [X] T018 [P] [US3] Add tests:
   - `tests/test_dashboard.py`: a `codex-` task has agent `codex` and the label from its `folder`;
   - `tests/test_otlp.py`: a `codex-` task is sent with `gen_ai.agent.name` `codex` and never sends
     its `folder` or `transcript`;
@@ -205,13 +205,13 @@ user's tools when export is on.
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] In `src/loopbrake/dashboard.py`, give `codex-` tasks the agent `codex` and the label
+- [X] T019 [US3] In `src/loopbrake/dashboard.py`, give `codex-` tasks the agent `codex` and the label
   from `run_start.folder`; in `src/loopbrake/otlp.py`, the agent name `codex`; in
   `src/loopbrake/static/app.js`, plain names and icons for the `tool_name` values T004 found (at
   least: commands "Ran a command", `apply_patch` "Edited files", `update_plan` "Updated its plan",
   `view_image` "Looked at an image", MCP tools "Used <server>") and a "Codex" mark on Codex tasks and
   projects. Makes T018 pass.
-- [ ] T020 [US3] Manual: quickstart scenarios 8 (the dashboard live during a Codex task; export to a
+- [X] T020 [US3] Manual: quickstart scenarios 8 (the dashboard live during a Codex task; export to a
   local Collector) and 9 (nothing leaves the computer with export off). Lighthouse accessibility
   stays at least 95 on a Codex task's page in both themes. Note the results.
 
@@ -314,3 +314,9 @@ user's tools when export is on.
   `loopbrake: calibrate` set a limit of 7 from 19 past tasks in the probe folder's real Codex history,
   leaving out the 20 LoopBrake had stopped; `loopbrake agreement --codex`: 20 tasks matched, live higher
   0 (16 lower: Codex's history lists the refused calls, which never ran).
+- **T018–T020**: Codex tasks have the agent `codex` and their folder's name; export names the agent
+  `codex` and never sends the folder or transcript path; plain names for Codex's tools (its hooks call
+  shell commands `Bash`, which already reads "Ran a command"). Live, a task the real Codex ran showed
+  "Codex · work", "Stopped after 4 actions", "Ran the same command 4 times", and Lighthouse
+  accessibility 100 in both themes. Export to a real Collector wasn't rerun: the stand-in test covers
+  the only change (the agent's name). 244 tests pass.
