@@ -263,6 +263,26 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
 
 **Size**: L.
 
+**What changed while building** (details in `specs/005-observability/tasks.md`, "Outcome"):
+- **Plain words everywhere**: tasks, tool calls, limit, "Stopped", "Mark as mistake"; never τ, α,
+  score or kill on screen. The screens became Overview, Task, Project and Export.
+- **The chart shows the rule v1 uses**: the tool-call count climbing toward the limit, not a score
+  line. The project page shows the past task lengths the limit came from. "Exclude runs" became
+  "Leave out of future limits" on each finished task, and "Recalibrate" became "Set the limit
+  again". The overview shows stops marked as mistakes next to how many would be normal, not a
+  budget. No live "tokens saved" (constitution).
+- **Security**: the per-launch key in the address is swapped for an HttpOnly cookie on first load;
+  changes also need the page's own `Origin`; a strict CSP blocks every outside load.
+- **Spans**: no `loopbrake.score` or `loopbrake.signal.*` (v1 decides by count), and no token usage
+  on spans (Claude Code's hooks don't report it). A project is sent as a short hash unless content
+  is opted in, because Claude Code project names hold folder paths. A stopped task is sent at its
+  stop, since Claude Code may never end it. Only tasks that *started* with export on are sent.
+- **Counters**: `loopbrake.tasks`, `loopbrake.stops`, `loopbrake.mistaken_stops` and
+  `loopbrake.tokens.spent`; delta by default, cumulative on request (Grafana).
+- **The exit gate's vendor check**: no vendor accounts (the builder's decision). Instead, stand-ins
+  in the tests enforce each tool's published intake rules, and a real OpenTelemetry Collector and
+  Jaeger ran end to end, with LoopBrake's task nested inside Claude Code's own trace.
+
 ### Phase 5: Launch (`005-launch`)
 
 - **Goal**: the public release and the video.

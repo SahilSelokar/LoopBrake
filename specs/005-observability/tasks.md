@@ -423,7 +423,7 @@ least 95 with glass on and off, and phone-width ready.
 
 ## Phase 7: Polish, docs and release
 
-- [ ] T027 [P] Update `README.md`:
+- [X] T027 [P] Update `README.md`:
   - **A "Dashboard" section**: `loopbrake dashboard`, what each screen shows, and the security model
     in one paragraph.
   - **A "Send to your observability tools" section**:
@@ -434,7 +434,7 @@ least 95 with glass on and off, and phone-width ready.
       real OpenTelemetry Collector and Jaeger, not against live accounts".
   - **Public-claims rule**: no numbers except configuration. Absolute links only, no Mermaid; check
     with `readme_renderer`.
-- [ ] T028 [P] Mark Phase 4 done in `specs/roadmap.md` (at T033), and record any changes from the
+- [X] T028 [P] Mark Phase 4 done in `specs/roadmap.md` (at T033), and record any changes from the
   roadmap's Phase 4 text (the step-budget chart, plain words, account-free checks).
 - [ ] T029 Run the full suite:
   - `uv run python -m pytest`, and `uv run --with claude-agent-sdk python -m pytest
@@ -609,3 +609,9 @@ the go-ahead, and T034 comes after the release.
     tool-call count above the line's end was cut off; it now sits under the point.
   - Not checked: the real macOS settings switches by hand, since the emulated media features are
     what the CSS reads.
+- **T027**: README gains "See what it did: the dashboard" and "Send to your observability tools"
+  (settings per tool, the content opt-in, the protobuf note, and how it was checked). "Never uses the
+  network" now says "unless you turn on export". No numbers except settings; it renders with
+  `readme_renderer[md]`. The new sections use plain "see below" text instead of in-page links,
+  which don't work on PyPI.
+- **T028**: the roadmap's Phase 4 now records what changed while building. It's marked done at T033.

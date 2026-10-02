@@ -102,9 +102,9 @@ loopbrake feedback <run-id> --mistaken     # tell LoopBrake a stop was wrong
 **Claude's agent toolkit:** `pip install "loopbrake[agent-sdk]"`, then
 `ClaudeAgentOptions(hooks=loopbrake.agent_sdk.hooks(project="my-agent"))`.
 
-Everything stays on your machine, in `~/.loopbrake`. LoopBrake never uses the network. If something
-inside it fails, it switches to watching only. It never crashes or stops your agent because of its
-own problem.
+Everything stays on your machine, in `~/.loopbrake`. LoopBrake never uses the network unless you turn
+on export (see "Send to your observability tools" below). If something inside it fails, it switches
+to watching only. It never crashes or stops your agent because of its own problem.
 
 ## Use it with Claude Code
 
@@ -156,13 +156,80 @@ also looks stuck: its last few tool calls repeat each other. If it wasn't stuck,
 your good tasks will be stopped (5%), as long as your future tasks are like your past ones: the same
 kind of work, done the same way. When your work changes, run `/loopbrake:calibrate` again.
 
-**No uv?** Install `loopbrake==0.2.1` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
+**No uv?** Install `loopbrake==0.3.0` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
 in the environment Claude Code starts from: `export LOOPBRAKE_CMD="'$(which loopbrake)'"`.
 
 **Troubleshooting.** If `/loopbrake:status` says "No tasks recorded here yet" after you have worked in the
 project, the hooks are not running. Start Claude Code with `claude --debug` and look for `loopbrake`
 hook errors, and check that `uv` is on the PATH Claude Code sees. The plugin never blocks Claude
 because of its own problem; it just stops recording.
+
+## See what it did: the dashboard
+
+```text
+loopbrake dashboard
+```
+
+This opens a page in your browser. It updates while your agent works.
+
+- **Overview**: what's running now, recent stops, stops per day, and tokens per day when the agent
+  reports them.
+- **A task**: its tool calls climbing toward the limit, why it stopped in plain words, and every call,
+  with failed calls and repeats marked. On a stopped task, "Mark as mistake"; on a finished one,
+  "Leave out of future limits". Each asks before it changes anything.
+- **A project**: its limit and what that promises, the past tasks the limit came from, and, for Claude
+  Code projects, "Set the limit again".
+- **Export**: whether export (next section) is on, where it sends, the last result, and the setup
+  lines for each tool.
+
+Options: `--port N` for a fixed port, `--no-open` to skip opening the browser, `--days D` to read
+only the last D days.
+
+**Only your computer can open it.** The server listens on 127.0.0.1 only. Each start prints an address
+with a new secret key; the page swaps it for a cookie, and every request needs it. Requests from
+other sites are refused, and the page loads nothing from the internet.
+
+## Send to your observability tools
+
+LoopBrake can send each finished task to Datadog, Grafana, Honeycomb, Langfuse, Jaeger or any
+OpenTelemetry Collector, as OpenTelemetry traces and counters (OTLP over HTTP, as JSON). It is off
+until you turn it on, in the environment your agent runs in:
+
+```sh
+export LOOPBRAKE_EXPORT=otlp
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+**What is sent.** One trace per task: the task, each tool call inside it, and the stop with a short
+reason code. Plus four counters: tasks, stops, stops marked as mistakes, and tokens (when the agent
+reports them). Commands, project names and the stop explanation are **not** sent unless you also set
+`LOOPBRAKE_EXPORT_CONTENT=1`; without it, a project is named by a short hash. Only tasks that start
+while export is on are ever sent.
+
+**It never slows your agent.** Each task is sent in the background after it ends, or right after
+LoopBrake stops it. If the tool can't be reached, the task waits and goes with the next send.
+`loopbrake export --test` sends one test span, and `loopbrake export --pending` sends now. The
+dashboard's Export screen shows the last result.
+
+**With Claude Code's own tracing on**, LoopBrake's task shows up inside Claude Code's trace.
+
+| Tool | Settings |
+|---|---|
+| OpenTelemetry Collector | `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318` |
+| Datadog | `OTEL_EXPORTER_OTLP_ENDPOINT=https://otlp.datadoghq.com` (or your site's), `OTEL_EXPORTER_OTLP_HEADERS=dd-api-key=<key>` |
+| Grafana Cloud | your stack's OTLP endpoint, `OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic%20<base64 of instance:token>`, `OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=cumulative` |
+| Honeycomb | `OTEL_EXPORTER_OTLP_ENDPOINT=https://api.honeycomb.io`, `OTEL_EXPORTER_OTLP_HEADERS=x-honeycomb-team=<key>` |
+| Langfuse | `OTEL_EXPORTER_OTLP_ENDPOINT=https://cloud.langfuse.com/api/public/otel`, `OTEL_EXPORTER_OTLP_HEADERS=Authorization=Basic%20<base64 of public key:secret key>`, `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=none` (traces only) |
+| Jaeger | `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318`, `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=none` (traces only) |
+| Phoenix, and other tools that only take protobuf | send to an OpenTelemetry Collector, which forwards to them |
+
+Counters are sent as changes since the last send (delta), which is what Datadog needs. Grafana needs
+running totals, hence its cumulative setting.
+
+**How this was checked.** Each tool's settings were checked against its published intake rules, by
+small stand-ins in the tests, and against a real OpenTelemetry Collector and Jaeger. Not against live
+accounts. If a live service disagrees, please
+[open an issue](https://github.com/SahilSelokar/LoopBrake/issues).
 
 ## Phase 1 results
 
@@ -260,7 +327,8 @@ uv run python eval/judge_eval.py --final                 # reads stored answers 
 ## Repository layout
 
 ```text
-src/loopbrake/   the package: brake, stop-line rule, run readers, Claude Code hooks (standard library only)
+src/loopbrake/   the package: brake, stop-line rule, run readers, Claude Code hooks, dashboard and export
+                 (standard library only)
 plugin/          the Claude Code plugin: hooks, slash commands and the launcher; .claude-plugin/ is the marketplace
 eval/            the experiments: fetch.py downloads the data, run.py replays runs, judge.py asks the
                  progress judge, judge_eval.py scores its answers; results/ holds the published numbers
