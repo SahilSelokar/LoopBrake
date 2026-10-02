@@ -36,7 +36,7 @@ story's tests come first and must fail before its code is written.
   - set Phase 4 to "in progress" in `specs/roadmap.md`;
   - commit `specs/005-observability/` (spec, plan, research, data model, contracts, quickstart,
     checklist, and `collector/`) as the first commit on the branch.
-- [ ] T002 [P] Write the development-only script `scripts/vendor_assets.py`, then run it (research
+- [X] T002 [P] Write the development-only script `scripts/vendor_assets.py`, then run it (research
   R6). It:
   - downloads the fonts at pinned commits from the official Google Fonts repository, checking each
     file's sha256: Inter Tight (variable `InterTight[wght].ttf`), JetBrains Mono (variable
