@@ -180,7 +180,7 @@ behind a key.
   Add `loopbrake replay FILE … --record`: it writes records for each replayed run under project
   `replay-<file stem>`, through `Brake` with `record=True`. Without `--record`, replay still writes
   nothing. Add both to `tests/test_cli.py`.
-- [ ] T011 [P] [US1] Write the page `src/loopbrake/static/index.html` and
+- [X] T011 [P] [US1] Write the page `src/loopbrake/static/index.html` and
   `src/loopbrake/static/app.js` (plain ES2020, no build, no libraries), per contracts/ui.md:
   - **Routing**: hash routes `#/`, `#/task/<session>/<run>`, `#/project/<name>` and `#/export`, plus
     a nav (top bar on wide screens, bottom bar under 640 px).
@@ -205,7 +205,7 @@ behind a key.
     `lengths` exists); when it was set; watch-only state and needed count; counts.
   - **Export**: a placeholder until US3.
   - **Icons**: only through `<svg><use href="/static/icons.svg#name"/></svg>`.
-- [ ] T012 [P] [US1] Write the base styles in `src/loopbrake/static/app.css`, from contracts/ui.md
+- [X] T012 [P] [US1] Write the base styles in `src/loopbrake/static/app.css`, from contracts/ui.md
   and the constitution:
   - **Tokens**: CSS custom properties for night `#08110D`, lime `#CFFF3E`, green `#0F3D2E`, red
     `#E5341F`, paper `#ECEBE4` and ink `#0D0E0B`.
@@ -218,7 +218,7 @@ behind a key.
   - **Phone width**: below 640 px the nav becomes a bottom bar, with no sideways scrolling.
 
   The refraction, sheen and accessibility switches come in US4.
-- [ ] T013 [P] [US1] Write `tests/test_static.py`:
+- [X] T013 [P] [US1] Write `tests/test_static.py`:
   - **No emoji**: none in any file under `src/loopbrake/static/` (the emoji regex used in
     `tests/test_cli.py`).
   - **No external URLs**: no `http://` or `https://` outside `OFL.txt`, `LICENSE-lucide.txt` and

@@ -1,2 +1,41 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>LoopBrake</title></head><body></body></html>
+<html lang="en" data-glass="on">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>LoopBrake</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="glow" aria-hidden="true"></div>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="bar glass">
+    <a class="brand" href="#/" aria-label="LoopBrake overview">
+      <svg class="icon" aria-hidden="true"><use href="/static/icons.svg#octagon-x"/></svg>
+      <span>LoopBrake</span>
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="#/" data-nav="overview"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#house"/></svg><span>Overview</span></a>
+      <a href="#/projects" data-nav="projects"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#folder"/></svg><span>Projects</span></a>
+      <a href="#/export" data-nav="export"><svg class="icon" aria-hidden="true"><use href="/static/icons.svg#send"/></svg><span>Export</span></a>
+    </nav>
+    <button class="toggle" id="glass" type="button" aria-pressed="true">
+      <svg class="icon" aria-hidden="true"><use href="/static/icons.svg#blend"/></svg><span>Glass</span>
+    </button>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <div class="toast glass" id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog class="dialog glass" id="confirm" aria-labelledby="confirm-title">
+    <form method="dialog">
+      <h2 id="confirm-title"></h2>
+      <p id="confirm-text"></p>
+      <div class="actions">
+        <button value="cancel" class="button quiet">Cancel</button>
+        <button value="ok" class="button" id="confirm-ok">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

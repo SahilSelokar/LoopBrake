@@ -1,0 +1,167 @@
+/* LoopBrake dashboard: the Episode 1 reel brand in liquid glass (constitution, visual identity).
+   Glass only on chrome and floating controls; content sits on near-opaque panels.
+   Red is a fill only, never text. Fonts are local files (Principle VI). */
+
+@font-face { font-family: "Inter Tight"; src: url("/static/fonts/inter-tight.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("/static/fonts/jetbrains-mono.woff2") format("woff2"); font-weight: 100 800; font-display: swap; }
+@font-face { font-family: "Instrument Serif"; src: url("/static/fonts/instrument-serif-italic.woff2") format("woff2"); font-style: italic; font-display: swap; }
+
+:root {
+  --night: #08110D;
+  --lime: #CFFF3E;
+  --green: #0F3D2E;
+  --red: #E5341F;
+  --redtint: #3A1A12;
+  --paper: #ECEBE4;
+  --ink: #0D0E0B;
+  --panel: #0E1A14;
+  --line: #24382E;
+  --muted: #A9B4A7;
+  --tint: rgba(8, 17, 13, 0.62);
+  --rim: rgba(236, 235, 228, 0.16);
+  --radius: 14px;
+  --sans: "Inter Tight", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --serif: "Instrument Serif", Georgia, serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--night); color: var(--paper); }
+body { font: 15px/1.5 var(--sans); min-height: 100vh; overflow-x: hidden; }
+h1, h2 { font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; margin: 0; }
+h1 { font-size: 26px; }
+h2 { font-size: 15px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+a { color: inherit; }
+code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; font-weight: 500; }
+
+.icon { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+/* The reel background: one fixed layer of lime and deep-green glows, at most 35% alpha. */
+.glow { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(40vmax 30vmax at 12% 8%, rgba(207, 255, 62, 0.14), transparent 70%),
+              radial-gradient(50vmax 40vmax at 90% 85%, rgba(15, 61, 46, 0.35), transparent 70%), var(--night); }
+
+/* ---- glass (chrome only): an opaque base first, blur only where supported ---- */
+.glass { background: var(--panel); border: 1px solid var(--rim); box-shadow: inset 0 1px 0 rgba(236, 235, 228, 0.10), 0 10px 30px rgba(0, 0, 0, 0.35); }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  [data-glass="on"] .glass { background: var(--tint); -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%); }
+}
+
+.skip { position: absolute; left: -999px; top: 8px; background: var(--lime); color: var(--ink); padding: 8px 12px; border-radius: 8px; z-index: 10; }
+.skip:focus { left: 8px; }
+
+.bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 18px; padding: 10px 20px; margin: 0 0 20px; border-width: 0 0 1px; }
+.brand { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 17px; text-decoration: none; color: var(--paper); }
+.brand .icon { color: var(--lime); width: 22px; height: 22px; }
+.nav { display: flex; gap: 4px; flex: 1; }
+.nav a { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; text-decoration: none; color: var(--muted); font-weight: 600; }
+.nav a:hover { color: var(--paper); background: rgba(236, 235, 228, 0.06); }
+.nav a[aria-current="page"] { color: var(--ink); background: var(--lime); }
+.toggle { display: flex; align-items: center; gap: 6px; background: transparent; color: var(--paper); border: 1px solid var(--rim); border-radius: 10px; padding: 7px 10px; font: 600 13px var(--sans); cursor: pointer; }
+
+main { max-width: 960px; margin: 0 auto; padding: 0 20px 96px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+main:focus { outline: none; }
+main > * { min-width: 0; }
+.head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.head h1 { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.back { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); text-decoration: none; font-weight: 600; width: fit-content; }
+select { background: var(--panel); color: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; font: 600 14px var(--sans); }
+
+/* ---- content panels: near-opaque, no blur (legibility, and speed over scrolling lists) ---- */
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+.empty code { display: block; margin-top: 8px; padding: 10px 12px; background: var(--night); border-radius: 8px; overflow-x: auto; }
+
+.tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; display: grid; gap: 2px; }
+.tile .icon { color: var(--lime); }
+.tile .label { color: var(--muted); font-size: 13px; font-weight: 600; }
+.tile .value { font: 700 30px var(--mono); }
+.tile .note { color: var(--muted); font: italic 15px var(--serif); }
+
+.rows { display: grid; gap: 6px; }
+.row { display: grid; grid-template-columns: minmax(0, 1.4fr) auto minmax(60px, 1fr) auto auto; align-items: center; gap: 12px; padding: 10px 12px;
+  border-radius: 10px; text-decoration: none; background: rgba(236, 235, 228, 0.03); }
+.row:hover { background: rgba(236, 235, 228, 0.07); }
+.row .name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .when { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.progress { display: block; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.progress .fill { display: block; height: 100%; background: var(--lime); border-radius: 3px; }
+.progress.stopped .fill { background: var(--red); }
+
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 999px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.chip .icon { width: 14px; height: 14px; }
+.chip.running, .chip.idle { background: var(--green); color: var(--paper); }
+.chip.finished { background: rgba(236, 235, 228, 0.12); color: var(--paper); }
+/* Ink on red is 4.46:1, just under AA for small text: the word sits on a red-tinted panel, and the
+   brand red fills the circle behind the icon (non-text, needs only 3:1). */
+.chip.stopped { background: var(--redtint); color: var(--paper); }
+.chip.stopped .icon, .flag.failed .icon { background: var(--red); color: var(--ink); border-radius: 50%; padding: 2px; width: 17px; height: 17px; }
+.chip.interrupted { background: rgba(236, 235, 228, 0.12); color: var(--paper); }
+
+.big { font-size: 22px; font-weight: 700; margin: 0 0 10px; }
+.unit { font: 600 15px var(--sans); color: var(--muted); }
+.promise { font: italic 19px var(--serif); margin: 0 0 6px; }
+
+.chart { display: block; width: 100%; height: auto; max-height: 260px; }
+.chart.bars { height: 110px; }
+.chart .label { fill: var(--muted); font: 600 8px var(--mono); }
+.chart .label.lime { fill: var(--lime); }
+.chart .bar { fill: var(--lime); }
+.chart .bar.stop { fill: var(--red); }
+.chart .count { fill: none; stroke: var(--paper); stroke-width: 1.6; }
+.chart .limit { stroke: var(--lime); stroke-width: 1.4; stroke-dasharray: 5 4; }
+.chart .dot.failed { fill: var(--red); }
+.chart .dot.repeat { fill: none; stroke: var(--lime); stroke-width: 1.2; }
+.chart .dot.past { fill: var(--paper); opacity: 0.85; }
+.chart .stopmark { fill: var(--red); stroke: var(--paper); stroke-width: 1.5; }
+
+.reason p { margin: 0 0 12px; font-size: 16px; }
+.calls { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.call { display: grid; grid-template-columns: 3ch 7ch minmax(0, 1fr) auto auto; gap: 10px; align-items: baseline; padding: 6px 8px; border-radius: 8px; }
+.call.at-stop { background: rgba(229, 52, 31, 0.16); }
+.call .n, .call .dur { color: var(--muted); font-size: 13px; }
+.call .tool { font-weight: 700; font-size: 13px; }
+.call .action { font-size: 13px; overflow-wrap: anywhere; color: var(--paper); }
+.flags { display: flex; gap: 6px; flex-wrap: wrap; }
+.flag { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 999px; white-space: nowrap; }
+.flag .icon { width: 13px; height: 13px; }
+.flag.failed { background: var(--redtint); color: var(--paper); }
+.flag.repeat { background: var(--green); color: var(--paper); }
+
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.button { display: inline-flex; align-items: center; gap: 6px; background: var(--lime); color: var(--ink); border: 0; border-radius: 10px; padding: 9px 14px; font: 700 14px var(--sans); cursor: pointer; }
+.button.quiet { background: transparent; color: var(--paper); border: 1px solid var(--line); }
+
+.toast { position: fixed; right: 20px; bottom: 20px; z-index: 8; padding: 12px 16px; border-radius: 12px; max-width: min(420px, calc(100vw - 40px)); }
+.dialog { color: var(--paper); border-radius: 16px; padding: 20px; max-width: min(460px, calc(100vw - 32px)); }
+.dialog::backdrop { background: rgba(8, 17, 13, 0.72); }
+.dialog h2 { font-size: 18px; }
+
+/* Focus: a 2px lime ring with a night halo, on keyboard focus only. */
+:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; box-shadow: 0 0 0 5px var(--night); border-radius: 8px; }
+
+/* Phone first for 9:16 recordings: the nav becomes a bottom bar, nothing scrolls sideways. */
+@media (max-width: 640px) {
+  /* A backdrop-filter would make the fixed bottom nav position against the bar, so the bar goes solid. */
+  .bar, [data-glass="on"] .bar { padding: 10px 14px; background: var(--panel); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .nav { position: fixed; left: 10px; right: 10px; bottom: 10px; justify-content: space-around; padding: 6px; border-radius: 16px;
+    background: var(--panel); border: 1px solid var(--rim); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); }
+  [data-glass="on"] .nav { background: var(--tint); -webkit-backdrop-filter: blur(18px) saturate(170%); backdrop-filter: blur(18px) saturate(170%); }
+  .nav a { flex-direction: column; gap: 2px; font-size: 11px; padding: 6px 10px; }
+  .brand span { display: none; }
+  .bar { justify-content: space-between; }
+  main { padding: 0 14px 110px; }
+  .tiles { grid-template-columns: 1fr; }
+  .row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; }
+  .row .num { grid-column: 1 / -1; grid-row: 2; font-size: 13px; }
+  .row .progress { grid-column: 1 / -1; grid-row: 3; }
+  .head select { width: 100%; }
+  .row .when { display: none; }
+  .call { grid-template-columns: 3ch minmax(0, 1fr); }
+  .call .tool, .call .dur { display: none; }
+  .call .flags { grid-column: 2; }
+  .toast { left: 14px; right: 14px; bottom: 90px; }
+}
