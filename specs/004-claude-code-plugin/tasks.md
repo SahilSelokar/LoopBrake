@@ -467,7 +467,7 @@ builder's go-ahead.
 - **T029**: 148 passed, 1 skipped (`claude-agent-sdk` not installed); with the extra,
   `tests/test_agent_sdk.py` passes 4 of 4.
 - **T015, by the builder in an interactive session** (2026-10-02, `claude --plugin-dir plugin` in the
-  Project Building folder, `LOOPBRAKE_CMD` set to this checkout):
+  builder's main project folder, `LOOPBRAKE_CMD` set to this checkout):
   - `/loopbrake:calibrate` gave a stop line of 59 steps from 53 successful turns;
   - a turn asked for 70 `echo hi` calls was stopped right after the 60th, and the reason showed on
     screen: "PostToolUse:Bash hook stopped continuation: LoopBrake stopped at step 60: past the stop
@@ -478,7 +478,7 @@ builder's go-ahead.
   - The marketplace install route is checked at T033.
 - **T021, every command through headless Claude Code** (2026-10-02; a scratch project, a separate
   `LOOPBRAKE_HOME`, and a made-up history of 25 three-step turns, so your real records stayed
-  untouched). Your Project Building folder was the second project.
+  untouched). The builder's main project folder was the second project.
   - `/loopbrake:status` before calibrating: watch-only, plus the status line tip;
   - `/loopbrake:calibrate`: stop line 3 from 25 turns;
   - a turn asked for ten `echo` calls was stopped right after step 4, with the reason recorded;
@@ -499,7 +499,7 @@ builder's go-ahead.
   - Claude repeats command output with "project" capitalized, even though it's asked to repeat it
     exactly. That's cosmetic.
 - **Fixes after the command tests (2026-10-02)**:
-  - Project names no longer have a double dash (`cc-apple-...`, not `cc--apple-...`).
+  - Project names no longer have a double dash (`cc-<name>-…`, not `cc--<name>-…`).
   - A tool call reported twice (the plugin loaded twice) is counted once, so it can't halve the
     stop line.
   - The builder's earlier test log was moved to the new project name, and the project was
@@ -514,13 +514,13 @@ builder's go-ahead.
     scope), with `env.LOOPBRAKE_CMD` in `~/.claude/settings.json`, so every Claude Code session
     (terminal and VS Code) runs it from this checkout.
   - A plain session with no flags recorded its turn correctly.
-  - The first agreement run in Project Building gave "turns matched 5, equal 3, live lower 2,
+  - The first agreement run in the builder's main project gave "turns matched 5, equal 3, live lower 2,
     live higher 0". The two lower counts were real: the reader had joined the 70-call stopped turn
     and the next prompt's turn into one 61-step turn, because Claude's last answer before the stop
     still said `tool_use`.
   - **Fix**: Claude Code writes a `hook_stopped_continuation` attachment when a hook stops Claude,
     and the reader now ends the turn there (exit `stopped`, not a success; research R1). After the
-    fix: "turns matched 5, equal 5, live lower 0, live higher 0". Project Building was recalibrated
+    fix: "turns matched 5, equal 5, live lower 0, live higher 0". The main project was recalibrated
     with the fixed reader.
 - **T030 (SC-008), 2026-10-02: 200 turns, 0 higher.** At the builder's request the turns were
   generated, not typed by hand: 200 headless `claude -p` prompts (Sonnet), 40 sessions of 5 in
