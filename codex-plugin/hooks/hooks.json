@@ -1,0 +1,84 @@
+{
+  "description": "LoopBrake: count the main agent's tool calls per task and stop a task that passes its limit",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$PLUGIN_ROOT/bin/loopbrake\" hook codex-prompt",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$PLUGIN_ROOT/bin/loopbrake\" hook codex-pre-tool",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$PLUGIN_ROOT/bin/loopbrake\" hook codex-tool",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$PLUGIN_ROOT/bin/loopbrake\" hook codex-stop",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "Interrupt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$PLUGIN_ROOT/bin/loopbrake\" hook codex-interrupt",
+            "timeout": 1
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$PLUGIN_ROOT/bin/loopbrake\" hook codex-subagent-start",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$PLUGIN_ROOT/bin/loopbrake\" hook codex-subagent-stop",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

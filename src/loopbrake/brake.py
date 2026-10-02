@@ -35,7 +35,7 @@ def _decide(steps, stop_line):
 
 
 class Brake:
-    def __init__(self, project, session, run, home, calibration, record=True, unit="runs", traceparent=None):
+    def __init__(self, project, session, run, home, calibration, record=True, unit="runs", traceparent=None, extra=None):
         self.project, self.session, self.run, self.home, self.unit = project, session, run, home, unit
         self.calibration = calibration
         line = calibration.get("stop_line") if calibration and not calibration.get("watch_only") else None
@@ -51,7 +51,7 @@ class Brake:
         export = {"export": True} if record and otlp.begin(home) else {}  # only marked tasks are ever sent
         self._record("run_start", project=project, calibration={
             "method": "steps", "alpha": cal.get("alpha"), "n": cal.get("n"), "k": cal.get("k"),
-            "stop_line": self.stop_line, "watch_only": self.watch_only}, **trace, **export)
+            "stop_line": self.stop_line, "watch_only": self.watch_only}, **trace, **export, **(extra or {}))
 
     @classmethod
     def from_events(cls, project, session, home, events, unit="runs"):
@@ -150,10 +150,13 @@ def replay(run, calibration):
     return None
 
 
-def start(project="default", *, session=None, run=None, home=None, unit="runs", traceparent=None):
-    """Start one run. Missing or damaged calibration means watch-only, never an exception."""
+def start(project="default", *, session=None, run=None, home=None, unit="runs", traceparent=None, extra=None):
+    """Start one run. Missing or damaged calibration means watch-only, never an exception.
+
+    `extra`: adapter fields for the run_start record (Codex: turn_id, transcript, folder); readers ignore
+    fields they don't know."""
     if not records.valid_project(project):
         raise ValueError(f"project names may use letters, digits, '.', '_' and '-' (got {project!r})")
     h = records.home(home)
     return Brake(project, session or uuid.uuid4().hex, run or uuid.uuid4().hex[:12], h, calibration.load(project, h),
-                 unit=unit, traceparent=traceparent)
+                 unit=unit, traceparent=traceparent, extra=extra)

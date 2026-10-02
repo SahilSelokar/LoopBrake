@@ -1,0 +1,18 @@
+{
+  "name": "loopbrake",
+  "version": "0.4.0",
+  "description": "Stops a Codex task that goes far past what your past tasks in this project needed, and says why. Learns the limit from your own Codex history.",
+  "author": {
+    "name": "Sahil Selokar",
+    "url": "https://github.com/SahilSelokar"
+  },
+  "homepage": "https://github.com/SahilSelokar/LoopBrake",
+  "repository": "https://github.com/SahilSelokar/LoopBrake",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "codex",
+    "loops",
+    "stop"
+  ]
+}

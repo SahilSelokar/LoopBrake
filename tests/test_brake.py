@@ -224,3 +224,10 @@ def test_bad_traceparent_is_dropped(home):
     for bad in ("garbage", "00-" + "0" * 32 + "-00f067aa0ba902b7-01", "00-4bf92f3577b34da6a3ce929d0e0e4736-" + "0" * 16 + "-01", "ff-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01"):
         loopbrake.start(project="demo", session=f"s{len(bad)}", run="r", traceparent=bad)
     assert not any("traceparent" in e for e in events(home))
+
+
+def test_adapter_fields_on_run_start(tmp_path):
+    b = brake_mod.start("demo", session="s1", run="r1", home=tmp_path, extra={"turn_id": "t-1", "folder": "demo"})
+    b.end()
+    first = json.loads((tmp_path / "runs" / "s1.jsonl").read_text().splitlines()[0])
+    assert (first["event"], first["turn_id"], first["folder"]) == ("run_start", "t-1", "demo")

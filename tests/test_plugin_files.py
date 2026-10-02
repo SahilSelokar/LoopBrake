@@ -122,3 +122,40 @@ def test_loopbrake_cmd_with_arguments_and_a_quoted_path(launch, tmp_path):
     target.chmod(0o755)
     rc, out, _, _ = launch("status", "--project", "x", LOOPBRAKE_CMD=f"'{target}' --extra")
     assert (rc, out) == (0, "got: --extra status --project x\n")
+
+
+# ---- the Codex plugin (specs/006-codex-cli-plugin/contracts/plugin.md) ----
+
+CODEX = ROOT / "codex-plugin"
+
+
+def test_codex_plugin_files():
+    market = json.loads((ROOT / ".agents" / "plugins" / "marketplace.json").read_text())
+    [entry] = market["plugins"]
+    assert market["name"] == entry["name"] == "loopbrake"
+    assert entry["source"] == {"source": "local", "path": "./codex-plugin"}
+    manifest = json.loads((CODEX / ".codex-plugin" / "plugin.json").read_text())
+    assert manifest["name"] == "loopbrake" and manifest["description"] and manifest["author"]["name"]
+    pin = re.search(r"^V=(\S+)$", (CODEX / "bin" / "loopbrake").read_text(), re.M).group(1)
+    assert manifest["version"] == pin == loopbrake.__version__
+
+
+def test_codex_hooks_run_the_launcher_and_never_change_between_versions():
+    text = (CODEX / "hooks" / "hooks.json").read_text()
+    hooks = json.loads(text)["hooks"]
+    assert set(hooks) == {"UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop", "Interrupt", "SubagentStart", "SubagentStop"}
+    for event, groups in hooks.items():
+        [group] = groups
+        assert group.get("matcher", ".*") == ".*"
+        [h] = group["hooks"]
+        assert h["type"] == "command" and h["timeout"] == (1 if event == "Interrupt" else 30)
+        assert re.fullmatch(r'"\$PLUGIN_ROOT/bin/loopbrake" hook codex-[a-z-]+', h["command"])
+    # Codex runs a hook only after the user trusts its exact definition, so no version may appear here
+    assert loopbrake.__version__ not in text and not re.search(r"\d+\.\d+\.\d+", text)
+
+
+def test_codex_launcher_is_the_same_and_not_packaged():
+    assert (CODEX / "bin" / "loopbrake").read_bytes() == LAUNCHER.read_bytes()
+    assert (CODEX / "bin" / "loopbrake").stat().st_mode & stat.S_IXUSR
+    include = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["hatch"]["build"]["targets"]["sdist"]["include"]
+    assert not any(p.startswith(("codex-plugin", ".agents")) for p in include)

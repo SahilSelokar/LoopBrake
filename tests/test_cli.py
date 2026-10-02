@@ -252,3 +252,15 @@ def test_export_command(capsys, home, monkeypatch):
         assert run_cli(capsys, "export", "--pending", "--quiet") == (1, "", "")
     finally:
         backend.close()
+
+
+def test_codex_hook_entry_point(capsys, home, monkeypatch):
+    import io
+    from loopbrake import codex
+    data = {"session_id": "s1", "turn_id": "t1", "transcript_path": "/x/r.jsonl", "cwd": "/home/someone/demo", "prompt": "hi"}
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(data)))
+    assert cli.main(["hook", "codex-prompt"]) == 0
+    assert (home / "runs" / "s1.jsonl").exists()
+    monkeypatch.setattr("sys.stdin", io.StringIO("{broken"))
+    assert cli.main(["hook", "codex-tool"]) == 0 and capsys.readouterr().out == ""  # always exit 0, nothing printed
+    assert codex.project_name("/home/someone/demo") in (home / "runs" / "s1.jsonl").read_text()

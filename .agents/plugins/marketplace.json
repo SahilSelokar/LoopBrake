@@ -1,0 +1,20 @@
+{
+  "name": "loopbrake",
+  "interface": {
+    "displayName": "LoopBrake"
+  },
+  "plugins": [
+    {
+      "name": "loopbrake",
+      "source": {
+        "source": "local",
+        "path": "./codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

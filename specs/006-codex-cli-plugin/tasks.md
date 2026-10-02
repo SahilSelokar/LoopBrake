@@ -68,7 +68,7 @@ starts until T004 passes.
     hook command; the skill under the default sandbox (`uvx`, writing `~/.loopbrake`); hook times;
   - update research R1–R8, data-model.md and the contracts wherever a finding differs;
   - **if the gate fails, stop here** and report to the builder.
-- [ ] T005 [P] Write the pinned synthetic sample `tests/fixtures/codex_rollout.jsonl` in the exact
+- [X] T005 [P] Write the pinned synthetic sample `tests/fixtures/codex_rollout.jsonl` in the exact
   shape of the probe's real session files (only made-up commands and paths): a finished task, a
   task with a hosted web search, an interrupted (`turn_aborted`) task, a task with a message sent
   while Codex worked, and a task LoopBrake stopped. Add a helper's own session file
@@ -87,7 +87,7 @@ reason; failures inside LoopBrake never affect Codex.
 
 ### Tests for User Story 1
 
-- [ ] T006 [P] [US1] Write `tests/test_codex.py`, per contracts/hooks.md and data-model.md:
+- [X] T006 [P] [US1] Write `tests/test_codex.py`, per contracts/hooks.md and data-model.md:
   - `codex-prompt` opens a task whose `run_start` has `turn_id`, `transcript` and `folder` (the last
     part of `cwd`), and closes an open task as interrupted (or stopped);
   - project names: `codex-<last 40 characters of the cwd, letters, digits and dashes>-<first 6 hex of
@@ -108,10 +108,10 @@ reason; failures inside LoopBrake never affect Codex.
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Let a task's start carry the Codex fields: `start()` and `Brake.__init__` in
+- [X] T007 [US1] Let a task's start carry the Codex fields: `start()` and `Brake.__init__` in
   `src/loopbrake/brake.py` accept optional `extra` fields written on `run_start` (`turn_id`,
   `transcript`, `folder`); readers ignore unknown fields. Add a test in `tests/test_brake.py`.
-- [ ] T008 [US1] Write the adapter `src/loopbrake/codex.py` (constitution Principle V: no scoring of
+- [X] T008 [US1] Write the adapter `src/loopbrake/codex.py` (constitution Principle V: no scoring of
   its own):
   - `project_name(cwd)`; `hook(event, stdin_text, home=None)` for the five events, under the
     session lock, reusing `records.session_events`, `records.open_turn` and `Brake.from_events`;
@@ -119,9 +119,9 @@ reason; failures inside LoopBrake never affect Codex.
     Codex next step;
   - the `codex-pre-tool` fast path: read only whether the open task of this `turn_id` is stopped;
   - the same never-raise wrapper as `claude_code.hook`. Makes T006 pass.
-- [ ] T009 [US1] In `src/loopbrake/cli.py`, route `loopbrake hook codex-<event>` to `codex.hook`
+- [X] T009 [US1] In `src/loopbrake/cli.py`, route `loopbrake hook codex-<event>` to `codex.hook`
   before argument parsing, always exiting 0; add a test to `tests/test_cli.py`.
-- [ ] T010 [US1] Write the plugin, per contracts/plugin.md (no skills; hook definitions that never
+- [X] T010 [US1] Write the plugin, per contracts/plugin.md (no skills; hook definitions that never
   change between versions, research R10):
   - `codex-plugin/.codex-plugin/plugin.json` (name `loopbrake`, version 0.4.0, description), using
     the field names T004 confirmed;
@@ -289,3 +289,6 @@ user's tools when export is on.
   Codex's sandbox, so they're typed messages run by the prompt hook; task boundaries come from
   `turn_id` on both sides. Not settled: helpers (the small model never started one), and how a GPT
   model behaves after a refusal.
+- **T005–T010**: the synthetic session samples (five tasks in one folder, one in another), the adapter
+  `src/loopbrake/codex.py`, `loopbrake hook codex-<event>`, the plugin (`codex-plugin/`, hooks for
+  seven events with no version in them) and `.agents/plugins/marketplace.json`. 230 tests pass.

@@ -6,7 +6,7 @@ import sys
 import re
 from pathlib import Path
 
-from loopbrake import __version__, calibration, claude_code, dashboard, otlp, records
+from loopbrake import __version__, calibration, claude_code, codex, dashboard, otlp, records
 from loopbrake.brake import Brake, replay
 from loopbrake.traces import read_runs
 
@@ -122,7 +122,8 @@ def _hook(argv):
         text = sys.stdin.read()
     except Exception:
         text = ""
-    out = claude_code.hook(argv[1] if len(argv) > 1 else "", text)
+    event = argv[1] if len(argv) > 1 else ""
+    out = (codex.hook if event.startswith("codex-") else claude_code.hook)(event, text)
     if out:
         print(out)
     return 0

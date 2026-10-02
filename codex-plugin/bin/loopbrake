@@ -1,0 +1,29 @@
+#!/bin/sh
+# LoopBrake plugin launcher: runs the pinned loopbrake package through uv.
+# Contract: specs/004-claude-code-plugin/contracts/plugin.md.
+# A hook call always exits 0: exit code 2 from a hook would block a prompt or keep Claude
+# running, and uv itself exits 2 when it can't reach the network (constitution 2.4.0).
+V=0.4.0
+
+if [ -n "$LOOPBRAKE_LAUNCHER" ]; then  # we were started by ourselves: LOOPBRAKE_CMD points back here
+  [ "$1" = hook ] && exit 0
+  echo "loopbrake: LOOPBRAKE_CMD points back at the plugin launcher; set it to the real loopbrake" >&2
+  exit 2
+fi
+export LOOPBRAKE_LAUNCHER=1
+
+if [ "$1" = hook ]; then
+  if [ -n "$LOOPBRAKE_CMD" ]; then
+    eval "$LOOPBRAKE_CMD \"\$@\""  # eval, so a path with spaces can be quoted inside LOOPBRAKE_CMD
+  elif ! uvx --offline --from "loopbrake==$V" loopbrake "$@"; then  # cached copy only: no network
+    # Not cached yet: fetch it in the background, so no tool call ever waits on the network.
+    (uvx --from "loopbrake==$V" loopbrake --version >/dev/null 2>&1 </dev/null &)
+  fi
+  exit 0
+fi
+
+[ -n "$LOOPBRAKE_CMD" ] && eval "exec $LOOPBRAKE_CMD \"\$@\""
+if uvx --offline --from "loopbrake==$V" loopbrake --version >/dev/null 2>&1; then
+  exec uvx --offline --from "loopbrake==$V" loopbrake "$@"
+fi
+exec uvx --from "loopbrake==$V" loopbrake "$@"

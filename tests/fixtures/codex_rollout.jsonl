@@ -1,0 +1,62 @@
+{"timestamp": "2026-10-02T09:00:00.000Z", "type": "session_meta", "payload": {"id": "sess-codex-demo", "cwd": "/home/someone/demo", "originator": "codex_exec", "cli_version": "0.160.0"}}
+{"timestamp": "2026-10-02T09:00:01.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-a", "root_turn_id": "turn-a"}}
+{"timestamp": "2026-10-02T09:00:02.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Run the tests."}]}}
+{"timestamp": "2026-10-02T09:00:03.000Z", "type": "turn_context", "payload": {"turn_id": "turn-a", "root_turn_id": "turn-a", "cwd": "/home/someone/demo"}}
+{"timestamp": "2026-10-02T09:00:04.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"echo test 1\"}", "call_id": "call_a1"}}
+{"timestamp": "2026-10-02T09:00:05.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_a1", "output": "ok"}}
+{"timestamp": "2026-10-02T09:00:06.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:07.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"echo test 2\"}", "call_id": "call_a2"}}
+{"timestamp": "2026-10-02T09:00:08.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_a2", "output": "ok"}}
+{"timestamp": "2026-10-02T09:00:09.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:10.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"echo test 3\"}", "call_id": "call_a3"}}
+{"timestamp": "2026-10-02T09:00:11.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_a3", "output": "ok"}}
+{"timestamp": "2026-10-02T09:00:12.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:13.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Done."}]}}
+{"timestamp": "2026-10-02T09:00:14.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "turn-a", "last_agent_message": "Done."}}
+{"timestamp": "2026-10-02T09:00:15.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-b", "root_turn_id": "turn-b"}}
+{"timestamp": "2026-10-02T09:00:16.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Look it up, then check."}]}}
+{"timestamp": "2026-10-02T09:00:17.000Z", "type": "turn_context", "payload": {"turn_id": "turn-b", "root_turn_id": "turn-b", "cwd": "/home/someone/demo"}}
+{"timestamp": "2026-10-02T09:00:18.000Z", "type": "response_item", "payload": {"type": "web_search_call", "status": "completed", "action": {"type": "search", "query": "python release dates"}}}
+{"timestamp": "2026-10-02T09:00:19.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"python3 --version\"}", "call_id": "call_b1"}}
+{"timestamp": "2026-10-02T09:00:20.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_b1", "output": "Python 3.12"}}
+{"timestamp": "2026-10-02T09:00:21.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:22.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"ls\"}", "call_id": "call_b2"}}
+{"timestamp": "2026-10-02T09:00:23.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_b2", "output": "README.md"}}
+{"timestamp": "2026-10-02T09:00:24.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:25.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Done."}]}}
+{"timestamp": "2026-10-02T09:00:26.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "turn-b", "last_agent_message": "Done."}}
+{"timestamp": "2026-10-02T09:00:27.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-c", "root_turn_id": "turn-c"}}
+{"timestamp": "2026-10-02T09:00:28.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Start the long job."}]}}
+{"timestamp": "2026-10-02T09:00:29.000Z", "type": "turn_context", "payload": {"turn_id": "turn-c", "root_turn_id": "turn-c", "cwd": "/home/someone/demo"}}
+{"timestamp": "2026-10-02T09:00:30.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"sleep 100\"}", "call_id": "call_c1"}}
+{"timestamp": "2026-10-02T09:00:31.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_c1", "output": ""}}
+{"timestamp": "2026-10-02T09:00:32.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:33.000Z", "type": "event_msg", "payload": {"type": "turn_aborted", "turn_id": "turn-c", "reason": "interrupted"}}
+{"timestamp": "2026-10-02T09:00:34.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-d", "root_turn_id": "turn-d"}}
+{"timestamp": "2026-10-02T09:00:35.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Fix the build."}]}}
+{"timestamp": "2026-10-02T09:00:36.000Z", "type": "turn_context", "payload": {"turn_id": "turn-d", "root_turn_id": "turn-d", "cwd": "/home/someone/demo"}}
+{"timestamp": "2026-10-02T09:00:37.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"make\"}", "call_id": "call_d1"}}
+{"timestamp": "2026-10-02T09:00:38.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_d1", "output": "error"}}
+{"timestamp": "2026-10-02T09:00:39.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:40.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"make\"}", "call_id": "call_d2"}}
+{"timestamp": "2026-10-02T09:00:41.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_d2", "output": "error"}}
+{"timestamp": "2026-10-02T09:00:42.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:43.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"make\"}", "call_id": "call_d3"}}
+{"timestamp": "2026-10-02T09:00:44.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_d3", "output": "error"}}
+{"timestamp": "2026-10-02T09:00:45.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:46.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"make\"}", "call_id": "call_d4"}}
+{"timestamp": "2026-10-02T09:00:47.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_d4", "output": "LoopBrake stopped this task after 4 tool calls."}}
+{"timestamp": "2026-10-02T09:00:48.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:49.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Done."}]}}
+{"timestamp": "2026-10-02T09:00:50.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "turn-d", "last_agent_message": "Done."}}
+{"timestamp": "2026-10-02T09:00:51.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "turn-e", "root_turn_id": "turn-e"}}
+{"timestamp": "2026-10-02T09:00:52.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Edit the readme."}]}}
+{"timestamp": "2026-10-02T09:00:53.000Z", "type": "turn_context", "payload": {"turn_id": "turn-e", "root_turn_id": "turn-e", "cwd": "/home/someone/demo"}}
+{"timestamp": "2026-10-02T09:00:54.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "name": "apply_patch", "input": "*** Begin Patch\n*** End Patch", "call_id": "call_e1"}}
+{"timestamp": "2026-10-02T09:00:55.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call_e1", "output": "Done"}}
+{"timestamp": "2026-10-02T09:00:56.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:00:57.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "exec_command", "arguments": "{\"cmd\": \"cat README.md\"}", "call_id": "call_e2"}}
+{"timestamp": "2026-10-02T09:00:58.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_e2", "output": "# Demo"}}
+{"timestamp": "2026-10-02T09:00:59.000Z", "type": "event_msg", "payload": {"type": "token_count"}}
+{"timestamp": "2026-10-02T09:01:00.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Done."}]}}
+{"timestamp": "2026-10-02T09:01:01.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "turn-e", "last_agent_message": "Done."}}
