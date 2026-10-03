@@ -192,6 +192,23 @@ def test_dashboard_command_prints_its_address_and_stops_cleanly(home, tmp_path):
     assert p.wait(timeout=10) == 0
 
 
+def test_dashboard_stops_cleanly_on_a_second_signal(home):
+    """A second stop arriving while the dashboard shuts down must not break off its cleanup."""
+    import os
+    import signal
+    import subprocess
+    import sys
+    env = os.environ | {"LOOPBRAKE_HOME": str(home), "PYTHONPATH": str(Path(cli.__file__).parents[1])}
+    p = subprocess.Popen([sys.executable, "-m", "loopbrake.cli", "dashboard", "--no-open"],
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+    p.stdout.readline(), p.stdout.readline()
+    for _ in range(20):
+        p.send_signal(signal.SIGTERM)
+    assert p.wait(timeout=10) == 0
+    assert "Traceback" not in p.stderr.read()
+    assert not (home / "dashboard.json").exists()
+
+
 def test_dashboard_port_taken(capsys, home):
     import socket
     s = socket.socket()

@@ -595,7 +595,8 @@ def serve(port=0, open_browser=True, days=None, home=None):
         with os.fdopen(os.open(note, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
             json.dump({"pid": os.getpid(), "url": url}, f)
         try:  # `loopbrake dashboard --stop` sends SIGTERM: shut down as on Ctrl+C
-            signal.signal(signal.SIGTERM, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))
+            for s in (signal.SIGINT, signal.SIGTERM):
+                signal.signal(s, _stop_once)
         except ValueError:
             pass  # not the main thread
         print(f"LoopBrake dashboard: {url}")  # printed last: once seen, the dashboard is ready
@@ -612,6 +613,13 @@ def serve(port=0, open_browser=True, days=None, home=None):
                 note.unlink()
         except (OSError, ValueError):
             pass
+
+
+def _stop_once(*_):
+    """The first Ctrl+C or SIGTERM shuts down; any later one is ignored, so it can't break off the cleanup."""
+    for s in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(s, signal.SIG_IGN)
+    raise KeyboardInterrupt
 
 
 def start_background(port=0, open_browser=True, days=None, home=None):
