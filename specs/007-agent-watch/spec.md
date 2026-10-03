@@ -7,8 +7,7 @@ hard-to-remember start()/step() loop and the hand-made runs file. Two pieces on 
 watcher made once per name, a wrapper put on each tool the agent can call (every tool call counts as
 one action automatically: tool name, inputs, result, failure), and a task block around one job given
 to the agent (normal and async). Past the limit, the next tool call raises a Stopped error carrying
-the plain reason, and every later tool call in that task does too (the same two-part stop as the
-Codex plugin). Setting the limit needs no file: `loopbrake calibrate --project <name>` learns from
+the plain reason, and every later tool call in that task does too. Setting the limit needs no file: `loopbrake calibrate --project <name>` learns from
 the tasks LoopBrake has already watched under that name. The builder's decision (2026-10-03): keep
 BOTH multi-agent patterns. Option A, global watch: one watcher for the whole multi-agent system, one
 limit for the whole job, works across handoffs. Option B, agent-based watch: one watcher per agent,
@@ -52,24 +51,24 @@ want runaway tasks stopped with LoopBrake's promise, without learning LoopBrake'
 
 A developer makes one watcher for their agent, wraps each of the agent's tools, and puts a task
 block around each job. From then on every tool call is counted, with no other code. Without a
-limit, LoopBrake only watches and records. With a limit, when a task goes past it, the tool call that
-crossed it raises a stop error carrying the plain reason instead of returning its result, and every
-later tool call in that task raises the same error without running.
+limit, LoopBrake only watches and records. With a limit, once a task has used it up, the next tool
+call doesn't run: it raises a stop error carrying the plain reason, and so does every later tool
+call in that task.
 
 **Why this priority**: it replaces the part that is hard to remember, and it's what every other
 story builds on.
 
 **Independent Test**: an agent with one wrapped tool and a limit of 3 calls that tool 10 times in
-one task. Four calls run; the fourth raises the stop error with the reason; calls 5 to 10 raise it
-without running; the task is recorded as stopped.
+one task. Three calls run; the fourth raises the stop error with the reason without running, and
+so do calls 5 to 10; the task is recorded as stopped.
 
 **Acceptance Scenarios**:
 
 1. **Given** a watcher with no limit, **When** tasks run, **Then** nothing is ever stopped, and each
    task and its tool calls are recorded under the watcher's name.
-2. **Given** a limit of N, **When** a task's (N + 1)th tool call finishes, **Then** it raises the
-   stop error with the plain reason instead of returning its result, and the task is recorded as
-   stopped.
+2. **Given** a limit of N, **When** a task has made N tool calls and the agent calls a wrapped tool
+   again, **Then** that call doesn't run: it raises the stop error with the plain reason, and the
+   task is recorded as stopped.
 3. **Given** a stopped task, **When** the agent calls any wrapped tool again in that task, **Then**
    the tool doesn't run and the same stop error is raised.
 4. **Given** a task that stays within N tool calls, **When** its block ends normally, **Then** it is
@@ -120,8 +119,8 @@ The builder's decision: both patterns are supported.
   agent to another. One limit covers the whole job.
 - **Option B, agent-based watch**: one watcher per agent, and each agent's work in its own task
   block. A tool used by several agents is wrapped once for each. When a manager agent hands work to
-  a worker agent, the worker's calls count only in the worker's task, never in the manager's (as
-  with Claude Code's subagents and Codex's helpers). Each agent learns its own limit and shows in
+  a worker agent, the worker's calls count only in the worker's task, never in the manager's. Each
+  agent learns its own limit and shows in
   the dashboard as its own project.
 
 **Why this priority**: teams of agents are common, and a single loop can't express them; but each
@@ -169,8 +168,7 @@ number of calls: every recorded count matches.
 - **Very long inputs or results**: only a short excerpt is kept, as today.
 - **A tool that returns a stream**: it counts once, when called.
 - **Watcher names**: the same rules as project names. An invalid name is refused when the watcher is
-  made, before any task runs. Names that look like the plugins' own projects (starting with `cc-` or
-  `codex-`) are refused, so limits never mix with Claude Code's or Codex's.
+  made, before any task runs.
 - **The same watcher name in two programs**: they share one limit and one history, by design.
 - **Setting the limit for a name with no watched tasks**: a plain message says so.
 
@@ -187,13 +185,12 @@ number of calls: every recorded count matches.
 - **FR-003**: A developer MUST be able to mark one task with a task block, in normal or asynchronous
   code; a call counts in the innermost open task of the watcher whose wrapper was called.
 - **FR-004**: Without a limit, LoopBrake MUST only watch and record; it MUST never stop anything.
-- **FR-005**: With a limit, the call that takes a task past it MUST raise a stop error with the plain
-  reason instead of returning its result, and every later wrapped call in that task MUST raise the
-  same error without running.
+- **FR-005**: With a limit of N, a task's (N + 1)th wrapped call MUST NOT run: it MUST raise a stop
+  error with the plain reason, and every later wrapped call in that task MUST raise the same error
+  without running.
 - **FR-006**: The decision MUST be the existing LoopBrake rule, unchanged (constitution Principles I,
   II and V): this feature adds no scoring of its own.
-- **FR-007**: The stop reason MUST be in plain words, as in the plugins: "tool calls", how long tasks
-  usually take, "fewer than 1 in 20", and what the task kept doing; never step, α, score or ids.
+- **FR-007**: The stop reason MUST be in plain words: "tool calls", how long tasks usually take, "fewer than 1 in 20", and what the task kept doing; never step, α, score or ids.
 - **FR-008**: A failure inside LoopBrake MUST never stop a tool call, change its result, or slow it
   beyond the budget in SC-005 (constitution, "Failing safely").
 - **FR-009**: A task block MUST record its task as finished, stopped, or interrupted (ended by any
@@ -244,8 +241,8 @@ number of calls: every recorded count matches.
 - **SC-001**: Adding LoopBrake to an existing agent takes three kinds of additions: one line for the
   watcher, one per tool, and one block per task. A developer new to LoopBrake gets a watched agent
   working from the README in under 5 minutes.
-- **SC-002**: With a limit of 3 and 10 calls in a task, exactly 4 tool calls run, the 4th raises the
-  stop with the reason, and calls 5 to 10 never run, in 100 of 100 automated runs, for both normal
+- **SC-002**: With a limit of 3 and 10 calls in a task, exactly 3 tool calls run; the 4th raises the
+  stop with the reason without running, and so do calls 5 to 10, in 100 of 100 automated runs, for both normal
   and asynchronous tools.
 - **SC-003**: After 19 or more good watched tasks, one command sets the limit with no file, and the
   limit equals the one learned from the same task lengths given as a runs file.
@@ -265,15 +262,16 @@ number of calls: every recorded count matches.
 - **No framework-specific adapters**: the wrapper works wherever tools are Python functions, so one
   feature serves many frameworks. A dedicated adapter for a given framework (for example the OpenAI
   Agents SDK) stays a possible later feature.
-- **The limit turns on only by the developer's command** (the builder's decision, 2026-10-03), as in
-  Claude Code and Codex; status says when enough good tasks are recorded.
+- **The limit turns on only by the developer's command**, so the developer decides when stops begin,
+  for example after testing their agent; status says when enough good tasks are recorded.
 - **Good tasks**: a task counts as good when its block ended normally and it wasn't stopped
   (constitution, "Success labels"). A task that ended normally but didn't do its job still counts as
   good; that can only make the limit higher, so stops only get rarer.
-- **The stop, as in the Codex plugin**: the call that crosses the limit runs, and its result is
-  replaced by the stop, so counts mean the same for every agent.
+- **No call past the limit runs**: the call that would go past it is refused before it runs,
+  because an agent's tools can have real effects (sending a message, spending money). Which tasks get
+  stopped is the same as when the call runs first, so the promise is unchanged.
 - **No token counts** from wrapped tools: a tool call doesn't know what the model spent. Developers
   who want token totals keep using the step-by-step way.
 - **No new evaluation**: stops are decided exactly as before (constitution Principle IV).
 - **Release**: a minor version (v0.5.0); nothing existing changes.
-- **Messages**: the stop error says "tool calls", like the plugins; the dashboard says "actions".
+- **Messages**: the stop error says "tool calls"; the dashboard says "actions".

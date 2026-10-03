@@ -32,6 +32,9 @@
 ## Notes
 
 - Validation run 1 (2026-10-03): all items pass.
+- Validation run 2 (2026-10-03), after the builder's direction to focus on agents alone: the
+  call that would go past the limit is now refused before it runs (FR-005, SC-002); the reserved
+  `cc-`/`codex-` names and the comparisons with the plugins are gone. All items still pass.
 - The users are developers, so the spec names developer ideas (tool functions, asynchronous code,
   errors) in plain words; it names no function, class or file of LoopBrake's own. "Python" appears
   only as the scope boundary (Assumptions), as spec 006 named Codex.
