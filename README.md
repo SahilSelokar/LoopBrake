@@ -170,7 +170,8 @@ codex plugin add loopbrake@loopbrake
 ```
 
 Then open Codex and type `/hooks` to **trust LoopBrake's hooks**. Codex runs a plugin's hooks only
-after you trust them, and until then it skips them without a word.
+after you trust them, and until then it skips them without a word. If `loopbrake: status` gets an
+ordinary reply from Codex instead of LoopBrake's status, the hooks aren't trusted yet.
 
 **Set it up** for the project you are in by sending this as your whole message:
 

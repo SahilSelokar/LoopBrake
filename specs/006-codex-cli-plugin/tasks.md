@@ -136,8 +136,9 @@ reason; failures inside LoopBrake never affect Codex.
     plugin isn't packaged in the wheel.
 - [X] T011 [US1] Manual, on a real Codex with `LOOPBRAKE_CMD` pointing at this checkout and a scratch
   `LOOPBRAKE_HOME`: quickstart scenarios 1 (install from the local marketplace), 3 (the live stop,
-  10 of 10), 4 (failing safely, 10 of 10), 5 (helpers don't count) and 6 (speed: p95 added at most
-  200 ms for the hook pair). Note the results in "Outcome".
+  10 of 10), 4 (failing safely, 10 of 10) and 6 (speed: p95 added at most 200 ms for the hook
+  pair). Note the results in "Outcome". Scenario 5 (helpers) moved to T027: the local model never
+  started a helper.
 
 **Checkpoint**: Codex tasks are stopped live (the MVP).
 
@@ -242,6 +243,21 @@ user's tools when export is on.
 
 ---
 
+## Open after release
+
+Checks that need a real GPT model or real Codex use, which the builder doesn't have (spec,
+Assumptions). The README says plainly that they're unchecked.
+
+- [ ] T027 [US1] Helpers don't count (quickstart scenario 5, SC-006): on a Codex task that starts a
+  helper agent, the task's count equals the main agent's tool calls alone. Check with the first
+  GPT-model user, or the builder's first real use.
+- [ ] T028 [US2] The agreement check on real use (constitution, "Same turns live and in
+  calibration"): v0.4.0's check ran on the probe's test sessions (T017). Run
+  `loopbrake agreement --codex` on the first real Codex use, the builder's or a user's, and record
+  it here: live higher must be 0.
+
+---
+
 ## Dependencies and order
 
 - **Phase 1 → Phase 2 (the gate) → everything else.** T002 needs the builder.
@@ -267,7 +283,7 @@ user's tools when export is on.
 2. **Then** US2 (learned limits and the skills), then US3 (dashboard and export).
 3. **Release** only after T024's checks and the builder's go-ahead.
 
-**Total**: 26 tasks. T002, T004, T011, T017, T020 and T025 involve the builder or a real Codex.
+**Total**: 28 tasks (T027 and T028 open after release). T002, T004, T011, T017, T020 and T025 involve the builder or a real Codex.
 
 ---
 
@@ -344,3 +360,27 @@ user's tools when export is on.
 - **T026**: roadmap Phase 4b done; README status v0.4.0. The README's workflow diagram became a
   motion graphic (Remotion) of a real public SWE-bench run (GPT-5-mini) replayed through the brake:
   every command and number in it is real.
+
+**2026-10-03, after `/speckit-analyze`** (findings D1, E1–E3, F1, C1)
+
+- **D1**: constitution 2.6.2. When the builder has no real use of an agent, the release's agreement
+  check may run on test sessions, marked as such, and the first real-use result is recorded later
+  (T028).
+- **E1**: helpers moved out of T011 into T027, open; the spec's edge cases and assumptions now say
+  hooks need trust with `/hooks` (F1, C1), and the README says how to tell when they aren't trusted.
+- **T011, scenario 4 rerun (SC-003)**: 30 Codex tasks, 10 per breakage, on the local model. Program
+  missing: LoopBrake never ran. Limit file damaged: LoopBrake fell back to watching only (10 tasks
+  recorded, none stopped). Folder read-only: nothing written. **30 of 30 finished normally**: exit 0,
+  nothing refused, and every hook call completed (231 before and 231 after tool calls, 30 prompts,
+  30 ends). In 8 runs the model ran fewer than 10 commands on its own (it ended its turn early or
+  miscounted); nothing was refused in any of them.
+- **T020, scenario 9**: every hook ran with all network access blocked (`sandbox-exec`, export off):
+  3 of 3 tasks were stopped at action 8 (limit 7), with no hook errors. So the hook path needs no
+  network.
+- **T020, SC-007**: the dashboard in a real browser during three Codex tasks: 15 of 15 new actions
+  appeared on screen, the slowest after 0.96 s (bar 2 s); both stops showed within 0.6 s.
+- **T020, export**: one Codex task sent to a real OpenTelemetry Collector (Docker, export on): 9 spans
+  arrived, with `gen_ai.agent.name` `codex`, and no folder or transcript path.
+- **Found**: if a second stop signal reaches the dashboard while it shuts down, it prints a traceback
+  and may leave its `dashboard.json` note behind. A single Ctrl+C or `--stop` exits cleanly. Not
+  fixed yet.

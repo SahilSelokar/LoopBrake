@@ -18,7 +18,8 @@ builder's choice for OpenAI support (2026-10-02), over ChatGPT (which offers no 
 its own work) and the OpenAI Agents SDK (later, if asked for).
 
 **What Codex offers** (its documentation, checked 2026-10-02): programs that run on its events
-("hooks"), on by default, which plugins can ship. One event comes after each tool call, others when
+("hooks"), which plugins can ship. Codex runs a plugin's hooks only after the user trusts them once
+with `/hooks` (found in the probe, research R10). One event comes after each tool call, others when
 a task starts and ends, and one before each tool call. **One difference from Claude Code matters**:
 when the after-tool-call hook asks Codex to stop, Codex replaces that tool's result with the message
 and carries on. So whether, and how, LoopBrake can really end a Codex task must be proven first
@@ -130,7 +131,10 @@ observability tool.
 - **Codex's sandbox**: if the sandbox stops the plugin from writing its records or reaching its
   program, Codex still carries on (User Story 1, scenario 5), and status says LoopBrake couldn't
   record.
-- **Hooks turned off** by the user: LoopBrake does nothing, and status says hooks are off.
+- **Hooks not trusted, or turned off**: LoopBrake does nothing, and its typed commands can't answer
+  either (they run in the prompt hook), so `loopbrake: status` reaches the model as an ordinary
+  message. `loopbrake status --codex` in a terminal still works, and once a limit is set it says to
+  trust the hooks with `/hooks`.
 - **A Codex update changes its events or history format**: the plugin fails safe (watches nothing,
   blocks nothing), and a pinned sample catches the change in tests.
 - **The same folder in Claude Code and Codex at once**: two separate projects, two limits, one
@@ -206,8 +210,9 @@ observability tool.
 
 ## Assumptions
 
-- **Codex version**: a Codex CLI with hooks and plugins (hooks have been on by default since early
-  2026). The plan pins the lowest version that works.
+- **Codex version**: Codex CLI 0.160.0, the only version checked (research R10). A plugin's hooks
+  run only after the user trusts them with `/hooks`; `codex exec` skips untrusted hooks without a
+  word.
 - **The builder's setup**: the builder has no Codex account (2026-10-02). The builder's decision:
   check on a real Codex running a local model instead, which exercises Codex's own hooks, history and
   sandbox; what a GPT model does after a refused call is then checked by the first users (research
