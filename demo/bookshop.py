@@ -55,6 +55,8 @@ def search_catalog(query: str, page: int = 1) -> str:
     if not hits:
         return "No books match."
     shown = hits[(page - 1) * 5:page * 5]
+    if not shown:
+        return f"Page {page} of {pages}: no books on this page."
     rows = "\n".join(f"{b['id']}: {b['title']} by {b['author']} ({b['genre']}, {b['setting']})" for b in shown)
     return f"Page {page} of {pages}, {len(hits)} books:\n{rows}"
 
@@ -163,10 +165,12 @@ def requests(n):
             f"Hi, I'd like a {b['genre']} book set in {b['setting']}, under ${math.ceil(b['price']) + 3}. What do you have?",
             f"Do you have anything by {b['author']} in stock? Please hold one for {who}.",
             f"Is '{b['title']}' by {b['author']} in stock? If yes, hold it for {who}.",
+            f"What's the cheapest {b['genre']} book you have?",  # every page, and every price
+            f"Which books by {b['author']} are in stock right now?",  # every book's stock, and stock is flaky
             rng.choice([f"Do you have a poetry book set in {b['setting']}?",  # the shop has no poetry
                         f"I'm looking for a {b['genre']} book set in Reykjavik.",  # nor any book set in Reykjavik
                         f"Anything about whales by {b['author']}?"]),
-        ][i % 4])
+        ][i % 6])
     return out
 
 
