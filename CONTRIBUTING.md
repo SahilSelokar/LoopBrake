@@ -46,6 +46,34 @@ These keep LoopBrake's promise true. The full version is in
    "limit", "fewer than 1 in 20". No jargon, no ids.
 6. **Fail safely.** If LoopBrake itself breaks, the agent must carry on as if it weren't there.
 
+## Adding an integration
+
+LoopBrake already works with any framework whose tools are Python functions: wrap each tool with
+`@brake.tool` and run each job inside `with brake.task():` (see the README). An integration makes that
+automatic for one framework, so its users don't wrap every tool by hand. Every integration answers the
+same five questions:
+
+1. **Where does a task start and end?** One task is one job the user gives the agent: one run, one
+   request.
+2. **How is a tool call counted?** Every tool call counts once, with the tool's name and its inputs. In
+   a team of agents, a call counts only for the agent that made it, unless the user chose one watcher
+   for the whole team.
+3. **How does the run end when LoopBrake stops it?** Past the limit, the next tool call raises
+   `loopbrake.Stopped` with the reason. Many frameworks hand tool errors back to the model; show the
+   framework's clean way to end the run instead.
+4. **Does it fail safely?** If LoopBrake breaks, the agent runs as if it weren't there.
+5. **Does it leave the deciding to LoopBrake?** The integration never counts or decides a stop on its
+   own.
+
+Each integration ships as:
+- a module, `src/loopbrake/<framework>.py`, installed as an optional extra:
+  `pip install "loopbrake[<framework>]"`, so the core keeps no dependencies;
+- tests against a fake agent shaped like the framework's, with no network and no model;
+- an example in `demo/`, and a short section in the README.
+
+If the framework only gives you events (a tool started, a tool finished) rather than the tool
+functions themselves, say so in the issue: we'll add the public hook you need.
+
 ## Making a change
 
 - For anything beyond a small fix, open an issue first, so we can agree on the approach.
