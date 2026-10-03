@@ -324,3 +324,16 @@ def test_a_wrapped_call_adds_little_time(tmp_path):
             tool(i)
             took.append(time.perf_counter() - t0)
     assert sorted(took)[int(0.95 * len(took))] < 0.010  # spec SC-005
+
+
+def test_the_readme_examples_run_as_written(tmp_path, monkeypatch):
+    import re
+    from pathlib import Path
+    monkeypatch.setenv("LOOPBRAKE_HOME", str(tmp_path))
+    text = (Path(__file__).parents[1] / "README.md").read_text()
+    section = text[text.index("## Use it\n"):text.index("## Use it with Claude Code")]
+    blocks = re.findall(r"```python\n(.*?)```", section, re.S)
+    assert len(blocks) == 3  # spec SC-007
+    for code in blocks:
+        exec(compile(code, "README.md", "exec"), {})
+    assert {"my-agent", "support-bot", "desk", "researcher"} <= {e.get("project") for e in records.read_events(tmp_path)}

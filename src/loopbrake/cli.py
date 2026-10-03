@@ -56,21 +56,11 @@ def _status(args):
         print(claude_code.status_message(calibration.load(project, h), records.status(h, project)))
         return 0
     projects = [args.project] if args.project else sorted(p.stem for p in (h / "calibration").glob("*.json")) or ["default"]
-    for project in projects:
-        rec = calibration.load(project, h)
-        unit = "turns" if rec and rec["source"].get("kind") == "claude-code" else "runs"
-        if rec is None:
-            line = "no calibration (watch-only)"
-        elif rec["watch_only"]:
-            needed = calibration.runs_needed(rec["alpha"], rec["source"].get("mistakes_counted", 0))
-            line = f"watch-only ({rec['n']} successful {unit}; {needed} needed)"
-        else:
-            line = f"stop line: {rec['stop_line']} steps (from {rec['n']} successful {unit}, α {rec['alpha']:.0%}, {rec['source']['kind']}, {rec['created']})"
-        st = records.status(h, project)
-        print(f"project {project}: {line}")
-        print(f"  {unit} watched: {st['watched']} (of {st['runs']} recorded)")
-        print(f"  {unit} stopped: {st['stopped']}")
-        print(f"  mistaken stops: {st['mistaken']} of an allowance of {st['allowance']:.1f}")
+    for project in projects:  # plain words, as the plugins say it
+        text = claude_code.status_message(calibration.load(project, h), records.status(h, project),
+                                          how=f'Run "loopbrake calibrate --project {project}" to set it.',
+                                          nothing="No tasks recorded for this project yet.")
+        print(text.replace("LoopBrake in this project:", f"LoopBrake, project {project}:", 1))
     return 0
 
 

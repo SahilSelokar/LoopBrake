@@ -55,8 +55,9 @@ def test_status_and_feedback(capsys, home):
     write_events(home)
     assert run_cli(capsys, "feedback", "r0", "--mistaken")[0] == 0
     code, out, _ = run_cli(capsys, "status", "--project", "demo")
-    assert code == 0 and "stop line: 27 steps" in out
-    assert "runs watched: 20" in out and "runs stopped: 3" in out and "mistaken stops: 1 of an allowance of 1.0" in out
+    assert code == 0 and "LoopBrake, project demo:" in out and "Stop line: 27 tool calls per task" in out
+    assert "the stop line was on for 20" in out and "Tasks stopped: 3" in out
+    assert "Stops you marked as mistakes: 1 (up to about 1.0 would be normal by now)" in out
     assert run_cli(capsys, "feedback", "r1", "--exclude")[0] == 0 and "r1" in records.read_exclude(home)
     assert run_cli(capsys, "feedback", "nope", "--mistaken")[0] == 1
 

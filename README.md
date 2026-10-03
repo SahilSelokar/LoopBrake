@@ -66,31 +66,87 @@ More in [eval/results/kill-stories.md](https://github.com/SahilSelokar/LoopBrake
 **Install.** `pip install loopbrake`, or `uv add loopbrake` ([PyPI](https://pypi.org/project/loopbrake/)).
 No other packages are needed.
 
-**1. Set your stop line from your own past runs.** It needs at least 19 successful runs (at α 5%);
-with fewer, LoopBrake only watches.
+**1. Wrap your agent.** Name what you watch, wrap each tool your agent can call, and run each job
+inside a task:
 
-```bash
-loopbrake calibrate ~/.claude/projects/<your-project>/ --project my-agent   # your Claude Code history
-loopbrake calibrate my_runs.jsonl --project my-agent                         # or recorded runs
+```python
+import loopbrake
+
+brake = loopbrake.watch("my-agent")
+
+@brake.tool
+def search(query):                 # one of your agent's tools
+    return f"results for {query}"
+
+with brake.task():                 # one job for your agent
+    search("flights to Lisbon")    # your agent calls its tools as usual
 ```
 
-**2. Add it to your agent loop.**
+Every tool call counts as one action, by itself. Until a limit is set, LoopBrake only watches and
+records. Tools can be normal or `async` (use `async with brake.task():`).
+
+**2. Set the limit**, once LoopBrake has watched at least 19 good tasks (a task is good when it ended
+normally and wasn't stopped):
+
+```bash
+loopbrake calibrate --project my-agent
+```
+
+No file needed: it learns from the tasks it watched under that name. (Runs saved elsewhere work too:
+`loopbrake calibrate my_runs.jsonl --project my-agent`.)
+
+**3. When a task goes past the limit**, the next tool call doesn't run. It raises `loopbrake.Stopped`,
+whose message says why in plain words, and so does every later tool call in that task. Let it end the
+task, or catch it and tell your user.
+
+**Teams of agents.** Use one watcher for the whole job, or one per agent:
+
+```python
+import loopbrake
+
+# One limit for the whole job: every agent's tools use the same watcher.
+team = loopbrake.watch("support-bot")
+lookup = team.tool(lambda q: f"results for {q}", name="lookup")
+with team.task():
+    lookup("refund policy")
+
+# One limit per agent: the researcher's work is its own task, and never counts for the desk.
+desk, researcher = loopbrake.watch("desk"), loopbrake.watch("researcher")
+
+@researcher.tool
+def find(q):
+    return f"results for {q}"
+
+@desk.tool
+def ask_researcher(q):
+    with researcher.task():
+        return find(q)
+
+with desk.task():
+    ask_researcher("refund policy")
+```
+
+Tasks running at the same time (threads or `async`) keep separate counts. The
+[demo](https://github.com/SahilSelokar/LoopBrake/tree/main/demo) is a bookshop run by two agents, each
+with its own limit.
+
+**4. See how it's doing.**
+
+```bash
+loopbrake status --project my-agent        # tasks watched, stops, and stops you marked as mistakes
+loopbrake feedback last --mistaken         # the last stop was wrong: the limit can only go up
+loopbrake dashboard                        # every task, and why any was stopped
+```
+
+**Full control.** To report each action yourself, use `loopbrake.start()` and `brake.step()`:
 
 ```python
 import loopbrake
 
 with loopbrake.start(project="my-agent") as brake:
-    for action, result in my_agent_steps():          # your loop
-        decision = brake.step(action, result)
-        if decision.stop:
-            print(decision.reason); break
-```
-
-**3. See how it's doing.**
-
-```bash
-loopbrake status --project my-agent        # runs watched, stops, and stops you marked as mistakes
-loopbrake feedback <run-id> --mistaken     # tell LoopBrake a stop was wrong
+    decision = brake.step("search flights to Lisbon", "3 results")
+    if decision.stop:
+        print(decision.reason)
 ```
 
 **Claude's agent toolkit:** `pip install "loopbrake[agent-sdk]"`, then

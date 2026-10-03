@@ -246,7 +246,7 @@ def calibrate_message(rec, again=AGAIN):
                          "mistake counts as a very long good task.)")
     else:
         lines = ["LoopBrake is set up for this project.",
-                 f"It will stop a task that goes past {rec['stop_line']} tool calls. That limit comes from your "
+                 f"It will stop a task that goes past {_n(rec['stop_line'], 'tool call')}. That limit comes from your "
                  f"{_n(rec['n'], 'past successful task')} here: {one_in(alpha)} good tasks should go past it."]
     if left:
         lines.append(f"Left out: {_n(left, 'task')} that LoopBrake stopped as stuck or that you excluded.")
@@ -263,7 +263,7 @@ def status_message(rec, st, how=HOW, nothing=NOTHING):
         needed = calibration.runs_needed(rec["alpha"], rec["source"].get("mistakes_counted", 0))
         lines.append(f"  Stop line: not set yet, only watching ({_n(rec['n'], 'successful past task')} found, {needed} needed).")
     else:
-        lines.append(f"  Stop line: {rec['stop_line']} tool calls per task (set {rec['created']} from {_n(rec['n'], 'past successful task')}).")
+        lines.append(f"  Stop line: {_n(rec['stop_line'], 'tool call')} per task (set {rec['created']} from {_n(rec['n'], 'past successful task')}).")
     lines += [f"  Tasks seen: {st['runs']} (the stop line was on for {st['watched']})",
               f"  Tasks stopped: {st['stopped']}",
               f"  Stops you marked as mistakes: {st['mistaken']} (up to about {st['allowance']:.1f} would be normal by now)"]
