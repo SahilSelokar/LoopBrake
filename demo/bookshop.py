@@ -14,6 +14,7 @@ OPENAI_API_KEY if it needs one). By default a local llama.cpp server on port 809
 """
 import argparse
 import json
+import logging
 import math
 import os
 import random
@@ -173,6 +174,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--requests", type=int, default=25)
     a = p.parse_args()
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")  # LoopBrake's stops
     for i, text in enumerate(requests(a.requests), 1):
         SEEN.clear()
         try:

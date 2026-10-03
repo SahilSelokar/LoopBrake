@@ -99,6 +99,10 @@ No file needed: it learns from the tasks it watched under that name. (Runs saved
 whose message says why in plain words, and so does every later tool call in that task. Let it end the
 task, or catch it and tell your user.
 
+**Logs.** LoopBrake also writes to your app's logs, through Python's `logging` (the `loopbrake`
+logger): a WARNING with the reason when it stops a task, and an INFO line when a task ends. It stays
+silent until your app turns logging on, for example with `logging.basicConfig(level=logging.INFO)`.
+
 **Teams of agents.** Use one watcher for the whole job, or one per agent:
 
 ```python

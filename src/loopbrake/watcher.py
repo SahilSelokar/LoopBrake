@@ -16,6 +16,7 @@ import contextvars
 import functools
 import inspect
 import json
+import logging
 import threading
 import time
 import warnings
@@ -23,8 +24,9 @@ import warnings
 from loopbrake import records
 from loopbrake.agent_sdk import _text
 from loopbrake.brake import start
-from loopbrake.claude_code import plain_stop
+from loopbrake.claude_code import _n, plain_stop
 
+log = logging.getLogger("loopbrake")  # silent unless the app turns logging on (NullHandler in __init__)
 NEXT_STEP = ' If it wasn\'t stuck, run "loopbrake feedback last --mistaken".'
 NOT_RUN = "not run: LoopBrake stopped the task before this call"
 
@@ -135,7 +137,9 @@ class Task:
             with self._lock:
                 if self._refused and not b.stopped:
                     b.step(self._refused[0], NOT_RUN, tool=self._refused[1])
-            b.end("stopped" if b.stopped else "interrupted" if kind else "finished")
+            status = "stopped" if b.stopped else "interrupted" if kind else "finished"
+            b.end(status)
+            log.info("%s: task %s after %s", self.watcher.name, status, _n(len(b.steps), "tool call"))
         return False
 
     async def __aenter__(self):
@@ -165,12 +169,18 @@ class Task:
             if not self.stopped and not b.would_stop(self._pending + 1):
                 self._pending += 1
                 return act
-            if not self.stopped:
+            first = not self.stopped
+            if first:
                 if self._pending:
                     self._refused = (act, label)  # recorded once the calls on their way are done
                 else:
                     b.step(act, NOT_RUN, tool=label)  # the brake records its stop at this call
-        raise Stopped(self.reason, self.watcher.name)
+        reason = self.reason
+        if first:
+            log.warning("%s: stopped a task at %s. %s", self.watcher.name, label, reason)
+        else:
+            log.debug("%s: refused %s: the task is already stopped", self.watcher.name, label)
+        raise Stopped(reason, self.watcher.name)
 
     def _done(self, act, label, out, failed, t0):
         b = self.brake

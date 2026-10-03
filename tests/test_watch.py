@@ -337,3 +337,35 @@ def test_the_readme_examples_run_as_written(tmp_path, monkeypatch):
     for code in blocks:
         exec(compile(code, "README.md", "exec"), {})
     assert {"my-agent", "support-bot", "desk", "researcher"} <= {e.get("project") for e in records.read_events(tmp_path)}
+
+
+def test_stops_and_task_ends_go_to_your_apps_logs(tmp_path, caplog):
+    import logging
+    set_limit(tmp_path, "desk", 2)
+    w = loopbrake.watch("desk", home=tmp_path)
+    tool = w.tool(lambda: "ok", name="lookup")
+    with caplog.at_level(logging.DEBUG, logger="loopbrake"):
+        with w.task():
+            tool(), tool()
+        with pytest.raises(Stopped):
+            with w.task():
+                tool(), tool(), tool()
+        with pytest.raises(Stopped):
+            with w.task():
+                for _ in range(4):
+                    try:
+                        tool()
+                    except Stopped:
+                        pass
+                tool()
+    logs = [(r.levelname, r.getMessage()) for r in caplog.records if r.name == "loopbrake"]
+    warnings_ = [m for level, m in logs if level == "WARNING"]
+    assert len(warnings_) == 2 and all(m.startswith("desk: stopped a task") and "fewer than 1 in 20" in m for m in warnings_)
+    assert ("INFO", "desk: task finished after 2 tool calls") in logs
+    assert ("INFO", "desk: task stopped after 3 tool calls") in logs
+    assert sum(level == "DEBUG" and "already stopped" in m for level, m in logs) == 2
+
+
+def test_logging_is_silent_unless_your_app_turns_it_on():
+    import logging
+    assert any(isinstance(h, logging.NullHandler) for h in logging.getLogger("loopbrake").handlers)
