@@ -77,9 +77,10 @@ so do calls 5 to 10; the task is recorded as stopped.
    reaches the agent unchanged, and the call counts as one failed action.
 6. **Given** tools and task blocks written as asynchronous code, **When** they run, **Then**
    scenarios 1 to 5 hold the same way.
-7. **Given** a problem inside LoopBrake (its folder can't be written, its records are damaged),
-   **When** wrapped tools are called, **Then** every call runs and returns normally, and no stop
-   error is raised because of LoopBrake's own problem.
+7. **Given** a problem inside LoopBrake (its records are damaged, its own code fails), **When**
+   wrapped tools are called, **Then** every call runs and returns normally, and no stop error is
+   raised because of LoopBrake's own problem. If only its folder can't be written, nothing is
+   recorded, and a real stop still happens.
 
 ---
 
@@ -250,8 +251,8 @@ number of calls: every recorded count matches.
   handoff (Option A), for a manager and its worker (Option B), and for 10 tasks running at the same
   time, in 100% of runs.
 - **SC-005**: LoopBrake adds no more than 10 milliseconds to 95% of tool calls.
-- **SC-006**: With LoopBrake broken on purpose (its folder read-only, its records damaged), 100% of
-  tool calls run and return normally, and no stop error is raised.
+- **SC-006**: With LoopBrake broken on purpose (its limit file damaged, its own code failing), 100%
+  of tool calls run and return normally, and no stop error is raised.
 - **SC-007**: Every code example in the README runs as written.
 
 ## Assumptions

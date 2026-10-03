@@ -24,10 +24,15 @@ def _calibrate(args):
         return 0
     if args.claude_code and (args.source or args.project):
         return _fail("--claude-code takes no source and no --project: both come from the current folder")
-    if not args.claude_code and not args.source:
-        return _fail("give a runs file or a Claude Code project folder, or use --claude-code or --codex")
+    if not args.claude_code and not args.source and not args.project:
+        return _fail("give --project <name> to learn from the tasks LoopBrake watched under that name, "
+                     "or a runs file or Claude Code project folder, or use --claude-code or --codex")
     if args.claude_code:  # what Claude Code users read: plain words (contracts/cli.md)
         print(claude_code.calibrate_message(claude_code.calibrate_claude_code(alpha=args.alpha)))
+        return 0
+    if not args.source:  # your own agent (spec 007): learned from the tasks LoopBrake watched, no file
+        rec = calibration.calibrate(None, project=args.project, alpha=args.alpha)
+        print(claude_code.calibrate_message(rec, again=f'Run "loopbrake calibrate --project {args.project}" again after more tasks.'))
         return 0
     rec = calibration.calibrate(args.source, project=args.project or "default", alpha=args.alpha)
     if rec["watch_only"]:

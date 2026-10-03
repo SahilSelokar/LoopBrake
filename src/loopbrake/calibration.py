@@ -155,15 +155,46 @@ def calibrate_codex(files, *, project, alpha=0.05, home=None):
     return _save(lengths, src_info, project, alpha, h)
 
 
+def _from_records(h, project, exclude):
+    """The tasks LoopBrake watched under `project` (spec 007 FR-010): finished ones are good; a stop
+    marked as a mistake counts as a good task longer than any line; stopped, interrupted and left-out
+    tasks are not used. Live and calibration counts come from the same records (FR-012)."""
+    starts, steps, ends, verdicts = set(), {}, {}, {}
+    for e in records.read_events(h):
+        kind, run = e.get("event"), e.get("run")
+        if kind == "run_start" and e.get("project") == project:
+            starts.add(run)
+        elif kind == "step":
+            steps[run] = steps.get(run, 0) + 1
+        elif kind == "run_end":
+            ends[run] = e.get("status")
+        elif kind == "feedback":
+            verdicts.setdefault(run, set()).add(e.get("verdict"))
+    lengths, left = [], 0
+    for run in starts:
+        v = verdicts.get(run, set())
+        if "mistaken_stop" in v:
+            lengths.append(math.inf)
+        elif ends.get(run) == "finished" and run not in exclude and "exclude" not in v:
+            lengths.append(steps.get(run, 0))
+        elif ends.get(run) is not None:
+            left += 1
+    return lengths, {"kind": "records", "tasks_seen": len(starts), "stops_left_out": left,
+                     "mistakes_counted": sum(x == math.inf for x in lengths)}
+
+
 def calibrate(source, *, project="default", alpha=0.05, home=None):
     """Set a project's stop line from past runs and save it. Returns the calibration record.
 
-    `source`: a runs file (common format) or a Claude Code project folder. The record holds counts and a
-    fingerprint only, never text from the source (spec FR-007).
+    `source`: a runs file (common format), a Claude Code project folder, or None for the tasks LoopBrake
+    itself watched under `project`. The record holds counts and a fingerprint only, never text from the
+    source (spec FR-007).
     """
     if not records.valid_project(project):
         raise ValueError(f"project names may use letters, digits, '.', '_' and '-' (got {project!r})")
     h = records.home(home)
+    if source is None:
+        return _save(*_from_records(h, project, records.read_exclude(h)), project, alpha, h)
     src = Path(source).expanduser()
     if not src.exists():
         raise FileNotFoundError(f"no such file or folder: {src}")
