@@ -347,7 +347,7 @@ We replayed **2,979 recorded runs** of six public agent groups through LoopBrake
 ([SWE-bench Verified](https://github.com/SWE-bench/experiments)) and customer-service tasks
 ([τ-bench](https://github.com/sierra-research/tau-bench)). For each group, LoopBrake set its limit
 from 20 of that group's successful runs, aiming to stop at most 5% of good runs, and was then scored on
-runs it hadn't seen.
+runs it hadn't seen. Each number is an average over 1,000 random choices of those 20 runs.
 
 | Agent group | Runs | LoopBrake: good runs stopped | LoopBrake: tokens saved | Fixed rule¹: good runs stopped | Fixed rule¹: tokens saved |
 |---|---:|---:|---:|---:|---:|
@@ -358,13 +358,15 @@ runs it hadn't seen.
 | τ-bench airline, Claude 3.5 Sonnet | 400 | 3.5% | 5.7% | 2.2% | 5.4% |
 | τ-bench retail, Claude 3.5 Sonnet | 920 | 2.6% | 1.3% | 5.1% | 2.3% |
 
-¹ The usual fixed rule: stop at 20 steps, or when the same step repeats 3 times.
+¹ The usual fixed rule: stop after 20 steps, or once the exact same step (same tool, same inputs) has come up 3 times.
 ² Devstral's runs were used to choose the method, so its row isn't a fair test. Every other row is.
 
-- **The promise held in every group**: LoopBrake stopped at most 4.8% of good runs. The fixed rule
-  stopped anywhere from 1.2% to 99.3% of them, and there's no way to know which in advance.
-- **The savings are real but modest**: 1.3% to 20.8% of all tokens, more on long coding tasks. The
-  fixed rule saves more only where it also stops most of the good runs.
+- **The promise held in every group**: on average LoopBrake stopped at most 4.8% of good runs. The
+  fixed rule stopped anywhere from 1.2% to 99.3% of them, depending on the agent.
+- **The savings are real but modest**: 1.3% to 20.8% of all tokens, more on long coding tasks.
+- **The fixed rule sometimes saves more.** On the coding agents it did so by stopping 29% to 99% of
+  good runs; on τ-bench airline with GPT-4o it saved 9.6% while stopping just 1.2%. Its cost changes
+  from agent to agent, and you only find out afterwards.
 
 ### Where LoopBrake stands
 
@@ -381,7 +383,8 @@ Tokens saved when about 5% of good runs get stopped, next to the published metho
 LoopBrake doesn't save the most tokens: a trained monitor saves more. LoopBrake is itself a step
 count, and it saves about what a plain step count does. What it adds is a promise you can rely on: the
 share of good runs it stops is guaranteed, from your own past runs, with no training and no
-dependencies. The rows come from different models, and FailFast doesn't say
+dependencies. FailFast fits its 5% line on the data it reports on, though its paper reports a nested
+check with nearly identical results. The rows come from different models, and FailFast doesn't say
 exactly which tokens it counts, so read the gaps as rough.
 
 Full report: [eval/results/results.md](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/results.md)
@@ -401,10 +404,10 @@ in plain words why a stopped run looked stuck. What we learned from the judge:
 
 - **A threshold tuned on one agent didn't travel.** It was set on Devstral's long runs; on the other
   agents it was almost never reached (0–0.3% of steps), so the method rarely stopped anything.
-- **A judge on every step is expensive.** On short customer-service tasks it used about as many tokens
-  as the agent itself.
-- **Even ignoring its cost, it didn't spot stuck runs better than counting steps**: 7.3% vs 9.3% of
-  tokens saved on GPT-5-mini. The whole experiment took 73,812 judgments, for about $3.91.
+- **Judging every step cost more than it saved.** Counting the judge's own tokens, it came out at
+  −3.2% on GPT-5-mini (counting steps: +9.3%) and −23.2% to −34.4% on the τ-bench groups.
+
+The whole experiment took 73,812 judgments, for about $3.91.
 
 Full reports: [stuck signals](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/results.md),
 [judge](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/judge/results.md)
