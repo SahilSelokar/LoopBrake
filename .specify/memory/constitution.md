@@ -1,5 +1,17 @@
 <!--
 Sync Impact Report
+- Version change: 2.6.1 → 2.6.2 (PATCH: clarifies the agreement check for an agent the builder has
+  no real use of; from /speckit-analyze finding D1 on specs/006)
+- Modified: Technical Constraints, "Every agent plugin", "Same turns live and in calibration". The
+  check stays mandatory on the builder's real use. When there is none (no account), it may run on
+  real sessions made for testing, marked as such in the release notes, and the first real-use
+  result must be recorded once it exists. No principle changes.
+- Dependent docs: specs/006-codex-cli-plugin/tasks.md T028 records the first real-use result.
+- History:
+  - 2.6.1 made the plugin rules apply to every agent plugin and added the Codex CLI note.
+  - 2.6.0 changed the dashboard's colors to the Visual Vortex brand.
+
+Previous report (2.6.1):
 - Version change: 2.6.0 → 2.6.1 (PATCH: wording, for the Codex CLI plugin, specs/006 T021)
 - Modified: Technical Constraints. "Failing safely" and "Same turns live and in calibration" now
   apply to every agent plugin, not only Claude Code; the Claude Code example of what stays in a
@@ -158,7 +170,10 @@ an observability tool only when they control exactly what leaves the machine.
   - **Same turns live and in calibration**: each agent's history reader MUST cut its history at the
     same boundaries its live hooks see. Where live and calibration counts can still differ, the live
     count MUST be the lower one, because a lower count can only stop later. Every plugin release
-    MUST check this on the builder's real use (`loopbrake agreement`).
+    MUST check this with `loopbrake agreement` on the builder's real use of that agent. When the
+    builder has no real use of an agent (for example, no account), the check MAY run on real
+    sessions of that agent made for testing, marked as such in the release notes, and the first
+    real-use result (the builder's or a user's) MUST be recorded once it exists.
 - **No warn-first in v1**: feeding warnings back to the agent changes its trajectory and breaks
   exchangeability with the calibration runs. It may be added only with calibration done under
   the same warnings.
@@ -294,4 +309,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.6.1 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-02
+**Version**: 2.6.2 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-03
