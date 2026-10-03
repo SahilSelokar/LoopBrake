@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.5.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 is done: the dashboard and OpenTelemetry export ship with v0.3.0 (2026-10-02). Phase 4b is done: the Codex CLI plugin ships with v0.4.0 (2026-10-02). Next: Launch.
+**Date**: 2026-10-01 | **Constitution**: v2.5.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 is done: the dashboard and OpenTelemetry export ship with v0.3.0 (2026-10-02). Phase 4b is done: the Codex CLI plugin ships with v0.4.0 (2026-10-02). Phase 4c is done: the simple agent API ships with v0.5.0 (2026-10-03). Next: Launch.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -314,6 +314,18 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
 - **Limits per agent**: the same folder gives separate Claude Code and Codex projects, each learned
   from its own history; Codex's history is read in one place, `codex_turns()`.
 - **Not checked**: helper agents (the local model never started one).
+
+### Phase 4c: Your own agents, simply (`007-agent-watch`, status: done, v0.5.0 on 2026-10-03)
+
+- **Why**: the builder's feedback that the package was "so complex to remember" for one's own agent.
+- **What changed**: a watcher per name, a wrapper on each tool, and a block around each task replace the
+  step-by-step loop; the limit is learned from the tasks LoopBrake watched, with no runs file; the call
+  past the limit never runs; teams of agents get one watcher for the whole job or one per agent (the
+  builder's decision: both); stops go to the app's logs. No change to how stops are decided.
+- **Checked**: unit tests (including parallel calls, nested and simultaneous tasks, and the README
+  examples run as written), and a two-agent bookshop demo on local 4B and 1.7B models. On the 1.7B
+  model the researcher agent, unscripted, paged through the whole catalog instead of searching, and
+  LoopBrake stopped it.
 
 ### Phase 5: Launch (`005-launch`)
 

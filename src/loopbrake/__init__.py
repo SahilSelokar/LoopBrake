@@ -1,6 +1,6 @@
 """LoopBrake: stops stuck AI agent runs, with a guaranteed limit on stopping good ones."""
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 import logging  # noqa: E402
 

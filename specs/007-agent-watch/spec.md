@@ -1,6 +1,6 @@
 # Feature Specification: Simple Agent Watch
 
-**Feature Branch**: `007-agent-watch` | **Created**: 2026-10-03 | **Status**: Draft
+**Feature Branch**: `007-agent-watch` | **Created**: 2026-10-03 | **Status**: Implemented (v0.5.0)
 
 **Input**: User description: "A simple way to use LoopBrake in your own agents, replacing the
 hard-to-remember start()/step() loop and the hand-made runs file. Two pieces on the same engine: a

@@ -16,13 +16,13 @@ circles, that's the model's own doing.
 ## Run it
 
 You need a model behind an OpenAI-compatible chat endpoint. By default the demo uses a local llama.cpp
-server on port 8091 (any model with tool calling; we used Qwen3-4B-Instruct). To use another one:
+server on port 8091 (any model with tool calling; we used Qwen3-4B-Instruct and Qwen3-1.7B). To use another one:
 
 ```bash
 export LOOPBRAKE_DEMO_URL=https://api.openai.com/v1 LOOPBRAKE_DEMO_MODEL=gpt-5-mini OPENAI_API_KEY=...
 ```
 
-The agent API it uses (`loopbrake.watch`) is new and not on PyPI yet, so run it from this repository:
+It needs LoopBrake 0.5.0 or later (`pip install loopbrake`). From a clone of this repository:
 
 ```bash
 uv run python demo/bookshop.py --requests 25        # first runs: LoopBrake only watches
