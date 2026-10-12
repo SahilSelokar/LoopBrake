@@ -483,3 +483,50 @@ def test_pre_tool_fails_safe(home, can_ask, capsys):
     hook(home, "prompt", payload(**ASKS))
     assert all(pre(home, i) is None for i in range(1, 10))  # damaged calibration: watch-only, never a question
     assert '"event": "ask"' not in (home / "runs" / "s1.jsonl").read_text()
+
+
+def test_denying_ends_the_task_as_stopped_by_the_person(home, can_ask):
+    up_to_the_line(home)
+    asked(pre(home, 4))
+    assert hook(home, "stop", payload(**ASKS)) is None  # the held call never ran: the person said no
+    [answer], [stop] = of(home, "answer"), of(home, "stop")
+    assert (answer["verdict"], answer["ask_point"]) == ("denied", 4)
+    assert (stop["by"], stop["step"], stop["stop_line"]) == ("person", 3, 3)
+    assert of(home, "run_end")[-1]["status"] == "stopped" and len(of(home, "step")) == 3
+    hook(home, "prompt", payload(**ASKS))  # the next prompt is a new turn, counting from zero
+    assert pre(home, 5) is None and len(of(home, "run_start")) == 2
+
+
+def test_an_interrupt_while_asking_counts_as_denied(home, can_ask):
+    up_to_the_line(home)
+    asked(pre(home, 4))
+    hook(home, "prompt", payload(**ASKS))  # Esc at the prompt (or a rejection), then a new message
+    assert [e["verdict"] for e in of(home, "answer")] == ["denied"]
+    assert [e["status"] for e in of(home, "run_end")] == ["stopped"] and of(home, "stop")[0]["by"] == "person"
+
+
+def test_claude_carrying_on_after_a_rejection_is_asked_again(home, can_ask):
+    up_to_the_line(home)
+    first = asked(pre(home, 4))
+    again = asked(pre(home, 5))  # no step for t4 yet: the question is still open, so it is repeated
+    assert again == first
+    assert [(e["ask_point"], e["call_id"]) for e in of(home, "ask")] == [(4, "t4"), (4, "t5")]
+    assert not of(home, "answer") and not of(home, "stop")
+
+
+def test_calls_on_their_way_follow_the_same_question(home, can_ask):
+    up_to_the_line(home)
+    asked(pre(home, 4)), asked(pre(home, 5))  # a batch: both past the line
+    assert post(home, 5) is None  # either held call running means yes
+    assert [(e["verdict"], e["call_id"]) for e in of(home, "answer")] == [("allowed", "t5")]
+    assert post(home, 4) is None and len(of(home, "answer")) == 1  # answered once
+    assert not of(home, "stop")
+
+
+def test_a_batch_cannot_pass_the_line_unasked(home, can_ask):
+    calibrate(home, 3)
+    hook(home, "prompt", payload(**ASKS))
+    assert pre(home, 1) is None and post(home, 1) is None
+    assert pre(home, 2) is None and pre(home, 3) is None  # let through, both still running
+    assert asked(pre(home, 4))  # 1 done + 2 on their way + this one = 4 > 3
+    assert [e["call_id"] for e in of(home, "approve")] == ["t1", "t2", "t3"]

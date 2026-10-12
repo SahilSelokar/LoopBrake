@@ -152,6 +152,29 @@ def test_recalibration_after_the_brake_was_on(tmp_path, home, monkeypatch, case,
     assert (rec["source"]["stops_left_out"], rec["source"]["mistakes_counted"]) == counts
 
 
+def asked_live_turn(home, turn, length, verdict):
+    """A live turn that asked at call 4 and got `verdict` (specs/008 data-model.md)."""
+    live_turn(home, turn, length)
+    w = records.RunWriter(home / "runs" / f"live-{turn}.jsonl")
+    s, r = f"live-{turn}", f"L{turn}"
+    w.write({"event": "ask", "session": s, "run": r, "step": 4, "ask_point": 4, "stop_line": 3, "reason": "asked at step 4", "call_id": f"t{turn}-3"})
+    w.write({"event": "answer", "session": s, "run": r, "ask_point": 4, "verdict": verdict, "call_id": f"t{turn}-3" if verdict == "allowed" else None})
+    if verdict == "denied":
+        w.write({"event": "stop", "session": s, "run": r, "step": length, "stop_line": 3, "reason": "asked at step 4", "by": "person"})
+
+
+@pytest.mark.parametrize("verdict, expected_line, counts", [
+    ("allowed", 39, (0, 0)),  # a long task the person let go on counts at its real length, like any good task
+    ("denied", 38, (1, 0)),   # a task the person stopped is left out as stuck; no mistake is counted
+])
+def test_questions_in_recalibration(tmp_path, home, monkeypatch, verdict, expected_line, counts):
+    history(tmp_path, monkeypatch, list(range(1, 41)))
+    asked_live_turn(home, 39, 40 if verdict == "allowed" else 3, verdict)
+    rec = claude_code.calibrate_claude_code(CWD)
+    assert rec["stop_line"] == expected_line
+    assert (rec["source"]["stops_left_out"], rec["source"]["mistakes_counted"]) == counts
+
+
 def test_runs_needed_counts_mistaken_stops_as_taking_the_top_places():
     assert calibration.runs_needed(0.05) == 19
     assert calibration.runs_needed(0.05, unbounded=1) == 39  # ceil(0.95 * 40) = 38 = 39 - 1

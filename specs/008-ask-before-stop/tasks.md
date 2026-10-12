@@ -145,7 +145,7 @@ without the person, and the turn is recorded as stopped by the person and left o
 **Independent test**: open a question, then send `stop` with no `tool` for the held call. The log
 then has `answer denied`, `stop` with `by: "person"`, and `run_end stopped`.
 
-- [ ] T009 [US2] Write failing tests in `tests/test_claude_code.py`:
+- [X] T009 [US2] Write failing tests in `tests/test_claude_code.py`:
   - **Closing an open question**: with the held call unrun, `stop` writes `answer denied`, then
     `stop` with `by: "person"`, then `run_end` `stopped`. A new `prompt` does the same, then opens a
     new turn counting from zero.
@@ -154,12 +154,12 @@ then has `answer denied`, `stop` with `by: "person"`, and `run_end stopped`.
   - **Calls on their way** (research R5): a second `pre-tool` while the question is open prints the
     same `ask` reason and writes an `ask` with the same `ask_point`. A `tool` for either held call
     writes `answer allowed` once.
-- [ ] T010 [US2] Implement the deny path in `src/loopbrake/claude_code.py`:
+- [X] T010 [US2] Implement the deny path in `src/loopbrake/claude_code.py`:
   - `stop` and `prompt` close an open question with `b.answer("denied", None)` before `b.end(...)`;
   - a call on its way repeats the open question.
 
   T009 must pass.
-- [ ] T011 [P] [US2] Write calibration tests in `tests/test_calibrate.py`, with a synthetic Claude Code
+- [X] T011 [P] [US2] Write calibration tests in `tests/test_calibrate.py`, with a synthetic Claude Code
   history in `tests/fixtures/` plus live records:
   - a turn asked at call 4, allowed, and finished at 50 calls counts as a good turn of length 50;
   - a turn with `answer denied` and `stop by person` is left out (`stops_left_out` +1);
