@@ -97,7 +97,7 @@ lets it run, nothing is added to Claude's context, and the next question comes a
 - `tool` for that call counts it and doesn't stop;
 - the next `ask` comes before call 8.
 
-- [ ] T005 [US1] Write failing tests in `tests/test_claude_code.py` (monkeypatch
+- [X] T005 [US1] Write failing tests in `tests/test_claude_code.py` (monkeypatch
   `CLAUDE_CODE_ENTRYPOINT=cli` and pass `permission_mode: "default"`):
   - `pre-tool` for calls 1 to 3 prints nothing and counts no step;
   - the 4th `pre-tool` prints exactly
@@ -110,7 +110,7 @@ lets it run, nothing is added to Claude's context, and the next question comes a
   - a subagent's `pre-tool` (input with `agent_id`) is ignored;
   - a damaged log or calibration on `pre-tool` prints nothing, exits cleanly, writes no `ask`
     record, and leaves the log readable (fail-safe, FR-012).
-- [ ] T006 [US1] Implement the asking path in `src/loopbrake/claude_code.py`:
+- [X] T006 [US1] Implement the asking path in `src/loopbrake/claude_code.py`:
   - add `"pre-tool"` to `EVENTS`;
   - `can_ask(data)`, research R3: `os.environ.get("CLAUDE_CODE_ENTRYPOINT")` is set and doesn't
     start with `sdk`, and `data.get("permission_mode")` is in
@@ -125,11 +125,11 @@ lets it run, nothing is added to Claude's context, and the next question comes a
 
   T005 must pass. `cli.py` takes its `hook` choices from `EVENTS`; check `loopbrake hook pre-tool`
   is accepted.
-- [ ] T007 [US1] Add the `PreToolUse` entry to `plugin/hooks/hooks.json`: matcher `"*"`, command
+- [X] T007 [US1] Add the `PreToolUse` entry to `plugin/hooks/hooks.json`: matcher `"*"`, command
   `"${CLAUDE_PLUGIN_ROOT}/bin/loopbrake" hook pre-tool`, timeout 30 (contracts/plugin-and-cli.md).
   Extend `tests/test_plugin_files.py::test_hooks` to expect it. The Codex plugin's `hooks.json` must
   not change; assert it.
-- [ ] T008 [US1] Extend `tests/test_claude_code.py::test_hook_work_is_fast` to time `pre-tool` too,
+- [X] T008 [US1] Extend `tests/test_claude_code.py::test_hook_work_is_fast` to time `pre-tool` too,
   under the same bound (constitution 2.7.0: 200 ms per hook call; research R8 measured about 65 ms
   through the launcher).
 

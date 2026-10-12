@@ -14,7 +14,8 @@ from pathlib import Path
 from loopbrake import calibration, records
 from loopbrake.brake import Brake, start
 
-EVENTS = ("prompt", "tool", "tool-failed", "stop")
+EVENTS = ("prompt", "pre-tool", "tool", "tool-failed", "stop")
+_ASK_MODES = {"default", "acceptEdits", "plan", "auto"}  # permission modes in which a person sees prompts
 _SESSION = re.compile(r"[A-Za-z0-9._-]{1,128}")
 
 
@@ -77,6 +78,20 @@ def _session(data):
     return session, project_name(Path(transcript).parent.name)
 
 
+def can_ask(data):
+    """Whether a person can answer a question in this session (specs/008, research R3): an interactive
+    Claude Code (not headless or the Agent SDK) in a mode that shows permission prompts. Anything else,
+    including a missing or unknown value, can't ask, so LoopBrake stops as in 0.5.0."""
+    entry = os.environ.get("CLAUDE_CODE_ENTRYPOINT") or ""
+    return bool(entry) and not entry.startswith("sdk") and data.get("permission_mode") in _ASK_MODES
+
+
+def _pending(turn):
+    """Calls let through that haven't finished yet: approved, with no step for them so far."""
+    done = {e.get("call_id") for e in turn if e.get("event") == "step"}
+    return sum(1 for e in turn if e.get("event") == "approve" and e.get("call_id") not in done)
+
+
 def _hook(event, text, h):
     if event not in EVENTS:
         return None
@@ -85,9 +100,14 @@ def _hook(event, text, h):
     if found is None:
         return None
     session, project = found
+    asks = can_ask(data)
     with records.session_lock(h, session):
         turn = records.open_turn(records.session_events(h, session))
-        b = Brake.from_events(project, session, h, turn, unit="turns") if turn else None
+        b = Brake.from_events(project, session, h, turn, unit="turns", asks=asks) if turn else None
+        if event == "pre-tool":
+            return _pre_tool(b, data, turn, session, h) if b is not None and asks else None
+        if b is not None and event in ("prompt", "stop"):
+            b.answer("denied")  # a question still open when the turn ends: nothing held ran (research R4)
         if event == "prompt":
             if b and (b.steps or b.stopped):
                 b.end("stopped" if b.stopped else "interrupted")
@@ -104,9 +124,26 @@ def _hook(event, text, h):
             return _stop_reply(b) if b.stopped else None  # the same call reported twice: count it once
         if b is None:  # a step after Stop: work woken by a background task is its own turn
             b = start(project, session=session, home=h, unit="turns", traceparent=os.environ.get("TRACEPARENT"))
+            b.asks = asks
+        question = b.open_question
+        if question and call_id in question[1]:
+            b.answer("allowed", call_id)  # a held call ran: the person said yes
         d = b.step(action(data.get("tool_name"), data.get("tool_input")), tool=data.get("tool_name"),
                    error=event == "tool-failed", call_id=call_id, duration_ms=data.get("duration_ms"))
-        return _stop_reply(b) if d.stop else None
+        return _stop_reply(b) if d.stop and not asks else None
+
+
+def _pre_tool(b, data, turn, session, h):
+    """Before a main-agent call, in a session that can ask: hold it with a question, or let it go."""
+    call_id = data.get("tool_use_id")
+    reason = b.ask(call_id, pending=_pending(turn))
+    if reason is None:
+        if b.line is not None and call_id:  # count it as on its way until its step arrives
+            records.RunWriter(h / "runs" / f"{session}.jsonl").write(
+                {"event": "approve", "session": session, "run": b.run, "call_id": call_id})
+        return None
+    return json.dumps({"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
+                                              "permissionDecisionReason": question_text(b, reason)}})
 
 
 def _stop_reply(b):
@@ -140,6 +177,20 @@ def plain_stop(step, limit, n, alpha, reason, next_step, unit="tool calls"):
 def reason_codes(reason):
     """Short codes for a stop, for export: past_limit, then any explanation signals that fired."""
     return ["past_limit"] + [code for key, code, _ in _SYMPTOMS if key in (reason or "")]
+
+
+def question_text(b, reason):
+    """What the person reads in Claude Code's approval prompt (contracts/hooks.md)."""
+    cal = b.calibration or {}
+    point = b.open_question[0]
+    n = cal.get("n")
+    past = f" of your {n} past tasks did" if n else " do"
+    text = (f"LoopBrake: this task has made {point - 1} tool calls. In this project, good tasks almost never need more "
+            f"than {b.stop_line} ({one_in(cal.get('alpha') or 0.05)}{past}).")
+    symptom = next((plain for key, _, plain in _SYMPTOMS if key in (reason or "")), None)
+    if symptom:
+        text += f" {symptom.format(unit='tool calls')[0].upper()}{symptom.format(unit='tool calls')[1:]}."
+    return text + f" Allow to keep going: LoopBrake asks again at {2 * point}. Deny to stop the task here."
 
 
 def stop_message(b):

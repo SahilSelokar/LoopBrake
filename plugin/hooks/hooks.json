@@ -1,5 +1,5 @@
 {
-  "description": "LoopBrake: count the main agent's tool calls per turn and stop a turn that passes its stop line",
+  "description": "LoopBrake: count the main agent's tool calls per turn; at the stop line, ask the person before the next call (or stop the turn where nobody can answer)",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -7,6 +7,18 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/loopbrake\" hook prompt",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/loopbrake\" hook pre-tool",
             "timeout": 30
           }
         ]

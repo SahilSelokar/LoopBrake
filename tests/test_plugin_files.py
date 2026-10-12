@@ -30,7 +30,8 @@ def test_manifests_agree():
 
 def test_hooks():
     hooks = json.loads((PLUGIN / "hooks" / "hooks.json").read_text())["hooks"]
-    assert set(hooks) >= {"UserPromptSubmit", "PostToolUse", "PostToolUseFailure", "Stop"}
+    assert set(hooks) >= {"UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure", "Stop"}
+    assert hooks["PreToolUse"][0]["hooks"][0]["command"].endswith(" hook pre-tool")  # specs/008: asks before the call
     for event, groups in hooks.items():
         for group in groups:
             assert group.get("matcher", "*") == "*"

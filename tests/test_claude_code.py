@@ -9,6 +9,7 @@ from loopbrake import claude_code, records
 def home(tmp_path, monkeypatch):
     monkeypatch.setenv("LOOPBRAKE_HOME", str(tmp_path / "lb"))
     monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(tmp_path / "claude"))
+    monkeypatch.delenv("CLAUDE_CODE_ENTRYPOINT", raising=False)  # tests run inside Claude Code too: start from "can't ask"
     return records.home()
 
 
@@ -242,6 +243,20 @@ def test_hook_work_is_fast(home):
     assert timed_steps(home, "big") <= 10
 
 
+def test_pre_tool_work_is_fast(home, monkeypatch):
+    """specs/008 FR-013: the hook before each call keeps the same 10 ms share as the one after it."""
+    monkeypatch.setenv("CLAUDE_CODE_ENTRYPOINT", "cli")
+    calibrate(home, 1000)
+    hook(home, "prompt", payload(session="pre", **ASKS))
+    times = []
+    for i in range(250):
+        t0 = time.perf_counter()
+        hook(home, "pre-tool", tool(i, session_id="pre", **ASKS))
+        times.append((time.perf_counter() - t0) * 1000)
+        hook(home, "tool", tool(i, session_id="pre", **ASKS))
+    assert sorted(times)[int(0.95 * 250) - 1] <= 10
+
+
 # ---- the status line (US3, contracts/cli.md) ----
 
 def line(home, session="s1"):
@@ -355,3 +370,116 @@ def test_plain_stop_and_reason_codes():
     assert claude_code.reason_codes(reason) == ["past_limit", "repeating"]
     assert claude_code.reason_codes("stopped at step 3: past the stop line of 2 steps") == ["past_limit"]
     assert claude_code.reason_codes("…; same error again in 2 of last 5 steps; nothing new in 3 of last 5 steps") == ["past_limit", "same_error", "nothing_new"]
+
+
+# ---- asking before stopping (specs/008, contracts/hooks.md) ----
+
+ASKS = {"permission_mode": "default"}
+
+
+@pytest.fixture
+def can_ask(monkeypatch):
+    monkeypatch.setenv("CLAUDE_CODE_ENTRYPOINT", "cli")
+
+
+def pre(home, n, **extra):
+    return hook(home, "pre-tool", tool(n, **ASKS) | extra)
+
+
+def post(home, n, **extra):
+    return hook(home, "tool", tool(n, **ASKS) | extra)
+
+
+def asked(out):
+    o = json.loads(out)["hookSpecificOutput"]
+    assert (o["hookEventName"], o["permissionDecision"]) == ("PreToolUse", "ask")
+    return o["permissionDecisionReason"]
+
+
+def of(home, kind, session="s1"):
+    return [e for e in log(home, session) if e["event"] == kind]
+
+
+def up_to_the_line(home, line=3):
+    calibrate(home, line)
+    hook(home, "prompt", payload(**ASKS))
+    for i in range(1, line + 1):
+        assert pre(home, i) is None
+        assert post(home, i) is None
+
+
+def test_asks_before_the_call_that_would_pass_the_line(home, can_ask):
+    up_to_the_line(home)
+    question = asked(pre(home, 4))
+    assert question.startswith("LoopBrake: this task has made 3 tool calls. In this project, good tasks almost never need "
+                               "more than 3 (fewer than 1 in 20 of your 19 past tasks did).")
+    assert question.endswith(" Allow to keep going: LoopBrake asks again at 8. Deny to stop the task here.")
+    assert "α" not in question and "step " not in question
+    assert len(of(home, "step")) == 3  # pre-tool never counts
+    [ask] = of(home, "ask")
+    assert (ask["step"], ask["ask_point"], ask["stop_line"], ask["call_id"]) == (4, 4, 3, "t4")
+    assert not of(home, "stop")
+
+
+def test_allowing_lets_the_task_go_on_and_asks_again_at_twice_the_call(home, can_ask):
+    up_to_the_line(home)
+    asked(pre(home, 4))
+    assert post(home, 4) is None  # the person said yes: counted, never `continue: false`
+    assert [(e["verdict"], e["call_id"]) for e in of(home, "answer")] == [("allowed", "t4")]
+    for i in (5, 6, 7):
+        assert pre(home, i) is None and post(home, i) is None
+    question = asked(pre(home, 8))
+    assert question.startswith("LoopBrake: this task has made 7 tool calls. In this project, good tasks almost never need more than 3 ")
+    assert "asks again at 16" in question
+    assert post(home, 8) is None and not of(home, "stop")
+    hook(home, "stop", payload(**ASKS))
+    assert of(home, "run_end")[-1]["status"] == "finished" and of(home, "run_end")[-1]["steps"] == 8
+
+
+def test_the_question_names_a_stuck_signal(home, can_ask):
+    calibrate(home, 3)
+    hook(home, "prompt", payload(**ASKS))
+    same = {"tool_input": {"command": "python run.py"}}
+    for i in (1, 2, 3):
+        pre(home, i, **same), post(home, i, **same)
+    assert "Its last few tool calls repeat each other." in asked(pre(home, 4, **same))
+
+
+def test_the_question_leaves_out_the_stuck_sentence_when_nothing_fired(home, can_ask):
+    calibrate(home, 3)
+    hook(home, "prompt", payload(**ASKS))
+    calls = [("Read", {"file_path": "/src/app.py"}), ("Grep", {"pattern": "def main", "path": "/src"}),
+             ("Bash", {"command": "pytest -q tests/test_app.py"}), ("Edit", {"file_path": "/docs/index.md", "old_string": "a", "new_string": "b"})]
+    for i, (name, args) in enumerate(calls[:3], 1):
+        pre(home, i, tool_name=name, tool_input=args), post(home, i, tool_name=name, tool_input=args)
+    question = asked(pre(home, 4, tool_name=calls[3][0], tool_input=calls[3][1]))
+    assert "Its last few" not in question and question.endswith("asks again at 8. Deny to stop the task here.")
+
+
+def test_no_question_under_the_line_or_while_watching(home, can_ask):
+    up_to_the_line(home)
+    hook(home, "stop", payload(**ASKS))
+    assert not of(home, "ask") and of(home, "run_end")[-1]["status"] == "finished"
+    other = "-home-me-other-"  # no calibration: watching only
+    hook(home, "prompt", payload(session="s2", folder=other, **ASKS))
+    for i in range(1, 60):
+        assert hook(home, "pre-tool", tool(i, session_id="s2", transcript_path=payload(folder=other)["transcript_path"], **ASKS)) is None
+    assert not of(home, "ask", "s2")
+
+
+def test_pre_tool_ignores_subagents_and_bad_input(home, can_ask):
+    up_to_the_line(home)
+    assert hook(home, "pre-tool", tool(4, agent_id="sub-1", **ASKS)) is None
+    assert hook(home, "pre-tool", "{not json") is None
+    assert not of(home, "ask")
+
+
+def test_pre_tool_fails_safe(home, can_ask, capsys):
+    calibrate(home, 1)
+    (home / "runs").mkdir(parents=True, exist_ok=True)
+    (home / "runs" / "s1.jsonl").write_text("{damaged\n")
+    assert pre(home, 1) is None
+    (home / "calibration" / f"{PROJECT}.json").write_text("{")
+    hook(home, "prompt", payload(**ASKS))
+    assert all(pre(home, i) is None for i in range(1, 10))  # damaged calibration: watch-only, never a question
+    assert '"event": "ask"' not in (home / "runs" / "s1.jsonl").read_text()
