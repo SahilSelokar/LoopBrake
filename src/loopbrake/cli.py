@@ -28,7 +28,7 @@ def _calibrate(args):
         return _fail("give --project <name> to learn from the tasks LoopBrake watched under that name, "
                      "or a runs file or Claude Code project folder, or use --claude-code or --codex")
     if args.claude_code:  # what Claude Code users read: plain words (contracts/cli.md)
-        print(claude_code.calibrate_message(claude_code.calibrate_claude_code(alpha=args.alpha)))
+        print(claude_code.calibrate_message(claude_code.calibrate_claude_code(alpha=args.alpha), asks=True))
         return 0
     if not args.source:  # your own agent (spec 007): learned from the tasks LoopBrake watched, no file
         rec = calibration.calibrate(None, project=args.project, alpha=args.alpha)

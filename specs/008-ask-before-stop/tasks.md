@@ -251,7 +251,7 @@ kept.
 **Independent test**: the grep in T021 finds no claim, for Claude Code where a person can answer,
 that good tasks get "stopped" at the old rate.
 
-- [ ] T019 [US5] Update `README.md`, "Use it with Claude Code", per contracts/plugin-and-cli.md:
+- [X] T019 [US5] Update `README.md`, "Use it with Claude Code", per contracts/plugin-and-cli.md:
   - the question and what Allow and Deny do;
   - the second question at twice the count;
   - the fallback: "headless runs and sessions with permission prompts turned off are stopped as
@@ -260,7 +260,7 @@ that good tasks get "stopped" at the old rate.
   The promise must read "fewer than 1 in 20 good tasks get a question, as long as your future tasks
   are like your past ones". Also update "What a stop looks like" to show the question, and the Status
   section.
-- [ ] T020 [P] [US5] Update the Claude Code wording of `calibrate_message()` in
+- [X] T020 [P] [US5] Update the Claude Code wording of `calibrate_message()` in
   `src/loopbrake/claude_code.py`:
   - set up: "It will ask you before a task goes past N tool calls (and stop it where nobody can
     answer)";
@@ -270,7 +270,7 @@ that good tasks get "stopped" at the old rate.
   `plugin/commands/calibrate.md`, `status.md` and `mistake.md` and `plugin/.claude-plugin/plugin.json`'s
   description for "stops" claims, and fix only what the new behavior makes untrue. `mistake.md` stays
   for stops where nobody could be asked.
-- [ ] T021 [US5] Check the wording:
+- [X] T021 [US5] Check the wording:
   - run `grep -rn -i "1 in 20\|stops a task\|will stop" README.md plugin/ src/loopbrake/claude_code.py`;
   - for each hit about Claude Code, confirm it describes asking, or says "where nobody can answer";
   - record the clean result in the commit message.

@@ -1,7 +1,7 @@
 {
   "name": "loopbrake",
   "version": "0.6.0",
-  "description": "Stops a Claude Code turn once it goes past a stop line set from your own past turns.",
+  "description": "Asks before a Claude Code task goes past a limit set from your own past tasks, and stops it where nobody can answer.",
   "author": {"name": "Sahil Selokar"},
   "homepage": "https://github.com/SahilSelokar/LoopBrake",
   "license": "MIT"

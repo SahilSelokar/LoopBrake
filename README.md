@@ -27,7 +27,8 @@ Set them tight and you kill runs that would have succeeded. Set them loose and y
 ## The idea
 
 LoopBrake watches a run one step at a time and gives each step a **stuck score**. When the score
-crosses a **stop line**, it stops the run and says why.
+crosses a **stop line**, it stops the run and says why. (In Claude Code, when you're there to answer,
+it asks you first.)
 
 The stop line is not guessed. It is set from **your own past successful runs**, so that at most a
 chosen share of good runs, for example 5 in 100, would ever cross it. That is a statistical
@@ -60,6 +61,7 @@ Reason: repeating in 5 of last 5 steps (similar to step 19); nothing new in 2 of
 ```
 
 More in [eval/results/kill-stories.md](https://github.com/SahilSelokar/LoopBrake/blob/main/eval/results/kill-stories.md).
+In Claude Code, the same moment comes to you as a question first (see [Use it with Claude Code](#use-it-with-claude-code)).
 
 ## Use it
 
@@ -162,7 +164,7 @@ to watching only. It never crashes or stops your agent because of its own proble
 
 ## Use it with Claude Code
 
-**Install the plugin.** It needs Claude Code 2.1.281 or later and [uv](https://docs.astral.sh/uv/).
+**Install the plugin.** It needs Claude Code 2.1.289 or later and [uv](https://docs.astral.sh/uv/).
 
 ```text
 /plugin marketplace add SahilSelokar/LoopBrake
@@ -178,12 +180,32 @@ tasks in this project needed, and picks a limit:
 
 ```text
 LoopBrake is set up for this project.
-It will stop a task that goes past <limit> tool calls. That limit comes from your <n> past
-successful tasks here: fewer than 1 in 20 good tasks should go past it.
+It will ask you before a task goes past <limit> tool calls, and stop it where nobody can answer.
+That limit comes from your <n> past successful tasks here: fewer than 1 in 20 good tasks should go
+past it.
 ```
 
 A **task** is everything Claude does for one message you send. Tool calls made by subagents don't
-count. From then on, when a task goes past the limit, Claude stops and tells you why:
+count. From then on, when a task is about to go past the limit, LoopBrake **asks you first**. Claude
+Code holds the next tool call and shows LoopBrake's question in its own approval prompt:
+
+```text
+LoopBrake: this task has made <limit> tool calls. In this project, good tasks almost never need
+more than <limit> (fewer than 1 in 20 of your <n> past tasks did). Its last few tool calls repeat
+each other. Allow to keep going: LoopBrake asks again at <2 × (limit + 1)>. Deny to stop the task here.
+```
+
+- **Allow** (keep going): the tool call runs and Claude carries on exactly where it was. LoopBrake
+  asks again only if the task reaches twice that many tool calls, and the next calibration counts the
+  task as a long good one.
+- **Deny** (stop here): the tool call doesn't run and the task ends. LoopBrake records it as a stuck
+  task and leaves it out of future calibration.
+
+Claude never sees the question, so a task you let go on runs exactly as it would have.
+
+**Where nobody can answer**, LoopBrake stops the task instead, as before: headless runs (`claude -p`,
+scripts, CI), the Agent SDK, and sessions with permission prompts turned off (`bypassPermissions`).
+Claude stops and tells you why:
 
 ```text
 LoopBrake stopped this task after <limit + 1> tool calls. Based on your <n> past successful tasks
@@ -195,8 +217,8 @@ also looks stuck: its last few tool calls repeat each other. If it wasn't stuck,
 | Command | What it does |
 |---|---|
 | `/loopbrake:calibrate` | Sets the limit from this project's past tasks (run it again any time) |
-| `/loopbrake:status` | Shows the limit, how many tasks it saw and stopped, and the stops you marked as mistakes |
-| `/loopbrake:mistake` | Tells LoopBrake its last stop was wrong. The next calibration counts that task as a long good one, so the limit can only go up. |
+| `/loopbrake:status` | Shows the limit, how many tasks it saw, asked about and stopped, and the stops you marked as mistakes |
+| `/loopbrake:mistake` | Tells LoopBrake its last stop (one made where it couldn't ask you) was wrong. The next calibration counts that task as a long good one, so the limit can only go up. |
 | `/loopbrake:exclude` | Leaves your last finished task out of future calibration (for example, a task that went badly) |
 | `/loopbrake:dashboard` | Opens the dashboard (below) in your browser; it keeps running in the background. `/loopbrake:dashboard stop` stops it. |
 
@@ -208,8 +230,9 @@ also looks stuck: its last few tool calls repeat each other. If it wasn't stuck,
 ```
 
 **What the promise means here.** Each project gets its own limit. On average, fewer than 1 in 20 of
-your good tasks will be stopped (5%), as long as your future tasks are like your past ones: the same
-kind of work, done the same way. When your work changes, run `/loopbrake:calibrate` again.
+your good tasks get a question (5%), as long as your future tasks are like your past ones: the same
+kind of work, done the same way. Where nobody can answer, that is the share of good tasks that get
+stopped. When your work changes, run `/loopbrake:calibrate` again.
 
 **No uv?** Install `loopbrake==0.6.0` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
 in the environment Claude Code starts from: `export LOOPBRAKE_CMD="'$(which loopbrake)'"`.

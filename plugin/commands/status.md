@@ -1,5 +1,5 @@
 ---
-description: Show LoopBrake's stop line, turns watched and stopped, and mistaken stops for this project
+description: Show LoopBrake's stop line, turns watched, questions asked, turns stopped, and mistaken stops for this project
 allowed-tools: Bash(loopbrake status --claude-code)
 ---
 

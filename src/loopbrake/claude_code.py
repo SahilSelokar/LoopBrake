@@ -288,7 +288,7 @@ NOTHING = ("No tasks recorded here yet. If you've used Claude Code in this folde
            "its hooks may not be running (see Troubleshooting in the README).")
 
 
-def calibrate_message(rec, again=AGAIN):
+def calibrate_message(rec, again=AGAIN, asks=False):
     src, alpha = rec["source"], rec["alpha"]
     left, mistakes = src.get("stops_left_out", 0), src.get("mistakes_counted", 0)
     if rec["watch_only"]:
@@ -299,8 +299,10 @@ def calibrate_message(rec, again=AGAIN):
             lines.append(f"(It needs more than the usual {calibration.runs_needed(alpha)} because each stop you marked as a "
                          "mistake counts as a very long good task.)")
     else:
+        act = (f"It will ask you before a task goes past {_n(rec['stop_line'], 'tool call')}, and stop it where nobody can answer."
+               if asks else f"It will stop a task that goes past {_n(rec['stop_line'], 'tool call')}.")  # asks: Claude Code (specs/008)
         lines = ["LoopBrake is set up for this project.",
-                 f"It will stop a task that goes past {_n(rec['stop_line'], 'tool call')}. That limit comes from your "
+                 f"{act} That limit comes from your "
                  f"{_n(rec['n'], 'past successful task')} here: {one_in(alpha)} good tasks should go past it."]
     if left:
         lines.append(f"Left out: {_n(left, 'task')} that LoopBrake stopped as stuck or that you excluded.")

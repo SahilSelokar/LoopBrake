@@ -558,7 +558,7 @@ def _recalibrate(index, body):
     if folder is None:
         return 400, {"error": f"LoopBrake can't find this project's history from here. Run: loopbrake calibrate <runs file> --project {name}"}
     rec = calibration.calibrate(folder, project=name, home=index.home)
-    return 200, {"message": claude_code.calibrate_message(rec)}
+    return 200, {"message": claude_code.calibrate_message(rec, asks=_agent(rec["project"]) == "claude-code")}
 
 
 ACTIONS = {  # POST path -> handler(index, body) -> (status, json)

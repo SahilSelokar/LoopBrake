@@ -1,5 +1,5 @@
 ---
-description: Mark LoopBrake's last stop as a mistake (it counts against the allowance, and the next calibration counts that turn as a long good turn)
+description: Mark LoopBrake's last stop (one made where it couldn't ask you) as a mistake (it counts against the allowance, and the next calibration counts that turn as a long good turn)
 allowed-tools: Bash(loopbrake feedback last --mistaken)
 ---
 

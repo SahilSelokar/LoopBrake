@@ -150,6 +150,8 @@ def last_run(h, event, min_steps=0):
                 starts[e.get("run")] = e
             if e.get("event") != event or (min_steps and (e.get("steps") or 0) < min_steps):
                 continue
+            if e.get("by") == "person":  # the person's own stop (specs/008) is never LoopBrake's mistake
+                continue
             key = (e.get("ts", ""), mtime, i)
             if e.get("run") in starts and (best is None or key > best[0]):
                 best = (key, starts[e["run"]], e)

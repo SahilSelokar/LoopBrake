@@ -352,7 +352,7 @@ def test_set_the_limit_again(server, home):
     name = claude_code.project_name(folder.name)
     code, _, body = post(port, key, "/api/recalibrate", {"project": name})
     rec = calibration.load(name, home)
-    assert code == 200 and json.loads(body)["message"] == claude_code.calibrate_message(rec) and rec["stop_line"] == 1
+    assert code == 200 and json.loads(body)["message"] == claude_code.calibrate_message(rec, asks=True) and rec["stop_line"] == 1
     code, _, body = post(port, key, "/api/recalibrate", {"project": "demo"})
     assert code == 400 and "loopbrake calibrate" in json.loads(body)["error"]
     assert post(port, key, "/api/recalibrate", {"project": "../x"})[0] == 400

@@ -171,3 +171,13 @@ def test_times_have_milliseconds(home):
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}\+00:00", ts)
     (home / "runs" / "old.jsonl").write_text(json.dumps({"v": 1, "ts": "2026-10-01T00:00:00+00:00", "event": "run_start", "session": "old", "run": "b"}) + "\n")
     assert {e["run"] for e in records.read_events(home)} == {"a", "b"}  # old seconds-only records still read
+
+
+def test_the_persons_own_stop_is_never_the_last_stop_to_mark(home):
+    """specs/008: /loopbrake:mistake marks LoopBrake's own last stop, never one the person chose."""
+    w = records.RunWriter(home / "runs" / "s.jsonl")
+    start(w, "own")
+    w.write({"event": "stop", "session": "s", "run": "own", "step": 10, "stop_line": 9, "reason": "x"})
+    start(w, "theirs")
+    w.write({"event": "stop", "session": "s", "run": "theirs", "step": 9, "stop_line": 9, "reason": "x", "by": "person"})
+    assert records.last_run(home, "stop")[0]["run"] == "own"

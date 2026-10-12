@@ -118,7 +118,7 @@ def test_calibrate_and_status_for_claude_code(capsys, home, tmp_path, monkeypatc
     code, out, _ = run_cli(capsys, "calibrate", "--claude-code")
     assert code == 0 and out.splitlines() == [
         "LoopBrake is set up for this project.",
-        "It will stop a task that goes past 2 tool calls. That limit comes from your 19 past successful tasks here: "
+        "It will ask you before a task goes past 2 tool calls, and stop it where nobody can answer. That limit comes from your 19 past successful tasks here: "
         "fewer than 1 in 20 good tasks should go past it."]  # no line about earlier stops: there were none
     assert (home / "calibration" / f"{project}.json").exists()
     code, out, _ = run_cli(capsys, "status", "--claude-code")
