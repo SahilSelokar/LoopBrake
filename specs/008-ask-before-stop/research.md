@@ -174,3 +174,10 @@ near. It isn't needed at these numbers.
 
 **Rationale**: the Codex plugin's hook definitions don't change, so Codex users don't re-trust
 anything (constitution, Codex "Trust").
+
+## Hand checks
+
+| Check | Date, version | Result |
+|---|---|---|
+| Headless (quickstart §2, T014) | 2026-10-12, Claude Code 2.1.289, dev checkout through `LOOPBRAKE_CMD` and `--plugin-dir plugin` | **Pass.** `claude -p` (Haiku) asked to run `echo hi` 10 times with line 3: 4 commands ran, then the turn stopped with the 0.5.0 reason. The log has steps 1 to 4 and `stop` at 4 with no `by` field, and no `ask` or `approve` record. |
+| M1 to M6 (interactive) | not yet | The builder runs these before release (T023). |

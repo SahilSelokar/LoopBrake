@@ -180,7 +180,7 @@ as in 0.5.0.
 **Independent test**: entrypoint `sdk-cli` and line 3. `pre-tool` is always silent, and the 4th
 `tool` replies `continue: false` with the 0.5.0 message, ending in the `/loopbrake:mistake` sentence.
 
-- [ ] T012 [US3] Write failing tests in `tests/test_claude_code.py`, for each of:
+- [X] T012 [US3] Write failing tests in `tests/test_claude_code.py`, for each of:
   - entrypoint `sdk-cli`;
   - entrypoint `sdk-py`;
   - mode `bypassPermissions`;
@@ -190,10 +190,10 @@ as in 0.5.0.
 
   For each, assert: no `ask` record, no `pre-tool` output, and `continue: false` at the 4th `tool`
   with the unchanged `stop_message`.
-- [ ] T013 [US3] Make T012 pass in `src/loopbrake/claude_code.py`. The `can_ask()` rule from T006
+- [X] T013 [US3] Make T012 pass in `src/loopbrake/claude_code.py`. The `can_ask()` rule from T006
   gates the `pre-tool` branch and the `tool` branch's stop reply. `stop_message()` stays word for
   word as in 0.5.0.
-- [ ] T014 [US3] Run the headless check from quickstart.md §2 with a real `claude -p` against the dev
+- [X] T014 [US3] Run the headless check from quickstart.md §2 with a real `claude -p` against the dev
   checkout:
   - set `LOOPBRAKE_CMD="uv run --project <repo> loopbrake"`;
   - use a scratch test project calibrated to line 3.

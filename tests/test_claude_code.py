@@ -530,3 +530,27 @@ def test_a_batch_cannot_pass_the_line_unasked(home, can_ask):
     assert pre(home, 2) is None and pre(home, 3) is None  # let through, both still running
     assert asked(pre(home, 4))  # 1 done + 2 on their way + this one = 4 > 3
     assert [e["call_id"] for e in of(home, "approve")] == ["t1", "t2", "t3"]
+
+
+@pytest.mark.parametrize("entry, mode", [
+    ("sdk-cli", "default"),            # claude -p
+    ("sdk-py", "default"),             # the Agent SDK
+    ("cli", "bypassPermissions"),      # permission prompts turned off
+    ("cli", "dontAsk"),                # a mode we don't know: can't ask
+    (None, "default"),                 # no entrypoint
+    ("cli", None),                     # no permission mode
+])
+def test_where_nobody_can_answer_it_stops_as_before(home, monkeypatch, entry, mode):
+    if entry:
+        monkeypatch.setenv("CLAUDE_CODE_ENTRYPOINT", entry)
+    extra = {"permission_mode": mode} if mode else {}
+    calibrate(home, 3)
+    hook(home, "prompt", payload(**extra))
+    for i in (1, 2, 3):
+        assert hook(home, "pre-tool", tool(i, **extra)) is None
+        assert hook(home, "tool", tool(i, **extra)) is None
+    assert hook(home, "pre-tool", tool(4, **extra)) is None  # no question
+    out = json.loads(hook(home, "tool", tool(4, **extra)))
+    assert out["continue"] is False and out["stopReason"].startswith("LoopBrake stopped this task after 4 tool calls.")
+    assert out["stopReason"].endswith(" If it wasn't stuck, run /loopbrake:mistake, then tell Claude to continue.")
+    assert not of(home, "ask") and not of(home, "approve") and "by" not in of(home, "stop")[0]
