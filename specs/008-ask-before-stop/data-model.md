@@ -32,6 +32,12 @@ What came of a question. One record per ask point.
 | `verdict` | `"allowed"` or `"denied"` | allowed: a held call ran (its `PostToolUse` came). Denied: the turn ended (`Stop` or a new prompt) with no held call run. |
 | `call_id` | string or null | for allowed, the held call that ran first |
 
+## Adapter event: `approve` (Claude Code, as in Codex)
+
+A call let through without a question while the turn has a line: `{event, session, run, call_id}`.
+The adapter counts approved calls that have no `step` yet as calls on their way (`pending`), so a
+batch can't pass the line unasked (spec FR-008). The Codex adapter already writes the same event.
+
 ## Changed event: `stop`
 
 When a question was denied, the plugin writes the usual `stop` event:

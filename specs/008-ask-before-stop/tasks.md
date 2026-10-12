@@ -32,7 +32,7 @@ phase, the tests come first, and they must fail before the code is written.
 
 ## Phase 1: Setup
 
-- [ ] T001 Set version 0.6.0 and the roadmap entry:
+- [X] T001 Set version 0.6.0 and the roadmap entry:
   - set `__version__ = "0.6.0"` in `src/loopbrake/__init__.py`;
   - set `"version": "0.6.0"` in `plugin/.claude-plugin/plugin.json` and
     `codex-plugin/.codex-plugin/plugin.json`;
@@ -49,7 +49,7 @@ phase, the tests come first, and they must fail before the code is written.
 **Purpose**: the brake, not the adapter, holds the question and the line after an allow (Principle
 V). Calls from Codex and the agent SDK, which never ask, must behave exactly as in 0.5.0.
 
-- [ ] T002 Write failing tests in `tests/test_brake.py` for:
+- [X] T002 Write failing tests in `tests/test_brake.py` for:
   - **`Brake.ask(call_id)`**: it writes an `ask` event with `step` = steps so far + 1, `ask_point`,
     `stop_line` (the line in force), `reason` and `call_id` (data-model.md). A second `ask` while the
     question is open keeps the same `ask_point`.
@@ -67,7 +67,7 @@ V). Calls from Codex and the agent SDK, which never ask, must behave exactly as 
     - "Each new ask point of a turn is at least twice the previous one";
     - "An `answer` follows an `ask_point` exactly once";
     - "A `stop` with `by: "person"` follows an `answer denied` in the same turn".
-- [ ] T003 Implement `ask()`, `answer()`, the open question and the line after an allow in
+- [X] T003 Implement `ask()`, `answer()`, the open question and the line after an allow in
   `src/loopbrake/brake.py`:
   - `_decide` keeps calling `method("steps")` unchanged; only the line it is given changes;
   - `stop_line` stays the calibrated value; a new `line` (or `_line()`) gives 2t − 1 after the last
@@ -75,7 +75,7 @@ V). Calls from Codex and the agent SDK, which never ask, must behave exactly as 
   - `would_stop()` and `_step()` use it;
   - `from_events` rebuilds it from `ask`, `answer` and `stop` events;
   - errors go through `_fail()` (watching only), as before. T002 must pass.
-- [ ] T004 [P] Add a replay test (Principle II) to `tests/test_brake.py`:
+- [X] T004 [P] Add a replay test (Principle II) to `tests/test_brake.py`:
   - **Setup**: a synthetic turn of 12 steps with line 3, asked at call 4 and allowed, asked at call 8
     and allowed.
   - **Check**: replayed through `Brake.from_events` after every event, it gives the same decisions as

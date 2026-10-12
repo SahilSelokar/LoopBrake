@@ -243,3 +243,151 @@ def test_would_stop_uses_the_same_rule(tmp_path):
 def test_would_stop_before_any_step(tmp_path):
     b = brake_mod.Brake("demo", "s1", "r1", tmp_path, {"stop_line": 3, "watch_only": False}, record=False)
     assert [b.would_stop(k) for k in range(6)] == [False, False, False, False, True, True]  # k > 3
+
+
+# ---- asking before stopping (specs/008-ask-before-stop, data-model.md) ----
+
+def asking(home, line=3):
+    """A turn whose brake asks instead of stopping, as the Claude Code adapter runs it."""
+    calibrate_by_hand(home, stop_line=line, n=40)
+    brake_mod.start("demo", session="s", run="r1", home=home, unit="turns")
+
+
+def again(home, asks=True):
+    """The brake rebuilt from the log, as each hook call (a new process) does."""
+    return brake_mod.Brake.from_events("demo", "s", home, turn_events(home), unit="turns", asks=asks)
+
+
+def kinds(home, kind):
+    return [e for e in turn_events(home) if e["event"] == kind]
+
+
+def test_asks_only_when_the_next_call_would_pass_the_line(home):
+    asking(home)
+    for i in range(1, 4):
+        assert again(home).ask(f"c{i}") is None
+        again(home).step(f"bash {i}", call_id=f"c{i}")
+    reason = again(home).ask("c4")
+    assert reason.startswith("asked at step 4: past the stop line of 3 steps set from your 40 past successful turns")
+    [ask] = kinds(home, "ask")
+    assert (ask["step"], ask["ask_point"], ask["stop_line"], ask["call_id"]) == (4, 4, 3, "c4")
+    assert ask["ask_point"] >= ask["stop_line"] + 1  # data-model rule
+    assert not kinds(home, "stop")
+
+
+def test_calls_already_on_their_way_bring_the_question_forward(home):
+    asking(home)
+    for i in range(1, 3):
+        again(home).step(f"bash {i}", call_id=f"c{i}")
+    assert again(home).ask("c3", pending=0) is None  # 2 + 1 = 3, at the line
+    assert again(home).ask("c4", pending=1) is not None  # 2 + 1 + 1 = 4, past it
+
+
+def test_a_call_on_its_way_repeats_the_open_question(home):
+    asking(home)
+    for i in range(1, 4):
+        again(home).step(f"bash {i}", call_id=f"c{i}")
+    first, second = again(home).ask("c4"), again(home).ask("c5")
+    assert first == second
+    assert [(e["ask_point"], e["call_id"]) for e in kinds(home, "ask")] == [(4, "c4"), (4, "c5")]
+    assert again(home).open_question == (4, {"c4", "c5"})
+
+
+def test_allow_moves_the_next_question_to_twice_the_ask_point(home):
+    asking(home)
+    for i in range(1, 4):
+        again(home).step(f"bash {i}", call_id=f"c{i}")
+    again(home).ask("c4")
+    again(home).answer("allowed", "c4")
+    assert [(e["ask_point"], e["verdict"], e["call_id"]) for e in kinds(home, "answer")] == [(4, "allowed", "c4")]
+    b = again(home)
+    assert b.line == 7 and b.open_question is None and not b.stopped
+    assert not again(home).step("bash 4", call_id="c4").stop
+    for i in range(5, 8):
+        assert again(home).ask(f"c{i}") is None
+        again(home).step(f"bash {i}", call_id=f"c{i}")
+    assert again(home).ask("c8") is not None  # the next ask point: twice 4
+    again(home).answer("allowed", "c8")
+    assert again(home).line == 15
+    points = [e["ask_point"] for e in kinds(home, "answer")]
+    assert all(b >= 2 * a for a, b in zip(points, points[1:]))  # data-model rule
+    assert not kinds(home, "stop")
+
+
+def test_deny_writes_the_answer_then_a_stop_by_the_person(home):
+    asking(home)
+    for i in range(1, 4):
+        again(home).step(f"bash {i}", call_id=f"c{i}")
+    again(home).ask("c4")
+    b = again(home)
+    b.answer("denied")
+    b.end()
+    [answer], [stop] = kinds(home, "answer"), kinds(home, "stop")
+    assert (answer["verdict"], answer["ask_point"], answer["call_id"]) == ("denied", 4, None)
+    assert (stop["by"], stop["step"], stop["stop_line"]) == ("person", 3, 3)
+    assert stop["reason"].startswith("asked at step 4")
+    assert kinds(home, "run_end")[0]["status"] == "stopped"
+    ev = [e["event"] for e in turn_events(home)]
+    assert ev.index("answer") < ev.index("stop")  # data-model rule
+
+
+def test_the_rebuilt_brake_knows_the_stop_by_the_person(home):
+    asking(home)
+    for i in range(1, 4):
+        again(home).step(f"bash {i}", call_id=f"c{i}")
+    again(home).ask("c4")
+    again(home).answer("denied")
+    b = again(home)
+    assert b.stopped and b.stop_by == "person" and b.stop_step == 3 and b.would_stop(0)
+    assert b.ask("c9") is None  # a stopped turn asks no more
+
+
+def test_an_answer_needs_an_open_question(home):
+    asking(home)
+    again(home).answer("allowed", "c1")
+    again(home).answer("denied")
+    assert not kinds(home, "answer") and not kinds(home, "stop")
+
+
+def test_a_brake_that_asks_never_stops_on_its_own(home):
+    asking(home)
+    got = [again(home).step(f"bash {i}", call_id=f"c{i}").stop for i in range(1, 10)]
+    assert got == [False] * 9 and not kinds(home, "stop")
+
+
+def test_a_brake_that_does_not_ask_is_unchanged(home):
+    asking(home)
+    got = [again(home, asks=False).step(f"bash {i}").stop for i in range(1, 6)]
+    assert got == [False, False, False, True, True]
+    assert [e["by"] for e in kinds(home, "stop") if "by" in e] == []
+
+
+def test_watch_only_never_asks(home):
+    calibrate_by_hand(home, stop_line=None)
+    brake_mod.start("demo", session="s", run="r1", home=home, unit="turns")
+    for i in range(1, 40):
+        assert again(home).ask(f"c{i}") is None
+        again(home).step(f"bash {i}", call_id=f"c{i}")
+    assert not kinds(home, "ask")
+
+
+def test_asking_replays_to_the_same_decisions(home, tmp_path):
+    """Principle II: one live brake and a brake rebuilt after every event decide the same."""
+    calibrate_by_hand(home, stop_line=3, n=40)
+    live = brake_mod.Brake("demo", "live", "r0", tmp_path, {"stop_line": 3, "watch_only": False, "n": 40, "alpha": 0.05},
+                           record=False, unit="turns", asks=True)
+    brake_mod.start("demo", session="s", run="r1", home=home, unit="turns")
+    seen_live, seen_again = [], []
+    for i in range(1, 13):
+        call = f"c{i}"
+        q_live, q_again = live.ask(call), again(home).ask(call)
+        seen_live.append(q_live is not None)
+        seen_again.append(q_again is not None)
+        if q_live is not None:
+            live.answer("allowed", call)
+            again(home).answer("allowed", call)
+        seen_live.append(live.step(f"bash {i}", call_id=call).stop)
+        seen_again.append(again(home).step(f"bash {i}", call_id=call).stop)
+    assert seen_live == seen_again
+    asked_at = [i for i, q in zip(range(1, 13), seen_live[0::2]) if q]
+    assert asked_at == [4, 8] and live.line == again(home).line == 15

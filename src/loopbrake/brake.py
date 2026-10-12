@@ -35,14 +35,19 @@ def _decide(steps, stop_line):
 
 
 class Brake:
-    def __init__(self, project, session, run, home, calibration, record=True, unit="runs", traceparent=None, extra=None):
+    def __init__(self, project, session, run, home, calibration, record=True, unit="runs", traceparent=None, extra=None,
+                 asks=False):
         self.project, self.session, self.run, self.home, self.unit = project, session, run, home, unit
         self.calibration = calibration
         line = calibration.get("stop_line") if calibration and not calibration.get("watch_only") else None
-        self.stop_line = line
+        self.stop_line = line  # the calibrated line; `line` is the one in force (specs/008)
         self.watch_only = line is None
         self.steps, self.stopped, self.reason, self.ended, self.tokens = [], False, "", False, None
         self.stop_step = None  # the step at which it stopped
+        # Asking before stopping (specs/008, constitution 2.7.0): with `asks`, the run never stops on its own;
+        # the adapter asks the person at the line, and only a denied question stops it.
+        self.asks, self.stop_by, self.allowed_point = asks, None, None
+        self._question = None  # (ask_point, held call ids, reason) while a question waits for its answer
         self._warned = False
         self._writer = records.RunWriter(home / "runs" / f"{session}.jsonl")
         self._writer.on = record
@@ -54,22 +59,33 @@ class Brake:
             "stop_line": self.stop_line, "watch_only": self.watch_only}, **trace, **export, **(extra or {}))
 
     @classmethod
-    def from_events(cls, project, session, home, events, unit="runs"):
+    def from_events(cls, project, session, home, events, unit="runs", asks=False):
         """Pick up an open run from its logged events (its run_start first), in a new process.
 
         Writes no second run_start. Logged steps come back as their action excerpts: the `steps`
-        rule only counts them, so the decision is exactly the one a single brake would make.
+        rule only counts them, so the decision is exactly the one a single brake would make. Questions
+        and answers come back too, so the line in force is the one a single brake would use.
         """
         start, rest = events[0], events[1:]
-        b = cls(project, session, start["run"], home, start.get("calibration"), record=False, unit=unit)
+        b = cls(project, session, start["run"], home, start.get("calibration"), record=False, unit=unit, asks=asks)
         b._writer.on = True
         logged = [e for e in rest if e.get("event") == "step"]
         b.steps = [Step(e.get("action_excerpt") or "", "", None, 0) for e in logged]
         known = [e["tokens"] for e in logged if e.get("tokens") is not None]
         b.tokens = sum(known) if known else None
+        for e in rest:
+            kind = e.get("event")
+            if kind == "ask":
+                if b._question is None or b._question[0] != e.get("ask_point"):
+                    b._question = (e.get("ask_point"), set(), e.get("reason", ""))
+                b._question[1].add(e.get("call_id"))
+            elif kind == "answer" and b._question is not None:
+                if e.get("verdict") == "allowed":
+                    b.allowed_point = b._question[0]
+                b._question = None
         stop = next((e for e in rest if e.get("event") == "stop"), None)
         if stop:
-            b.stopped, b.reason, b.stop_step = True, stop.get("reason", ""), stop.get("step")
+            b.stopped, b.reason, b.stop_step, b.stop_by = True, stop.get("reason", ""), stop.get("step"), stop.get("by")
         return b
 
     # ---- public ----
@@ -82,12 +98,67 @@ class Brake:
             self._fail(e)
             return Decision(self.stopped, len(self.steps), self.reason, self.watch_only)
 
+    @property
+    def line(self):
+        """The line in force: the calibrated one, or 2t - 1 after the person let the run go on at ask point t
+        (constitution 2.7.0). The score compared with it is unchanged."""
+        if self.stop_line is None:
+            return None
+        return 2 * self.allowed_point - 1 if self.allowed_point else self.stop_line
+
+    @property
+    def open_question(self):
+        """(ask_point, held call ids) while a question waits for its answer, else None."""
+        return self._question and self._question[:2]
+
     def would_stop(self, more):
         """Whether `more` further steps would take this run past its stop line, by the same certified
         rule. Lets an adapter refuse calls that would only run after the stop (parallel calls already
         on their way), without a rule of its own (constitution Principle V)."""
         steps = self.steps + [Step("", "", None, 0)] * more
-        return self.stopped or (bool(steps) and _decide(steps, self.stop_line))
+        return self.stopped or (bool(steps) and _decide(steps, self.line))
+
+    def ask(self, call_id=None, pending=0):
+        """Whether to hold the next call and ask the person (specs/008). `pending`: calls already let
+        through that haven't finished, so a batch can't slip past the line unasked.
+
+        Returns the reason to ask with, or None to let the call go. While a question is open, every
+        call repeats it (research R5). Any internal error means "don't ask", never a block."""
+        try:
+            if self.stopped or self.line is None:
+                return None
+            held = len(self.steps) + 1 + pending
+            if self._question is None:
+                if not self.would_stop(1 + pending):
+                    return None
+                self._question = (held, set(), self._explain(held, "asked"))
+            point, calls, reason = self._question
+            calls.add(call_id)
+            self._record("ask", step=held, ask_point=point, stop_line=self.line, reason=reason, call_id=call_id)
+            return reason
+        except Exception as e:
+            self._fail(e)
+            return None
+
+    def answer(self, verdict, call_id=None):
+        """What came of the open question: "allowed" (a held call ran) or "denied" (the run ended
+        with none run). A denied question stops the run, by the person. No open question: nothing."""
+        try:
+            if self._question is None or verdict not in ("allowed", "denied"):
+                return
+            point, _, reason = self._question
+            line = self.line
+            self._question = None
+            self._record("answer", ask_point=point, verdict=verdict, call_id=call_id)
+            if verdict == "allowed":
+                self.allowed_point = point
+                return
+            self.stopped, self.stop_step, self.stop_by, self.reason = True, len(self.steps), "person", reason
+            self._record("stop", step=self.stop_step, stop_line=line, reason=reason, by="person")
+            if self._writer.on:
+                otlp.spawn_pending(self.home)
+        except Exception as e:
+            self._fail(e)
 
     def end(self, status=None):
         try:
@@ -121,7 +192,9 @@ class Brake:
         self._record("step", step=t, tool=tool, action_excerpt=action[:EXCERPT], tokens=tokens, error=error, **ref, **took)
         if self.stopped:
             return Decision(True, t, self.reason, False)
-        if _decide(self.steps, self.stop_line):
+        if self.asks:  # only the person's answer stops a run that asks
+            return Decision(False, t, "", self.watch_only)
+        if _decide(self.steps, self.line):
             self.stopped, self.stop_step = True, t
             self.reason = self._explain(t)
             self._record("stop", step=t, stop_line=self.stop_line, reason=self.reason, **ref)
@@ -130,9 +203,9 @@ class Brake:
             return Decision(True, t, self.reason, False)
         return Decision(False, t, "", self.watch_only)
 
-    def _explain(self, t):
+    def _explain(self, t, verb="stopped"):
         cal = self.calibration or {}
-        reason = f"stopped at step {t}: past the stop line of {self.stop_line} steps"
+        reason = f"{verb} at step {t}: past the stop line of {self.line} steps"
         if cal.get("n") and cal.get("alpha"):
             reason += f" set from your {cal['n']} past successful {self.unit} (α {cal['alpha']:.0%})"
         seen = method("max", lam=0.9)(self.steps)[-1][1]  # explains only; never decides
