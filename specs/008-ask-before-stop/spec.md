@@ -52,8 +52,8 @@ calibrations can learn from it like any other good turn.
 A **tool call** is one tool call made by the main agent; subagents' calls don't count. The **stop
 line** is the project's calibrated limit. An **ask point** is the tool call at which LoopBrake asks.
 
-**Words users see**: "task", "tool calls", "limit"; the question offers "keep going" and "stop
-here" through Claude Code's own approval prompt.
+**Words users see**: "task", "tool calls", "limit". The question appears in Claude Code's own
+approval prompt; its text says what allowing (keep going) and denying (stop here) do.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -64,10 +64,11 @@ but who also run long, productive tasks they don't want cut off.
 
 A task reaches the project's limit. Instead of ending it, LoopBrake holds Claude's next tool call
 and asks the person, in Claude Code's own approval prompt, whether the task should keep going. The
-question explains itself in plain words. For example: "LoopBrake: this task has made 39 tool calls.
+question explains itself in plain words. For example: "LoopBrake: this task has made 38 tool calls.
 In this project, good tasks almost never need more than 38 (fewer than 1 in 20 of your 758 past
-tasks did). Its last few tool calls don't repeat each other. Keep going?" The person allows it, and
-Claude continues exactly where it was. LoopBrake asks again only if the task gets much longer.
+tasks did). Allow to keep going: LoopBrake asks again at 78. Deny to stop the task here." The person
+allows it, and Claude continues exactly where it was. LoopBrake asks again only if the task gets
+much longer.
 
 **Why this priority**: it removes the problem the owner reported: good long tasks cut off in the
 middle.
@@ -97,23 +98,24 @@ Allow it: all 10 commands run, and the turn finishes normally.
 ### User Story 2 - The person stops a stuck task from the question (Priority: P1)
 
 The question appears, and the person can see the task is going in circles. They choose to stop it.
-The held tool call doesn't run. Claude is told that the person stopped the task, and to stop and
-sum up what it did and what is left. Claude makes no more tool calls in that task, and LoopBrake
-records the task as confirmed stuck.
+The held tool call doesn't run, and Claude Code ends the task there and hands back to the person,
+as it does whenever a person rejects a tool call. When the task ends, LoopBrake records it as stopped
+by the person: a confirmed stuck task. Claude Code tells hooks nothing at the moment of a rejection
+(research R4), so LoopBrake learns of it when the task ends.
 
-**Why this priority**: without it, a "no" only refuses one call, and Claude may try the next one,
-which would ask again and again.
+**Why this priority**: a "no" must really stop the task, and the stuck tasks the person catches must
+be kept out of the next calibration.
 
 **Independent Test**: same setup as Story 1, but deny at the first question. The 4th command doesn't
-run, Claude makes no further tool calls in that turn, and its reply sums up what it did and what's
-left.
+run, the task ends, and the log records it as stopped by the person.
 
 **Acceptance Scenarios**:
 
 1. **Given** an open question, **When** the person denies it, **Then** the held call doesn't run and
-   Claude is told why, in plain words, with the instruction to stop and sum up.
-2. **Given** a denied task, **When** Claude tries another tool call in the same turn, **Then** that
-   call is refused the same way, without another question.
+   the task ends.
+2. **Given** Claude carries on after a rejection instead of ending, **When** it makes another call
+   past the line, **Then** that call shows the same question again, so nothing past the line runs
+   without the person.
 3. **Given** a denied task, **When** it ends, **Then** it is recorded as stopped by the person and
    left out of future calibration, like any stuck task.
 4. **Given** a denied task, **When** the person sends a new prompt, **Then** a new turn starts from
@@ -186,12 +188,13 @@ None says that good tasks get stopped at that rate in sessions where the person 
 
 ### Edge Cases
 
-- **Several tool calls at once**: Claude sometimes sends a batch of calls together. Exactly one
-  question is asked per ask point. The rest of the batch waits for the same answer: it runs if the
-  person allows, and is refused if they deny.
+- **Several tool calls at once**: Claude sometimes sends a batch of calls together, and Claude Code
+  may check a later call before an earlier one finishes (research R5). The ask point is one question.
+  Calls already on their way at that point may each show the same question, and the task continues if
+  the person allows any of them.
 - **The person walks away**: the question waits, and nothing more is spent until someone answers.
-  If the person types a new prompt instead, the turn ends as interrupted, and it is not counted as a
-  good task.
+  If the person types a new prompt instead, the turn counts as stopped by the person and is left out
+  of calibration. In Claude Code a rejection itself ends the turn, so the two can't be told apart.
 - **Auto-approve settings**: the question appears even when the person has set Claude Code to accept
   edits or commands without asking. Only "permission prompts turned off" counts as "can't ask"
   (Story 3).
@@ -223,24 +226,25 @@ None says that good tasks get stopped at that rate in sessions where the person 
 - **FR-005**: After an allow, the plugin MUST NOT ask again in that turn until the turn reaches twice
   the tool calls at which it last asked (for example 39, then 78, then 156).
 - **FR-006**: When the person denies it:
-  - the held call MUST NOT run, and Claude MUST be told that the person stopped the task and that it
-    should stop and sum up what it did and what is left;
-  - every later main-agent tool call in that turn MUST be refused the same way, without another
-    question;
-  - the turn MUST be recorded as stopped by the person.
+  - the held call MUST NOT run;
+  - if Claude carries on instead of ending, every later main-agent call past the line MUST show the
+    same question again, so none runs without the person;
+  - when the turn ends with no held call run, it MUST be recorded as stopped by the person.
 - **FR-007**: When nobody can be asked (headless sessions, or permission prompts turned off for the
   session), the plugin MUST stop the turn at the stop line exactly as today: same reason, and the
   same mistake path.
-- **FR-008**: Exactly one question MUST be asked per ask point, even when several tool calls are on
-  their way at once. Calls in the same batch follow the answer.
+- **FR-008**: Each ask point MUST be one question. Calls already on their way at that point may each
+  show that same question (research R5). A call past the line MUST never run without the person
+  allowing it, and MUST never be refused without the person's answer.
 - **FR-009**: Subagent tool calls MUST NOT be held or counted (unchanged).
 - **FR-010**: Each question and its outcome MUST be recorded in the session's run log: the turn, the
-  tool call at which it was asked, and the outcome (allowed, denied, or never answered because the
-  turn ended). Records hold no more content than today's records do (Principle VI).
+  tool call at which it was asked, and the outcome: allowed (a held call ran), or denied (the turn
+  ended with none run). Records hold no more content than today's records do (Principle VI).
 - **FR-011**: Calibration MUST treat outcomes as follows:
   - an allowed turn that ends normally is a successful turn with its real length;
   - a denied turn is left out as stuck, like other stops;
-  - a turn interrupted while a question was open is treated like any interrupted turn.
+  - a turn interrupted while a question was open counts as denied, because the person didn't let it
+    continue.
 
   The calibration math does not change.
 - **FR-012**: Fail-safe, unchanged: any failure in the plugin's own path MUST let the tool call run.
@@ -261,7 +265,7 @@ None says that good tasks get stopped at that rate in sessions where the person 
 - **Question**: one ask point in one turn. It holds:
   - the turn and the tool call it held;
   - the stop line in force, and the reason shown;
-  - the outcome: allowed, denied, or unanswered (the turn ended first).
+  - the outcome: allowed (a held call ran) or denied (the turn ended with none run).
 
   A turn can have several questions, at doubling ask points.
 - **Turn outcome**: finished, interrupted, stopped by LoopBrake (no one could be asked), and the new
@@ -278,7 +282,8 @@ None says that good tasks get stopped at that rate in sessions where the person 
   have.
 - **SC-003**: Answering takes one choice in the prompt. After "keep going", the task picks up where
   it was, with no repeated or lost work, in 100% of tests.
-- **SC-004**: After "stop here", Claude makes no further tool calls in that task, in 100% of tests.
+- **SC-004**: After "stop here", no further call past the line runs in that task without the person
+  allowing it, in 100% of tests.
 - **SC-005**: Where nobody can be asked, 100% of tasks that reach the stop line are stopped, as today.
 - **SC-006**: Long allowed tasks are asked rarely: a task twice its project's limit is asked at most
   once, a task four times the limit at most twice (asked at the limit, then at double it).
