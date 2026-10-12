@@ -1,5 +1,28 @@
 <!--
 Sync Impact Report
+- Version change: 2.6.2 → 2.7.0 (MINOR: the owner's decision of 2026-10-12, specs/008-ask-before-stop)
+- Why: in the owner's own use, every Claude Code stop (8 of 8) hit a long, productive turn at tool call
+  39 to 40. Length alone can't tell a long good turn from a stuck one, and no smarter signal has passed
+  the signal gate. So the rule stays and the action changes: in Claude Code, when a person can answer,
+  LoopBrake asks before it stops.
+- Modified:
+  - Principle I: the promise now covers asking as well as stopping. The bound, the conformal line and
+    the reason rule are unchanged.
+  - Technical Constraints, Claude Code integration, "Hooks": at the stop line the plugin asks through
+    Claude Code's approval prompt, with the allow and deny rules. A stop (`continue: false`) stays for
+    sessions where nobody can answer.
+  - "No warn-first in v1": asking the person isn't warn-first. Asking the agent stays ruled out.
+  - "Success labels": the outcomes of a question.
+  - Dashboard, "Plain words": adds "asked".
+  - Development Workflow: decision record (2026-10-12).
+  - Principle III: the 200 ms budget applies to every hook call, before or after a tool call (it named
+    only PostToolUse).
+- Added sections: none. Removed sections: none. Principles II, IV, V and VI: unchanged.
+- Dependent docs: specs/008-ask-before-stop (spec, plan). When it ships: the README's Claude Code
+  section and the website's LoopBrake page ("fewer than 1 in 20 good tasks stopped").
+- Deferred items: none
+
+Previous report (2.6.2):
 - Version change: 2.6.1 → 2.6.2 (PATCH: clarifies the agreement check for an agent the builder has
   no real use of; from /speckit-analyze finding D1 on specs/006)
 - Modified: Technical Constraints, "Every agent plugin", "Same turns live and in calibration". The
@@ -52,14 +75,17 @@ Previous report (2.6.0):
 ### I. Guarantee First (NON-NEGOTIABLE)
 
 LoopBrake kills stuck agent runs while bounding how often it kills a run that would have
-succeeded. Every rule below exists to keep that promise true.
+succeeded. In Claude Code, when a person can answer, the kill comes as a question first: LoopBrake
+asks before it stops. The same bound then limits how often a run that would have succeeded gets a
+question. Every rule below exists to keep that promise true.
 
 - A run's score MUST be the highest step score it reaches. The kill threshold τ MUST come from
   split-conformal calibration: τ is the k-th smallest run score among n successful calibration
   runs, where k = ⌈(n+1)(1−α)⌉.
 - When k > n (too few calibration runs for the chosen α, e.g. n < 19 at α = 5%), τ = ∞ and
   LoopBrake MUST NOT kill: it runs in observe-only mode.
-- Every kill MUST carry a human-readable reason naming the signals that fired.
+- Every kill, and every question that stands in for one, MUST carry a human-readable reason naming
+  the signals that fired.
 - README, docs and public content MUST state the guarantee's scope: it is marginal and holds only
   when live runs are exchangeable with the calibration runs (same agent, same task mix).
   Calibration is per project.
@@ -84,8 +110,8 @@ certifies nothing.
 
 - The `loopbrake` package MUST have zero runtime dependencies (Python standard library only).
   Eval and dev tooling MAY use dev-only dependencies.
-- The hook path SHOULD complete in ≤ 200 ms per PostToolUse call on a warm `uvx` cache,
-  because it runs after every tool call.
+- The hook path SHOULD complete in ≤ 200 ms per hook call on a warm `uvx` cache, because it runs
+  around every tool call (after it, and before it where the plugin can ask).
 - A System 1 model (Laya or Jev) MAY be added only as an optional extra, and only after
   Principle IV shows the cheap signals have plateaued.
 
@@ -143,7 +169,19 @@ an observability tool only when they control exactly what leaves the machine.
   - **Hooks**: they run the version-pinned `loopbrake hook` through the plugin's launcher, which
     uses uv's cached copy first, so the hook path needs no network. PostToolUse and
     PostToolUseFailure hooks (matcher `*`) count the main agent's tool calls. Tool calls made inside
-    subagents never count. A stop is `{"continue": false, "stopReason": "<reason>"}`.
+    subagents never count.
+  - **Asking before stopping** (specs/008): when a turn reaches its stop line and a person can answer,
+    the plugin holds the next main-agent tool call with Claude Code's own approval prompt, carrying
+    the reason. The decision to ask is the brake's stop decision; the adapter only acts on it.
+    - Allow: the held call runs unchanged, and nothing is added to the agent's context. The next ask
+      point in that turn is twice the tool calls at which it last asked. Asking again only ever
+      gives the person another choice and never stops a run by itself, so it is not a stop rule
+      under the signal gate.
+    - Deny: the held call is refused with the reason, telling the agent to stop and sum up. Every
+      later main-agent tool call in that turn is refused the same way (the two-part stop, as in
+      Codex).
+    - Nobody can answer (headless runs, or permission prompts turned off): a stop is
+      `{"continue": false, "stopReason": "<reason>"}`, as before.
   - **Turns**: a run is one turn.
     - It starts at UserPromptSubmit, or at the first main-agent tool call after Stop (work woken by
       a background task).
@@ -176,13 +214,22 @@ an observability tool only when they control exactly what leaves the machine.
     real-use result (the builder's or a user's) MUST be recorded once it exists.
 - **No warn-first in v1**: feeding warnings back to the agent changes its trajectory and breaks
   exchangeability with the calibration runs. It may be added only with calibration done under
-  the same warnings.
+  the same warnings. Asking the person (specs/008) is not warn-first: an allowed call runs exactly
+  as it would have, and nothing reaches the agent; a denied call ends the turn like a stop. Asking
+  the agent itself whether it is stuck remains ruled out.
 - **Success labels**: a turn counts as successful when it reached Stop with no user interrupt and
   was not killed. Users can drop turns with `/loopbrake:exclude`.
   - **Mistaken stops**: a kill the user marked as a mistake counts in later calibrations as a
     successful turn longer than any stop line. Its real length is unknown, but it's above the line.
     So marking mistakes can only raise the line, and recalibrating can never quietly lower it.
   - **Other kills**: left out, as stuck turns.
+  - **Questions** (Claude Code, specs/008):
+    - a turn the person let continue counts as successful, with its real length, if it reaches Stop
+      with no user interrupt;
+    - a turn the person stopped is left out as stuck;
+    - a turn interrupted while a question was open is treated like any interrupted turn.
+
+    Marking a mistake stays for stops where nobody could be asked.
 - **State**: one append-only JSONL log per session at `~/.loopbrake/runs/<session_id>.jsonl`.
   It is the single source for live state, the dashboard and the status line. The status line
   ships as a CLI command because plugins cannot install one.
@@ -204,7 +251,7 @@ an observability tool only when they control exactly what leaves the machine.
 
   - **Plain words**: the dashboard MUST be readable by people who don't code.
     - One word per idea: "task", "action" (one tool call; a "?" explains it), "limit", "stopped",
-      "mistake".
+      "asked", "mistake".
     - Tools are named by what they did ("Ran a command", "Read a file").
     - τ, α, score, kill, step and run or session ids MUST NOT appear on screen. Ids appear only in
       page addresses.
@@ -285,6 +332,14 @@ an observability tool only when they control exactly what leaves the machine.
 
   **Decision record (2026-10-01)**: the cheap signals (`specs/001-offline-eval`) and the progress
   judge (`specs/002-progress-judge`) both got a NO-GO. Phase 2 starts with the step budget.
+
+  **Decision record (2026-10-12)**: in the owner's own Claude Code use, every stop hit a long,
+  productive turn. A "calls since the last edit" rule was checked on the same history and rejected:
+  - edits made through shell commands are invisible to it;
+  - big tasks often start with a long reading phase.
+
+  The step budget stays. In Claude Code, the plugin asks the person before it stops
+  (`specs/008-ask-before-stop`).
 - **Tests**: every non-trivial path (signals, conformal threshold, trace loaders, hook I/O) leaves
   at least one runnable check. pytest is the only test dependency.
 - **Simplicity**: the shortest design that works. No abstraction with a single implementation,
@@ -309,4 +364,4 @@ an observability tool only when they control exactly what leaves the machine.
   - MINOR: a principle or section is added or materially expanded.
   - PATCH: wording or clarifications only.
 
-**Version**: 2.6.2 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-03
+**Version**: 2.7.0 | **Ratified**: 2026-10-01 | **Last Amended**: 2026-10-12
