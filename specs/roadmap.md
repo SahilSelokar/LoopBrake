@@ -327,6 +327,15 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
   model the researcher agent, unscripted, paged through the whole catalog instead of searching, and
   LoopBrake stopped it.
 
+### Phase 4d: Ask before stopping (`008-ask-before-stop`, status: in progress)
+
+- **Why**: in the builder's own Claude Code use, every stop hit a long, productive turn. Length alone
+  can't tell a long good turn from a stuck one, and no smarter signal has passed the signal gate.
+- **What changes**: in Claude Code, when a person can answer, LoopBrake asks before the call that
+  passes the limit instead of ending the turn. Allow lets it continue and asks again at twice the
+  count; deny ends it as a stuck task. Headless sessions and sessions with permission prompts off stop
+  as before. The stop rule itself doesn't change (constitution 2.7.0).
+
 ### Phase 5: Launch (`005-launch`)
 
 - **Goal**: the public release and the video.

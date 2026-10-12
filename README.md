@@ -211,7 +211,7 @@ also looks stuck: its last few tool calls repeat each other. If it wasn't stuck,
 your good tasks will be stopped (5%), as long as your future tasks are like your past ones: the same
 kind of work, done the same way. When your work changes, run `/loopbrake:calibrate` again.
 
-**No uv?** Install `loopbrake==0.5.0` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
+**No uv?** Install `loopbrake==0.6.0` with pip, then set `LOOPBRAKE_CMD` to its full path, quoted,
 in the environment Claude Code starts from: `export LOOPBRAKE_CMD="'$(which loopbrake)'"`.
 
 **Troubleshooting.** If `/loopbrake:status` says "No tasks recorded here yet" after you have worked in the
@@ -481,6 +481,7 @@ liveness.py      the original naive rule, kept as the baseline
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Done: v0.3.0 |
 | 4b | **Codex CLI plugin**: the same live stops for OpenAI's Codex | Done: v0.4.0 |
 | 4c | **Your own agents, simply**: wrap the tools, mark each task, one brake per agent | Done: v0.5.0 |
+| 4d | **Ask before stopping**: in Claude Code, ask the person at the limit instead of ending the task | In progress |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
 
 The full plan is in [specs/roadmap.md](https://github.com/SahilSelokar/LoopBrake/blob/main/specs/roadmap.md).
