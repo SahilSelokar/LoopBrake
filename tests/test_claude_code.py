@@ -554,3 +554,13 @@ def test_where_nobody_can_answer_it_stops_as_before(home, monkeypatch, entry, mo
     assert out["continue"] is False and out["stopReason"].startswith("LoopBrake stopped this task after 4 tool calls.")
     assert out["stopReason"].endswith(" If it wasn't stuck, run /loopbrake:mistake, then tell Claude to continue.")
     assert not of(home, "ask") and not of(home, "approve") and "by" not in of(home, "stop")[0]
+
+
+
+def test_status_shows_questions_only_when_there_were_some():
+    rec = {"watch_only": False, "stop_line": 38, "created": "2026-10-12", "n": 758, "alpha": 0.05, "source": {}}
+    st = {"runs": 40, "watched": 40, "stopped": 2, "mistaken": 0, "allowance": 2.0, "asked": 0, "allowed": 0, "denied": 0}
+    assert "Questions" not in claude_code.status_message(rec, st)
+    lines = claude_code.status_message(rec, st | {"asked": 5, "allowed": 4, "denied": 1}).splitlines()
+    i = lines.index("  Tasks stopped: 2")
+    assert lines[i + 1] == "  Questions asked: 5 (you let 4 keep going, you stopped 1; about 2.0 expected by now)"

@@ -407,3 +407,50 @@ def test_codex_tasks_are_marked_and_named_by_their_folder(home):
     assert t["agent"] == "codex" and t["label"] == "demo"
     p = idx.project("codex-home-someone-demo-abc123")
     assert p["agent"] == "codex" and p["label"] == "demo"
+
+
+# ---- questions (specs/008-ask-before-stop, contracts/plugin-and-cli.md) ----
+
+def asked_task(run, verdict, project="demo"):
+    """A task asked at action 4 (line 3): allowed and finished at 6, or denied and stopped by the person at 3."""
+    calls = 6 if verdict == "allowed" else 3
+    ev = task_events(run, project=project, calls=calls)
+    ev.append({"event": "ask", "run": run, "step": 4, "ask_point": 4, "stop_line": 3,
+               "reason": "asked at step 4: past the stop line of 3 steps", "call_id": f"c{run}-4", "ts": ts(0, 3)})
+    ev.append({"event": "answer", "run": run, "ask_point": 4, "verdict": verdict, "call_id": f"c{run}-4" if verdict == "allowed" else None, "ts": ts(0, 2)})
+    if verdict == "denied":
+        ev.append({"event": "stop", "run": run, "step": 3, "stop_line": 3, "reason": "asked at step 4: past the stop line of 3 steps",
+                   "by": "person", "ts": ts(0, 2)})
+    ev.append({"event": "run_end", "run": run, "status": "finished" if verdict == "allowed" else "stopped", "steps": calls, "tokens": None, "ts": ts(0, 1)})
+    return ev
+
+
+def test_tasks_carry_their_questions_and_answers(home):
+    write(home, "s1", asked_task("yes", "allowed") + asked_task("no", "denied"))
+    idx = dashboard.Index(home)
+    idx.refresh()
+    yes, no = idx.task("s1", "yes"), idx.task("s1", "no")
+    assert yes["summary"]["asks"] == [{"at": 4, "answer": "allowed"}] and yes["summary"]["stopped_by"] is None
+    assert yes["summary"]["state"] == "finished" and yes["reason_text"] is None
+    assert no["summary"]["asks"] == [{"at": 4, "answer": "denied"}] and no["summary"]["stopped_by"] == "person"
+    assert no["reason_text"].startswith("You stopped this task after 3 actions, when LoopBrake asked.")
+    assert "LoopBrake stopped" not in no["reason_text"] and "step" not in no["reason_text"]
+
+
+def test_question_counts_in_the_overview_and_project(home):
+    calibrate(home, "demo", 3)
+    write(home, "s1", asked_task("yes", "allowed") + asked_task("no", "denied") + task_events("plain", calls=2, end="finished"))
+    idx = dashboard.Index(home)
+    idx.refresh()
+    o = idx.overview()
+    assert (o["asked"], o["allowed"]) == (2, 1)
+    [p] = [p for p in idx.projects() if p["name"] == "demo"]
+    assert (p["asked"], p["allowed"], p["stopped"]) == (2, 1, 1)
+
+
+def test_a_task_the_person_stopped_cannot_be_marked_a_mistake(home):
+    write(home, "s1", asked_task("no", "denied"))
+    idx = dashboard.Index(home)
+    idx.refresh()
+    code, body = dashboard._mark(idx, {"task": "s1/no"}, "mistaken_stop")
+    assert code == 400 and "you stopped" in body["error"].lower()

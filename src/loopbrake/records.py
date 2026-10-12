@@ -76,12 +76,18 @@ def status(h, project=None):
     watched = {r: e for r, e in starts.items() if not (e.get("calibration") or {}).get("watch_only", True)}
     stopped = {e["run"] for e in events if e.get("event") == "stop" and e.get("run") in starts}
     mistaken = {e["run"] for e in events if e.get("event") == "feedback" and e.get("verdict") == "mistaken_stop" and e.get("run") in starts}
+    # questions (specs/008): one per ask point, however many held calls repeated it
+    asked = {(e["run"], e.get("ask_point")) for e in events if e.get("event") == "ask" and e.get("run") in starts}
+    answers = [e.get("verdict") for e in events if e.get("event") == "answer" and e.get("run") in starts]
     return {
         "runs": len(starts),
         "watched": len(watched),
         "stopped": len(stopped),
         "mistaken": len(mistaken),
         "allowance": sum(e["calibration"].get("alpha", 0) for e in watched.values()),
+        "asked": len(asked),
+        "allowed": answers.count("allowed"),
+        "denied": answers.count("denied"),
     }
 
 

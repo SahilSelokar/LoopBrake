@@ -214,23 +214,23 @@ path or the fallback would be unsafe to release.
 "Questions asked: 2 (you let 1 keep going, you stopped 1)", and the dashboard shows both tasks with
 their answers.
 
-- [ ] T015 [P] [US4] Write failing status tests:
+- [X] T015 [P] [US4] Write failing status tests:
   - in `tests/test_records.py`: `records.status()` returns `asked` (ask points), `allowed` and
     `denied` per project;
   - in `tests/test_claude_code.py`: `status_message()` adds "Questions asked: N (you let M keep
     going, you stopped K)" right after "Tasks stopped", only when N > 0. The mistakes line counts
     only stops without `by: "person"`.
-- [ ] T016 [US4] Implement T015:
+- [X] T016 [US4] Implement T015:
   - in `src/loopbrake/records.py` `status()`;
   - in `src/loopbrake/claude_code.py` `status_message()`;
   - in `cli.py`, only if its status path needs the new fields.
-- [ ] T017 [P] [US4] Write failing dashboard tests in `tests/test_dashboard.py`:
+- [X] T017 [P] [US4] Write failing dashboard tests in `tests/test_dashboard.py`:
   - the task data from `dashboard.py` carries each ask point (the action number) and its answer;
   - the project summary carries `asked` and `allowed`;
   - a task stopped by the person reports it was stopped by the person;
   - the page words stay within the plain-words list, plus "asked";
   - the existing forbidden-words test still passes.
-- [ ] T018 [US4] Implement T017:
+- [X] T018 [US4] Implement T017:
   - in `src/loopbrake/dashboard.py`: task data and summary counts;
   - in `src/loopbrake/static/app.js`:
     - a marker "asked here", then "you let it keep going" or "you stopped it", at that action in the

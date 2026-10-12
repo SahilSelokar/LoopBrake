@@ -54,7 +54,9 @@ const TEXT = {
   whyLead: (median, limit, oneIn, at) => `${median ? `Tasks in this project usually take about ${median} actions. ` : ""}Good ones almost never need more than ${limit}: ${oneIn} go past it. This one reached ${at}.`,
   pictureNote: "Each dot is one of your past finished tasks here. The dashed line is the limit.",
   howItWent: "How it went",
-  finishedNote: (n, limit) => `Finished normally after ${n === 1 ? "1 action" : `${n} actions`}${limit != null ? `, under the limit of ${limit}` : ""}.`,
+  finishedNote: (n, limit) => (limit != null && n > limit
+    ? `Finished after ${n} actions, past the limit of ${limit}: you let it keep going when LoopBrake asked.`
+    : `Finished normally after ${n === 1 ? "1 action" : `${n} actions`}${limit != null ? `, under the limit of ${limit}` : ""}.`),
   interruptedNote: "A new message came in before this task finished.",
   liveNote: "Your agent is working on this right now. This page updates by itself.",
   idleNote: "Nothing new has happened in this task for a day.",
@@ -93,6 +95,13 @@ const TEXT = {
   seenN: (n) => (n === 1 ? "1 task seen" : `${n} tasks seen`),
   stoppedN: (n) => `${n} stopped`,
   mistakes: (n, expected) => `${n === 1 ? "1 marked" : `${n} marked`} as a mistake (expected by now: ${expected})`,
+  askedN: (n, m) => `asked ${n}, you let ${m} keep going`,
+  askedHere: "Asked here",
+  askedAfter: "Asked after this",
+  letGo: "you let it keep going",
+  youStopped: "you stopped it",
+  youStoppedTitle: "You stopped it",
+  youStoppedLead: (at) => `LoopBrake asked before action ${at}, and you chose to stop the task there. It counts as a stuck task, so the next limit won't learn from it.`,
   fewerThanOne: "fewer than 1",
   aboutN: (x) => `about ${x}`,
   recentTasks: "Recent tasks",
@@ -150,8 +159,9 @@ const HELP = {
   leaveOut: ["Leave out", "Tell LoopBrake not to learn from this task, for example one that went badly."],
   watching: ["Watching only", "LoopBrake counts actions but stops nothing until a project has enough finished tasks to set a limit."],
   repeated: ["Repeated", "An action very much like one of the 10 before it. A few are normal; many in a row usually mean the agent is going in circles."],
+  asked: ["Asked", "In Claude Code, at the limit LoopBrake asks you before the next action instead of stopping the task. Yes lets it keep going and it asks again at twice that; No stops it."],
 };
-const WORDS = ["task", "action", "limit", "mistake", "repeated"];
+const WORDS = ["task", "action", "limit", "asked", "mistake", "repeated"];
 
 // What each Claude Code tool did, in words: [what it did, icon, the field worth showing, "the same ..."].
 const TOOLS = {
@@ -331,6 +341,15 @@ const mistakeButton = (t, cls = "") => h("button", { class: `button ${cls}`, typ
 const leaveOutButton = (t) => h("button", { class: "button quiet", type: "button",
   onclick: () => act("/api/exclude", { task: t.id }, TEXT.leaveOutTitle, TEXT.leaveOutText, TEXT.leaveOut) }, icon("funnel"), TEXT.leaveOut);
 const doneTag = (text) => h("span", { class: "tag ok" }, icon("check"), text);
+
+// Where LoopBrake asked (specs/008): on the held action when it ran (yes, or no answer yet), or after the
+// last action when the person said no (the held action never ran).
+function askTag(s, n) {
+  const a = (s.asks || []).find((q) => (q.answer === "denied" ? q.at - 1 : q.at) === n);
+  if (!a) return null;
+  const said = a.answer === "allowed" ? ` · ${TEXT.letGo}` : a.answer === "denied" ? ` · ${TEXT.youStopped}` : "";
+  return h("span", { class: "tag asked" }, icon("circle-help"), (a.answer === "denied" ? TEXT.askedAfter : TEXT.askedHere) + said);
+}
 
 // ---- shared pieces ----
 
@@ -606,7 +625,12 @@ async function task(session, run) {
       h("p", { class: "sub" }, [dayTime(s.started), took ? TEXT.took(took) : null].filter(Boolean).join(" · "))), chip(s))];
 
   let verdict;
-  if (s.state === "stopped") {
+  const denied = (s.asks || []).find((a) => a.answer === "denied");
+  if (s.state === "stopped" && s.stopped_by === "person") {
+    verdict = h("section", { class: "card why" }, h("h2", {}, icon("user"), TEXT.youStoppedTitle, help("asked")),
+      h("p", { class: "lead" }, TEXT.youStoppedLead(denied ? denied.at : s.stop_at + 1)),
+      p && p.lengths ? [pastStrip(p.lengths, s.limit, s.stop_at), h("p", { class: "muted small" }, TEXT.pictureNote, help("limit"))] : null);
+  } else if (s.state === "stopped") {
     const median = p && p.median ? Math.round(p.median) : null;
     verdict = h("section", { class: "card why" }, h("h2", {}, icon("triangle-alert"), TEXT.whyTitle),
       h("p", { class: "lead" }, TEXT.whyLead(median, s.limit, oneIn(p ? p.alpha : 0.05), s.stop_at), " ", symptom(s)),
@@ -641,7 +665,8 @@ async function task(session, run) {
       h("span", { class: "what" }, h("span", { class: "verb" }, c.d.verb), h("span", { class: "detail" }, c.d.detail)),
       h("span", { class: "tags" }, c.failed ? h("span", { class: "tag failed" }, icon("x"), TEXT.failed) : null,
         c.repeats ? h("span", { class: "tag repeat" }, icon("repeat"), TEXT.repeated) : null,
-        c.n === s.stop_at ? h("span", { class: "chip stopped" }, icon("octagon-x"), TEXT.stopped) : null),
+        askTag(s, c.n),
+        c.n === s.stop_at && s.stopped_by !== "person" ? h("span", { class: "chip stopped" }, icon("octagon-x"), TEXT.stopped) : null),
       h("span", { class: "when" }, clock(c.ts, true), c.duration_ms != null ? ` · ${dur(c.duration_ms)}` : "")),
     h("div", { class: "full" }, h("code", {}, c.d.raw),
       h("div", { class: "actions" }, h("button", { class: "button small quiet", type: "button", onclick: async () => {
@@ -683,6 +708,7 @@ async function project(name) {
       onclick: () => act("/api/recalibrate", { project: p.name }, TEXT.setAgainTitle, TEXT.setAgainText, TEXT.setAgainOk) }, icon("refresh-cw"), TEXT.setAgain)) : null);
   const so = h("section", { class: "card" }, h("h2", {}, icon("activity"), TEXT.soFar),
     h("p", {}, [TEXT.seenN(p.seen), TEXT.stoppedN(p.stopped)].join(", ")),
+    p.asked ? h("p", {}, TEXT.askedN(p.asked, p.allowed), help("asked")) : null,
     h("p", { class: "muted" }, TEXT.mistakes(p.mistaken, about(p.normal_mistakes)), help("mistake")));
   return [h("a", { class: "back", href: "#/projects" }, icon("chevron-left"), TEXT.back),
     h("div", { class: "head" }, h("div", { class: "grow" }, h("h1", {}, p.label),

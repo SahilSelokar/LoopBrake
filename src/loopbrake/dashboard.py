@@ -158,7 +158,7 @@ class Index:
                 "started": e.get("ts"), "ended": None, "last_ts": e.get("ts"), "end_status": None, "calls": 0,
                 "limit": cal.get("stop_line") if watched else None, "watched": watched, "alpha": cal.get("alpha"),
                 "n": cal.get("n"), "stop_at": None, "stop_ts": None, "reason": None, "marks": set(), "tokens": None,
-                "first_call": None}
+                "first_call": None, "asks": {}, "stop_by": None}
             self.by_run[run] = tid
             if e.get("folder"):  # a Codex task names its folder (specs/006, data-model.md)
                 self._folders[project] = e["folder"]
@@ -168,7 +168,12 @@ class Index:
             return
         if kind == "stop":
             t["stop_at"], t["stop_ts"], t["reason"], t["last_ts"] = e.get("step"), e.get("ts"), e.get("reason"), e.get("ts")
+            t["stop_by"] = e.get("by")
             self.last_stop = t["id"]
+        elif kind == "ask":  # a question (specs/008): one per ask point, however many calls repeated it
+            t["asks"].setdefault(e.get("ask_point"), None)
+        elif kind == "answer":
+            t["asks"][e.get("ask_point")] = e.get("verdict")
         elif kind == "run_end":
             t["end_status"], t["ended"], t["tokens"], t["last_ts"] = e.get("status"), e.get("ts"), e.get("tokens"), e.get("ts")
         elif kind == "feedback":
@@ -228,7 +233,8 @@ class Index:
                 "symptoms": claude_code.reason_codes(t["reason"])[1:] if t["stop_at"] is not None else [],
                 "state": state, "status": LABELS[state], "started": t["started"], "ended": t["ended"],
                 "calls": t["calls"], "limit": t["limit"], "stop_at": t["stop_at"], "marks": sorted(t["marks"]),
-                "tokens": tokens}
+                "tokens": tokens, "asks": [{"at": k, "answer": v} for k, v in sorted(t["asks"].items(), key=lambda kv: kv[0] or 0)],
+                "stopped_by": t["stop_by"]}
 
     def _all(self):
         now = datetime.now(timezone.utc)
@@ -259,6 +265,8 @@ class Index:
         stops = sorted((t for t in tasks if t["state"] == "stopped"), key=lambda t: raw[t["id"]]["stop_ts"] or "", reverse=True)
         return {
             "seen": len(tasks),
+            "asked": sum(len(t["asks"]) for t in tasks),
+            "allowed": sum(a["answer"] == "allowed" for t in tasks for a in t["asks"]),
             "stopped": sum(t["state"] == "stopped" for t in tasks),
             "mistaken": sum("mistaken" in t["marks"] for t in tasks),
             "normal_mistakes": sum(raw[t["id"]]["alpha"] or 0 for t in tasks if raw[t["id"]]["watched"]),
@@ -306,7 +314,8 @@ class Index:
             c["repeats"] = score == 1.0  # explanation only: same as one of the previous 10 calls
         reason = None
         if t["stop_at"] is not None:
-            reason = claude_code.plain_stop(t["stop_at"], t["limit"], t["n"], t["alpha"], t["reason"], NEXT_STEP, unit="actions")
+            reason = claude_code.plain_stop(t["stop_at"], t["limit"], t["n"], t["alpha"], t["reason"], NEXT_STEP, unit="actions",
+                                            by=t["stop_by"])
         lo = page * PAGE
         return {"summary": summary, "reason_text": reason, "calls": calls[lo:lo + PAGE], "page": page,
                 "more": len(calls) > lo + PAGE, "total": len(calls)}
@@ -343,6 +352,8 @@ class Index:
                 "seen": len(mine), "watched": len(watched), "stopped": sum(t["state"] == "stopped" for t in mine),
                 "mistaken": sum("mistaken" in t["marks"] for t in mine),
                 "normal_mistakes": sum(raw[t["id"]]["alpha"] or 0 for t in watched),
+                "asked": sum(len(t["asks"]) for t in mine),
+                "allowed": sum(a["answer"] == "allowed" for t in mine for a in t["asks"]),
             })
         return out
 
@@ -523,6 +534,8 @@ def _mark(index, body, verdict):
     state = index._state(t, datetime.now(timezone.utc))
     if verdict == "mistaken_stop" and t["stop_at"] is None:
         return 400, {"error": "Only a stopped task can be marked as a mistake."}
+    if verdict == "mistaken_stop" and t["stop_by"] == "person":
+        return 400, {"error": "You stopped this task yourself when LoopBrake asked, so it can't be a mistake."}
     if verdict == "exclude" and state in ("running", "idle"):
         return 400, {"error": "Wait until this task ends."}
     try:

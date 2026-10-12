@@ -161,12 +161,15 @@ _SYMPTOMS = (("same error", "same_error", "it keeps hitting the same error"),
              ("nothing new", "nothing_new", "its last few {unit} turned up nothing new"))
 
 
-def plain_stop(step, limit, n, alpha, reason, next_step, unit="tool calls"):
+def plain_stop(step, limit, n, alpha, reason, next_step, unit="tool calls", by=None):
     """A stop in plain words (Phase 3 FR-013), from plain values, so the hook, the dashboard and export
     share it. `next_step` is the closing sentence, which differs per surface; so does `unit`: Claude
-    Code says "tool calls", the dashboard "actions" (constitution 2.5.0)."""
+    Code says "tool calls", the dashboard "actions" (constitution 2.5.0). `by="person"`: the person
+    stopped it when LoopBrake asked (specs/008)."""
     based = f"Based on your {n} past successful tasks in this project, good" if n else "Good"
-    text = (f"LoopBrake stopped this task after {step} {unit}. {based} tasks almost never need more "
+    opening = (f"You stopped this task after {step} {unit}, when LoopBrake asked." if by == "person"
+               else f"LoopBrake stopped this task after {step} {unit}.")
+    text = (f"{opening} {based} tasks almost never need more "
             f"than {limit} ({one_in(alpha or 0.05)} do).")
     symptom = next((plain for key, _, plain in _SYMPTOMS if key in (reason or "")), None)
     if symptom:
@@ -316,8 +319,11 @@ def status_message(rec, st, how=HOW, nothing=NOTHING):
     else:
         lines.append(f"  Stop line: {_n(rec['stop_line'], 'tool call')} per task (set {rec['created']} from {_n(rec['n'], 'past successful task')}).")
     lines += [f"  Tasks seen: {st['runs']} (the stop line was on for {st['watched']})",
-              f"  Tasks stopped: {st['stopped']}",
-              f"  Stops you marked as mistakes: {st['mistaken']} (up to about {st['allowance']:.1f} would be normal by now)"]
+              f"  Tasks stopped: {st['stopped']}"]
+    if st.get("asked"):
+        lines.append(f"  Questions asked: {st['asked']} (you let {st['allowed']} keep going, you stopped {st['denied']}; "
+                     f"about {st['allowance']:.1f} expected by now)")
+    lines.append(f"  Stops you marked as mistakes: {st['mistaken']} (up to about {st['allowance']:.1f} would be normal by now)")
     if rec is not None and st["runs"] == 0:
         lines.append(f"  {nothing}")
     return "\n".join(lines)

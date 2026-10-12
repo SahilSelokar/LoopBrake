@@ -19,15 +19,17 @@ The `hook` subcommand's `event` choices gain `pre-tool`. The launcher's pinned v
 
 ## `/loopbrake:status` (and `loopbrake status --claude-code`)
 
-There are two new lines after "Tasks stopped". They show only when the project has had at least one
+There is one new line after "Tasks stopped". It shows only when the project has had at least one
 question:
 
 ```text
   Tasks stopped: 2
-  Questions asked: 5 (you let 4 keep going, you stopped 1)
+  Questions asked: 5 (you let 4 keep going, you stopped 1; about 2.0 expected by now)
 ```
 
 - "Tasks stopped" still counts every stop, the person's included.
+- "Expected by now" is the same allowance as the mistakes line (α × tasks watched): on good tasks,
+  about that many questions are expected (spec FR-014).
 - The mistakes line is unchanged. It counts only stops made where nobody could be asked.
 
 ## Dashboard (plain words, constitution 2.7.0)

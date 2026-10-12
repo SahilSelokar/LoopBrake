@@ -185,6 +185,7 @@ main > * { min-width: 0; }
 .tag.failed { background: var(--redtint); }
 .tag.failed .icon { background: var(--red); color: var(--ink); border-radius: 50%; padding: 1px; width: 15px; height: 15px; }
 .tag.repeat { background: var(--softtint); }
+.tag.asked { background: var(--softtint); }
 .tag.ok { background: var(--greentint); }
 
 /* buttons, filters, the theme switch */

@@ -68,6 +68,23 @@ def test_status_counts(home):
     assert records.status(home, project="other")["runs"] == 0
 
 
+def test_status_counts_questions(home):
+    """specs/008: questions are ask points; each has at most one answer."""
+    w = records.RunWriter(home / "runs" / "s.jsonl")
+    for i in range(4):
+        start(w, f"r{i}")
+    ask = lambda run, point, call: w.write({"event": "ask", "session": "s", "run": run, "step": point, "ask_point": point, "stop_line": 9, "reason": "x", "call_id": call})
+    answer = lambda run, point, verdict: w.write({"event": "answer", "session": "s", "run": run, "ask_point": point, "verdict": verdict, "call_id": None})
+    ask("r0", 10, "a"), answer("r0", 10, "allowed")
+    ask("r1", 10, "b"), answer("r1", 10, "denied")
+    w.write({"event": "stop", "session": "s", "run": "r1", "step": 9, "stop_line": 9, "reason": "x", "by": "person"})
+    ask("r2", 10, "c"), ask("r2", 10, "d"), answer("r2", 10, "allowed"), ask("r2", 20, "e"), answer("r2", 20, "allowed")
+    ask("r3", 10, "f")  # still open
+    st = records.status(home)
+    assert (st["asked"], st["allowed"], st["denied"], st["stopped"]) == (5, 3, 1, 1)
+    assert records.status(home, project="other")["asked"] == 0
+
+
 def test_feedback_and_exclude(home):
     w = records.RunWriter(home / "runs" / "s.jsonl")
     start(w, "r1")
