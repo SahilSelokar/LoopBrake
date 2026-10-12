@@ -180,4 +180,5 @@ anything (constitution, Codex "Trust").
 | Check | Date, version | Result |
 |---|---|---|
 | Headless (quickstart §2, T014) | 2026-10-12, Claude Code 2.1.289, dev checkout through `LOOPBRAKE_CMD` and `--plugin-dir plugin` | **Pass.** `claude -p` (Haiku) asked to run `echo hi` 10 times with line 3: 4 commands ran, then the turn stopped with the 0.5.0 reason. The log has steps 1 to 4 and `stop` at 4 with no `by` field, and no `ask` or `approve` record. |
+| Agreement baseline (T024, before real 0.6.0 use) | 2026-10-12, dev checkout on the builder's main Claude Code project | **Pass.** `loopbrake agreement --claude-code`: 247 turns matched, 157 equal, 90 live lower, **0 live higher**. These are 0.5.0-recorded turns; counting is unchanged in 0.6.0 (`pre-tool` counts nothing). The release check repeats this after real use with 0.6.0. |
 | M1 to M6 (interactive) | not yet | The builder runs these before release (T023). |

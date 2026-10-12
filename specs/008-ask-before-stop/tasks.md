@@ -279,7 +279,7 @@ that good tasks get "stopped" at the old rate.
 
 ## Phase 8: Polish and release
 
-- [ ] T022 Run `uv run pytest -q`. Everything must pass, including `tests/test_codex.py`,
+- [X] T022 Run `uv run pytest -q`. Everything must pass, including `tests/test_codex.py`,
   `tests/test_agent_sdk.py`, `tests/test_otlp.py` (export unchanged, FR-016) and
   `tests/test_no_network.py`.
 - [ ] T023 Builder, by hand, in interactive Claude Code: run quickstart.md §3 checks M1 to M6 with
