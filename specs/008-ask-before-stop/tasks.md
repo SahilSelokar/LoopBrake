@@ -295,7 +295,7 @@ that good tasks get "stopped" at the old rate.
   than the history's. Record the result in research.md.
 - [X] T025 Update `specs/roadmap.md` and the README Roadmap and Status to "Phase 4d done, v0.6.0"
   with the date, then commit.
-- [ ] T026 Builder go-ahead required: push the branch, merge it to main, and tag `v0.6.0`. The
+- [X] T026 Builder go-ahead required: push the branch, merge it to main, and tag `v0.6.0`. The
   `.github/workflows/publish.yml` workflow publishes to PyPI through trusted publishing (constitution,
   Releases). Then check
   that `uvx loopbrake==0.6.0 --version` works.
