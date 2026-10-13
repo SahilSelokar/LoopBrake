@@ -192,3 +192,16 @@ Hand check details (the dialog text was read from the terminal screen):
 - **M5, `--permission-mode bypassPermissions`**: no question; the turn stopped at call 4 with the 0.5.0 message (`stop` at 4, no `by`).
 - **M6, `--permission-mode acceptEdits`**: the question still appeared at 4 and at 8; both allowed, all 10 ran.
 - The default interactive mode was reported as `auto` in some sessions and `default` in others; both are in the can-ask set.
+
+## Release checks (v0.6.0, 2026-10-13)
+
+- **Tests**: 303 passed, 1 skipped.
+- **Launcher speed**, plugin launcher against the local 0.6.0 wheel (`UV_FIND_LINKS`), a session that
+  can ask, 100 calls each: `pre-tool` 80 ms median and 88 ms p95; `tool` 80 ms median and 94 ms p95.
+  Both are under 200 ms. All 100 steps were recorded.
+- **Agreement, Claude Code**, the builder's real use: 299 turns matched, 186 equal, 113 live lower,
+  **0 live higher**.
+- **Agreement, Codex**: 0 turns matched. The 0.4.0 test sessions were recorded under a scratch
+  LoopBrake home, so there is nothing live to compare, and the builder still has no real Codex use.
+  The Codex adapter and its hooks are unchanged in 0.6.0 (only the launcher's pinned version moves),
+  and its tests pass. The first real-use result is still owed (constitution 2.6.2).

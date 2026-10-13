@@ -1,6 +1,6 @@
 # LoopBrake Roadmap: Outcomes, Architecture and Phases
 
-**Date**: 2026-10-01 | **Constitution**: v2.5.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 is done: the dashboard and OpenTelemetry export ship with v0.3.0 (2026-10-02). Phase 4b is done: the Codex CLI plugin ships with v0.4.0 (2026-10-02). Phase 4c is done: the simple agent API ships with v0.5.0 (2026-10-03). Next: Launch.
+**Date**: 2026-10-01 | **Constitution**: v2.5.0 | **Status**: Phase 1 and the progress-judge experiment are done, both NO-GO. Decision: v1 ships the calibrated step budget. Phase 2 is done: v0.1.0 is on PyPI (2026-10-01). Phase 3 is done: the Claude Code plugin ships with v0.2.1 (2026-10-02, PyPI and this repo's marketplace). Phase 4 is done: the dashboard and OpenTelemetry export ship with v0.3.0 (2026-10-02). Phase 4b is done: the Codex CLI plugin ships with v0.4.0 (2026-10-02). Phase 4c is done: the simple agent API ships with v0.5.0 (2026-10-03). Phase 4d is done: in Claude Code, LoopBrake asks before it stops, v0.6.0 (2026-10-13). Next: Launch.
 
 This is the master plan for the whole project. Each phase becomes its own Spec Kit feature
 (`specs/00N-*`) and goes through `/speckit-specify`, then `/speckit-plan`, `/speckit-tasks` and
@@ -327,7 +327,7 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
   model the researcher agent, unscripted, paged through the whole catalog instead of searching, and
   LoopBrake stopped it.
 
-### Phase 4d: Ask before stopping (`008-ask-before-stop`, status: in progress)
+### Phase 4d: Ask before stopping (`008-ask-before-stop`, status: done, v0.6.0 on 2026-10-13)
 
 - **Why**: in the builder's own Claude Code use, every stop hit a long, productive turn. Length alone
   can't tell a long good turn from a stuck one, and no smarter signal has passed the signal gate.
@@ -335,6 +335,10 @@ A stdlib OTLP/HTTP **JSON** exporter (`urllib` + `json`).
   passes the limit instead of ending the turn. Allow lets it continue and asks again at twice the
   count; deny ends it as a stuck task. Headless sessions and sessions with permission prompts off stop
   as before. The stop rule itself doesn't change (constitution 2.7.0).
+- **Checked**: 303 unit tests; a headless Claude Code run (stops as before); six hand checks in
+  interactive Claude Code, driven through a terminal (allow, deny, a batch at the line, the terminal's
+  entrypoint, bypass mode, auto-accept edits); the launcher at 80 ms median per hook call; the
+  live/history agreement on the builder's real use (299 turns, none higher).
 
 ### Phase 5: Launch (`005-launch`)
 

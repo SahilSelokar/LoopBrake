@@ -290,10 +290,10 @@ that good tasks get "stopped" at the old rate.
   - **M4**: if the terminal's `CLAUDE_CODE_ENTRYPOINT` isn't `cli`, update research R3 and
     `can_ask()` (T006). A missing variable means "can't ask".
   - **M5** and **M6**: any difference from the expected result blocks the release.
-- [ ] T024 Builder: before release, run `loopbrake agreement --claude-code` on real use with the dev
+- [X] T024 Builder: before release, run `loopbrake agreement --claude-code` on real use with the dev
   checkout (constitution, "Same turns live and in calibration"). It must report no live count higher
   than the history's. Record the result in research.md.
-- [ ] T025 Update `specs/roadmap.md` and the README Roadmap and Status to "Phase 4d done, v0.6.0"
+- [X] T025 Update `specs/roadmap.md` and the README Roadmap and Status to "Phase 4d done, v0.6.0"
   with the date, then commit.
 - [ ] T026 Builder go-ahead required: push the branch, merge it to main, and tag `v0.6.0`. The
   `.github/workflows/publish.yml` workflow publishes to PyPI through trusted publishing (constitution,

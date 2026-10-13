@@ -504,17 +504,19 @@ liveness.py      the original naive rule, kept as the baseline
 | 4 | **Observability**: live dashboard, plus export to Datadog, Grafana and others via OpenTelemetry | Done: v0.3.0 |
 | 4b | **Codex CLI plugin**: the same live stops for OpenAI's Codex | Done: v0.4.0 |
 | 4c | **Your own agents, simply**: wrap the tools, mark each task, one brake per agent | Done: v0.5.0 |
-| 4d | **Ask before stopping**: in Claude Code, ask the person at the limit instead of ending the task | In progress |
+| 4d | **Ask before stopping**: in Claude Code, ask the person at the limit instead of ending the task | Done: v0.6.0 |
 | 5 | **Launch**: a demo agent, the public release and a video | Planned |
 
 The full plan is in [specs/roadmap.md](https://github.com/SahilSelokar/LoopBrake/blob/main/specs/roadmap.md).
 
 ## Status
 
-v0.5.0 is on PyPI (`pip install loopbrake`), with plugins for Claude Code and Codex CLI in this
+v0.6.0 is on PyPI (`pip install loopbrake`), with plugins for Claude Code and Codex CLI in this
 repository. The stop rule is a stop line on run length, set from your own past successful runs, with
-a guaranteed limit on stopping good runs. v0.5.0 makes it simple in your own agents: wrap the tools,
-mark each task, and give each agent in a team its own brake. Next: the launch, and integrations with
+a guaranteed limit on stopping good runs. In Claude Code, v0.6.0 asks you at the limit instead of
+ending the task: allow it and the task goes on, deny it and the task ends as stuck; where nobody can
+answer, it stops as before. Your own agents get the simple API from v0.5.0: wrap the tools, mark each
+task, and give each agent in a team its own brake. Next: the launch, and integrations with
 agent frameworks ([help wanted](https://github.com/SahilSelokar/LoopBrake/blob/main/CONTRIBUTING.md)).
 
 ## License
